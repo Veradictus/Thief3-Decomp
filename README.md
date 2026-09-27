@@ -1,116 +1,161 @@
-# Thief: Deadly Shadows decompilation
+# Thief: Deadly Shadows modding SDK
 
-A work-in-progress matching decompilation of **Thief: Deadly Shadows** (Ion
-Storm, 2004) for PC: C++ source that Visual C++ .NET 2003 compiles back into
-byte-identical functions of `T3Main.exe`.
+**T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
+It loads into your installed copy of the game, gives mods access to the engine
+(objects, names, the engine log, function hooks) and fixes the PC version's
+display problems. The goal is mods as large as multiplayer. The repository
+also holds the reverse-engineering workbench used to find what the SDK hooks.
 
-This repository contains no game code or assets. You need your own copy of the
-game.
+## Buy the damn game
 
-| | |
-|---|---|
-| Target | `System/T3Main.exe` from the Steam release |
-| SHA-1 | `40bf68a54246bcde2fb5fcbc75b94dc7c7f78305` |
-| Version ID | `PC_20040610` (the executable's build date) |
-| Compiler | Microsoft C/C++ 13.10.3077 (Visual C++ .NET 2003), `/O2 /GX` |
-| Progress | 0 of 40,585 functions (baseline) |
+**BUY THE DAMN GAME. IT'S WORTH IT.**
 
-[docs/target.md](docs/target.md) describes what is in the executable and how
-that was established.
+And while you're at it, **buy the whole classic trilogy**:
+[*Thief Gold*](https://store.steampowered.com/app/211600/),
+[*Thief II: The Metal Age*](https://store.steampowered.com/app/211740/) and
+[*Thief: Deadly Shadows*](https://store.steampowered.com/app/6980/). They're on
+Steam, and they're on sale about half the time, so the lot costs less than a
+fence would pay Garrett for a single candlestick.
 
-## Setup
+Loved them? **Leave the classics a glowing review on Steam.** They've earned
+it, and it helps the next taffer find them.
 
-Requires Python 3.10+. Windows is the primary platform. On Linux and macOS
-the compiler runs under [wibo](https://github.com/decompals/wibo), which is
-downloaded automatically.
+As for *Thief* (2014): we don't talk about *Thief* (2014). Its Garrett isn't
+even voiced by Stephen Russell. If you've played it, you already know what to
+write in your review. Honesty is a virtue, even among thieves.
 
-1. Install the Python dependencies:
+Stealing is Garrett's job, not yours. Don't pirate the game, and don't share
+its files, with this project or with anyone else. Only a taffer would.
 
-   ```sh
-   python -m venv .venv
-   .venv/Scripts/pip install -r requirements.txt   # .venv/bin/pip elsewhere
-   ```
+T3SDK is not the game and contains none of it: no game code, no assets,
+nothing you could play. It modifies a copy you own, in memory, while it runs.
+Every copy sold tells whoever owns the series today that people still play
+these games and care about them, and paying for the games we mod is how we
+support the developers who make them.
 
-2. Copy `System/T3Main.exe` from your game folder to `orig/PC_20040610/`.
+The SDK supports the Steam release of Thief: Deadly Shadows (patch 1.1):
+<https://store.steampowered.com/app/6980/>. Other releases are detected and
+left untouched.
 
-3. **Windows only:** `cl.exe` 13.10 needs `msvcr71.dll` and `msvcp71.dll`
-   (the Visual C++ .NET 2003 runtime), which current Windows doesn't ship.
-   Many games from 2003-2006 include both in their folder (for example
-   *Prince of Persia: The Sands of Time* on Steam). Point `configure.py` at such
-   a folder.
+## Legal
 
-4. Configure and build:
+- T3SDK is a fan project. It is not affiliated with or endorsed by Ion Storm,
+  Eidos Interactive or the current owners of the Thief series. *Thief* and
+  *Thief: Deadly Shadows* are trademarks of their respective owners and are
+  used here only to name the game this software works with.
+- The repository holds only original work: the SDK, the tools, and notes on
+  how the game works (addresses, data layouts, file formats) written so that
+  mods can interoperate with it. It contains no files from the game, no game
+  assets and no game code, decompiled or otherwise.
+- The tools only read your own installed copy. What they produce from it
+  (Ghidra databases, split objects, decompiler output, extracted assets) stays
+  on your machine in ignored folders (`orig/`, `ghidra/`, `build/`). Don't
+  commit or redistribute any of it; extracted assets are for your own modding.
+- T3SDK does not circumvent copy protection and does not touch DRM components.
+  On a Steam install, `tools/sdk.py run` starts the game through Steam, as the
+  Play button does.
+- The SDK changes the game only in memory while it runs. `deploy` adds its own
+  files to the game's `System/` folder, and `undeploy` removes exactly those.
+- The software is provided as is, without warranty of any kind. Back up your
+  saves before modding.
 
-   ```sh
-   .venv/Scripts/python configure.py --msvc-runtime "<folder with msvcr71.dll and msvcp71.dll>"
-   .venv/Scripts/ninja
-   ```
+## Using the SDK
 
-`ninja` downloads the pinned tools (objdiff-cli, delink, the MSVC 7.1
-compiler), splits `T3Main.exe` into objects, compiles `src/`, and prints
-progress. It reruns `configure.py` by itself when the configuration changes.
+See [docs/sdk.md](docs/sdk.md) for the settings, the built-in fixes, the tools
+and the mod API's lifecycle and threading rules.
 
-## How it fits together
-
-```
-orig/PC_20040610/T3Main.exe ─┐
-config/PC_20040610/symbols.txt ─┼─ tools/delink_model.py ─ delink ─> build/PC_20040610/obj/  (target objects)
-config/PC_20040610/splits.txt ─┘                                          │
-                                                                          ├─ objdiff
-src/**/*.cpp ─────────── cl.exe 13.10 ───────────> build/PC_20040610/src/  (base objects)
-```
-
-- **`config/PC_20040610/symbols.txt`** lists every function and named object
-  (dtk format: `name = .text:0xADDRESS; // type:function size:0x..`). It is the
-  source of truth for names and function boundaries. It was bootstrapped from
-  Ghidra and is edited by hand from then on.
-- **`config/PC_20040610/splits.txt`** declares the translation units found so
-  far. Functions no unit claims are grouped into `auto/text_<ADDRESS>` units.
-- **`tools/delink_model.py`** combines both with the executable into the input
-  for [delink](https://github.com/dbalatoni13/delink), recovering absolute
-  relocations with iced-x86 (the exe has no relocation table).
-- **delink** cuts the executable into COFF objects. **objdiff** compares them
-  with what `src/` compiles to.
-
-## Decompiling a function
-
-1. Declare its translation unit in `splits.txt` (the `.text` range may not cut
-   through a function), and add options for it to `UNITS` in `configure.py`
-   when it needs any.
-2. Write the code in `src/<unit path>.cpp`.
-3. Rename the function in `symbols.txt` to its MSVC decorated name (e.g.
-   `?Close@FHandlePair@@QAEXXZ`) so objdiff pairs it with your compiled function.
-4. Run `ninja`, then open the repository folder as the project in
-   [objdiff](https://github.com/encounter/objdiff) to diff.
-
-[decomp.me](https://decomp.me) has the same compiler for scratches: platform
-"Windows (9x/NT)", compiler "Microsoft Visual C/C++ 7.1 .NET 2003".
-
-## Ghidra
-
-`tools/ghidra_headless.py` drives a local Ghidra 12 database in `ghidra/`:
+Requires Windows, Python 3.10+, and Visual Studio 2022 or newer with
+"Desktop development with C++" (the SDK is built for 32-bit x86, like the game).
 
 ```sh
-python tools/ghidra_headless.py bootstrap   # import, analyse, find missed functions, export symbols.txt (~12 min)
+python -m venv .venv
+.venv/Scripts/pip install -r requirements.txt
+
+.venv/Scripts/python tools/sdk.py build     # dinput8.dll + example mod into build/sdk/bin/
+.venv/Scripts/python tools/sdk.py deploy    # copy into the game's System/ folder
+.venv/Scripts/python tools/sdk.py run       # start the game (through Steam)
+.venv/Scripts/python tools/sdk.py log       # show System/T3SDK.log
+.venv/Scripts/python tools/sdk.py undeploy  # remove everything deploy installed
 ```
 
-Open `ghidra/T3Main.gpr` in the Ghidra GUI to browse and decompile. The
-bootstrap overwrites `symbols.txt`, so after names have been added by hand,
-use `export -o <file>` and merge.
+The game folder is found through the registry entry the game's installer
+writes. Pass `--game-dir` to override it.
+
+The SDK installs itself as `System/dinput8.dll`, which the game loads at
+startup, and forwards DirectInput to the real system DLL. It does not replace
+`d3d8.dll`, so it coexists with Sneaky Upgrade's Direct3D wrappers. Settings
+live in `System/T3SDK.ini`. Besides the mod API, it fixes the PC version's
+display: the monitor's native resolution, a borderless window instead of
+exclusive fullscreen (alt-tab and screenshots work), menus laid out for
+widescreen, and skipping the start-up logo movies.
+
+## Writing a mod
+
+A mod is a 32-bit DLL in `System/mods/` that exports `T3Mod_Init` and receives
+the API table from [sdk/include/t3sdk/t3sdk.h](sdk/include/t3sdk/t3sdk.h):
+
+```c
+#include <t3sdk/t3sdk.h>
+
+static const T3SdkApi* api;
+
+static void T3SDK_CALL OnFrame(void* user) {
+    if (api->EngineReady()) {
+        /* read objects: api->ObjectCount(), api->FindObject("Class", "Engine.Actor"), ... */
+    }
+}
+
+T3SDK_EXPORT int T3SDK_CALL T3Mod_Init(const T3SdkApi* sdk) {
+    api = sdk;
+    api->AddFrameCallback(OnFrame, NULL);
+    api->Log("loaded");
+    return 0;
+}
+```
+
+`T3Mod_Init` runs before the engine starts, so do engine work from callbacks
+once `EngineReady()` is true. [sdk/mods/hello](sdk/mods/hello/hello.cpp) is a
+complete example, and [sdk/include/t3sdk/unreal.hpp](sdk/include/t3sdk/unreal.hpp)
+has the engine's memory layouts for direct access. To build a mod with the SDK,
+add a folder under `sdk/mods/` and list it in `sdk/CMakeLists.txt`.
+
+## Reverse-engineering workbench
+
+What the SDK hooks is found here. [docs/engine.md](docs/engine.md) collects the
+engine addresses and layouts with their evidence, and
+[docs/target.md](docs/target.md) describes the binary. Everything below runs on
+your own copy of `T3Main.exe` and writes its results into ignored folders.
+
+- **Ghidra**: `tools/ghidra_headless.py bootstrap` builds an analysed database
+  in `ghidra/` (about 12 minutes; open `ghidra/T3Main.gpr` in the GUI).
+  `tools/ghidra_headless.py script tools/ghidra/Decompile.java <addr>` prints
+  the decompilation of a function; `refs:<addr>` prints the functions that
+  reference an address.
+- **Symbols**: `config/PC_20040610/symbols.txt` lists every function by address
+  (dtk format) and is where names are recorded as they are identified;
+  `tools/ghidra_headless.py names` applies them to the Ghidra database.
+- **Split and diff**: `configure.py` plus `ninja` split `T3Main.exe` into
+  objects with [delink](https://github.com/dbalatoni13/delink) and compare
+  them with [objdiff](https://github.com/encounter/objdiff) against code
+  compiled with the game's own compiler (MSVC 7.1), to check how a function was
+  compiled. It needs `msvcr71.dll` and `msvcp71.dll`
+  (`configure.py --msvc-runtime <folder>`), which many games from 2003-2006
+  ship with.
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages follow
+Conventional Commits, and there are hard rules about what may enter the
+repository.
 
 ## Layout
 
 ```
-config/<version>/   symbols.txt, splits.txt
-docs/               notes on the target
-include/, src/      decompiled headers and sources
-orig/<version>/     your copy of T3Main.exe (not committed)
-tools/              build and analysis scripts; tools/ghidra/ has the Ghidra scripts
+sdk/                 the SDK: loader (dinput8.dll), public headers, example mods, MinHook
+tools/sdk.py         build / deploy / run / drive the SDK
+tools/ghidra/        Ghidra scripts (export, names, decompile, disassemble)
+tools/               split/diff pipeline and binary tools
+config/PC_20040610/  symbols.txt, splits.txt
+docs/                engine notes, SDK guide, target analysis, current status
+orig/PC_20040610/    your copy of T3Main.exe for the workbench (never committed)
 ```
-
-## References
-
-- [decomp.wiki](https://decomp.wiki): community wiki for matching decompilation
-- [objdiff](https://github.com/encounter/objdiff), [decomp.dev](https://decomp.dev)
-- [delink](https://github.com/dbalatoni13/delink), used the same way by the
-  Need for Speed: Most Wanted PC decompilation

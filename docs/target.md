@@ -5,21 +5,20 @@ Reproduce the numbers with `python tools/peinfo.py orig/PC_20040610/T3Main.exe`.
 
 ## The game install
 
-Thief: Deadly Shadows (Ion Storm, 2004) on Steam. Of the executables in
-`System/`, only `T3Main.exe` is in scope:
+Thief: Deadly Shadows (Ion Storm, 2004) on Steam. Only `T3Main.exe`, the
+game itself, is in scope. The launchers and copy-protection components next to
+it are out of scope: this project does not analyse, modify or bypass them, and
+the game is started through Steam as usual.
 
-| File | Size | What it is |
-|---|---|---|
-| `T3Main.exe` | 6,455,296 | The game: engine, game code, and middleware statically linked. **Target.** |
-| `t3.exe` | 73,728 | Launcher, wrapped in Steam DRM (`.bind` section). |
-| `Ion Launcher.exe` | 73,728 | The unwrapped Ion Storm launcher (PDB `h:\T3Code\DevBranch\Build\T3\Win32\Release\Ion Launcher.pdb`). |
-| `runme.exe` | 40,960 | Valve helper (`u:\valve_main\src\utils\runme`), launches `t3.exe`. |
-| `testapp.exe` | 48,640 | Packed SecuROM system-analysis tool. |
-| `binkw32.dll`, `eax.dll` | | RAD Bink and Creative EAX runtimes (delay-loaded by T3Main.exe). |
+| File | What it is |
+|---|---|
+| `T3Main.exe` (6,455,296 bytes) | The game: engine, game code, and middleware statically linked. **Target.** |
+| `runme.exe`, `t3.exe`, `Ion Launcher.exe` | Launchers; Steam starts the game through them. Out of scope. |
+| `testapp.exe` | Copy-protection system check left over from the retail release. Out of scope. |
+| `binkw32.dll`, `eax.dll` | RAD Bink and Creative EAX runtimes (delay-loaded by `T3Main.exe`). |
 
-The Steam `T3Main.exe` has no DRM wrapper: standard MSVC sections, normal
-entropy, a plain import table. Retail 1.0 discs shipped SecuROM-protected
-executables, so the Steam build is the practical target.
+The supported build is the Steam `T3Main.exe` (patch 1.1), a standard MSVC
+executable with a plain import table.
 
 ## T3Main.exe
 
