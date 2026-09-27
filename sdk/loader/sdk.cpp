@@ -6,6 +6,7 @@
 #include "sdk.hpp"
 
 #include "engine.hpp"
+#include "fixes.hpp"
 #include "iat.hpp"
 #include "log.hpp"
 #include "menu.hpp"
@@ -33,6 +34,7 @@ struct Settings {
     int dumpObjectsKey = VK_F10;
     bool menuVersionLabel = true;
     bool menuInputTrace = false;
+    fixes::Options fixes;
 };
 
 struct FrameCallback {
@@ -79,6 +81,7 @@ Settings LoadSettings(const fs::path& ini) {
     s.dumpObjectsKey = int(wcstol(key, nullptr, 0));
     s.menuVersionLabel = GetPrivateProfileIntW(L"T3SDK", L"MenuVersionLabel", s.menuVersionLabel, file) != 0;
     s.menuInputTrace = GetPrivateProfileIntW(L"T3SDK", L"MenuInputTrace", s.menuInputTrace, file) != 0;
+    s.fixes.skipIntros = GetPrivateProfileIntW(L"Fixes", L"SkipIntros", s.fixes.skipIntros, file) != 0;
     return s;
 }
 
@@ -312,6 +315,7 @@ void Start() {
         return;
     }
 
+    fixes::Install(g_settings.fixes);
     const char* menuVersion = g_settings.menuVersionLabel ? (menu::InstallModdedVersionFormat() ? "ok" : "MISSING") : "off";
     const char* menuInput = g_settings.menuInputTrace ? (menu::InstallInputDiagnostics() ? "ok" : "MISSING") : "off";
 

@@ -5,6 +5,7 @@ add_library(t3sdk_loader SHARED
   dllmain.cpp
   engine.cpp
   executable_hash.cpp
+  fixes.cpp
   iat.cpp
   log.cpp
   menu.cpp
