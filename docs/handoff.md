@@ -22,10 +22,10 @@ notes in `docs/engine.md`. Decompiler output stays local (`build/`,
   push.
 - The Ghidra database in `ghidra/` is analysed and has the names from
   `symbols.txt` applied (the export round-trips byte for byte).
-- The asset exporter (Godot-friendly maps, meshes, textures) in
-  `tools/assets/` and `docs/assets.md` works for all 32 maps and is tested
-  against the user's local Godot 4.7.2. A Godot viewer (map picker, fly
-  camera, actor inspector) is being added. Neither is committed yet.
+- The asset exporter (`tools/assets/`, formats in `docs/assets.md`) turns all
+  32 maps into a Godot 4.7 project in `build/assets/godot/` with a map
+  picker, a fly camera and an actor inspector. It is tested against the
+  user's local Godot 4.7.2.
 
 ## What exists
 
@@ -43,6 +43,7 @@ notes in `docs/engine.md`. Decompiler output stays local (`build/`,
 | Example mod | `sdk/mods/hello/hello.cpp` | works |
 | Build/deploy/run/screenshot/click/keys/close tool | `tools/sdk.py` | works |
 | Ghidra scripts: Decompile, Disassemble, ImportNames, ExportSymbols | `tools/ghidra/` | work |
+| Map and asset export to Godot 4.7; Godot map viewer | `tools/assets/`, `tools/assets/godot/` | works for all 32 maps (static geometry, lights, actor data) |
 
 Commands are in [sdk.md](sdk.md) (SDK) and [../CLAUDE.md](../CLAUDE.md).
 `tools/sdk.py click`/`keys`/`screenshot` make UI tests possible without
@@ -94,7 +95,14 @@ touching the user's mouse: the main menu reacts to posted clicks.
    cleanly.
 5. **Background behaviour**: borderless keeps the game running when it loses
    focus. The user may want a pause-on-focus-loss option.
-6. **Name and document as we go**: every function the SDK touches gets its
+6. **Map editor** (see `docs/assets.md`, "Toward a Godot map editor"):
+   - some materials show a noise texture as their colour: the exporter's
+     choice of texture stage needs a look;
+   - characters, animation, physics hulls, particles and sounds are not
+     exported yet;
+   - nothing is written back to the game: start with a byte-exact rewrite
+     of an unchanged `.gmp`.
+7. **Name and document as we go**: every function the SDK touches gets its
    name in `symbols.txt` and an entry in `docs/engine.md`. Matching a function
    with MSVC 7.1 (`/O2 /GX`) through `splits.txt` and `configure.py` is useful
    to confirm how it was compiled, but the decompiled code stays local.

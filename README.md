@@ -121,6 +121,22 @@ complete example, and [sdk/include/t3sdk/unreal.hpp](sdk/include/t3sdk/unreal.hp
 has the engine's memory layouts for direct access. To build a mod with the SDK,
 add a folder under `sdk/mods/` and list it in `sdk/CMakeLists.txt`.
 
+## Maps and assets in Godot
+
+`tools/assets/` converts the maps and assets of your installed game into a
+Godot 4.7 project in `build/assets/godot/`: textured static meshes, the level
+geometry, lights, and every actor with its gameplay properties. The project
+opens on a map picker, and each map gets a fly camera and an actor inspector.
+It is the groundwork for a map editor. The formats, the tools and the viewer's
+controls are described in [docs/assets.md](docs/assets.md).
+
+```sh
+.venv/Scripts/python tools/assets/t3map.py --all    # export every map (about 790 MB)
+godot --path build/assets/godot                     # open the viewer
+```
+
+What the tools extract from your copy is for your own modding: don't share it.
+
 ## Reverse-engineering workbench
 
 What the SDK hooks is found here. [docs/engine.md](docs/engine.md) collects the
@@ -158,6 +174,7 @@ repository.
 ```
 sdk/                 the SDK: loader (dinput8.dll), public headers, example mods, MinHook
 tools/sdk.py         build / deploy / run / drive the SDK
+tools/assets/        map and asset export to Godot, and the Godot map viewer
 tools/ghidra/        Ghidra scripts (export, names, decompile, disassemble)
 tools/               split/diff pipeline and binary tools
 config/PC_20040610/  symbols.txt, splits.txt
