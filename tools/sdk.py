@@ -31,7 +31,11 @@ from typing import Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "build" / "sdk"
 BIN = BUILD / "bin"
-MANIFEST = BUILD / "deployed.json"
+# The record of what deploy installed, and other output, goes under
+# $T3SDK_BUILD_DIR when it is set: the launcher sets it to a per-user folder
+# when it runs the copy of this tool (and the prebuilt BIN) it ships with.
+OUT = Path(os.environ.get("T3SDK_BUILD_DIR") or ROOT / "build") / "sdk"
+MANIFEST = OUT / "deployed.json"
 SUPPORTED_SHA1 = "40bf68a54246bcde2fb5fcbc75b94dc7c7f78305"  # T3Main.exe, PC_20040610
 STEAM_APP_ID = "6980"  # Thief: Deadly Shadows
 
@@ -107,26 +111,31 @@ def cmd_deploy(args: argparse.Namespace) -> None:
         sys.exit("nothing to deploy: run `tools/sdk.py build` first")
     previous = set(json.loads(MANIFEST.read_text())["files"]) if MANIFEST.is_file() else set()
 
+    # sorted: a deterministic manifest, regardless of filesystem order
+    files = [src.relative_to(BIN).as_posix() for src in sorted(BIN.rglob("*"))
+             if src.is_file() and src.suffix.lower() in (".dll", ".pdb", ".ini")]
+    # A file already there that this tool did not install stops the deploy before
+    # anything is copied, so a refused deploy leaves the folder as it was.
+    # T3SDK.ini is the exception: an existing one is the user's own settings.
+    files = [rel for rel in files if not (rel == "T3SDK.ini" and rel not in previous and (system / rel).exists())]
+    conflicts = [system / rel for rel in files if (system / rel).exists() and rel not in previous]
+    if conflicts:
+        sys.exit("these files exist and were not installed by this tool; move them away first:\n  "
+                 + "\n  ".join(str(c) for c in conflicts))
     installed: List[str] = []
-    for src in sorted(BIN.rglob("*")):  # sorted: a deterministic manifest, regardless of filesystem order
-        if not src.is_file() or src.suffix.lower() not in (".dll", ".pdb", ".ini"):
-            continue
-        rel = src.relative_to(BIN).as_posix()
+    for rel in files:
         dst = system / rel
-        if dst.exists() and rel not in previous:
-            if rel == "T3SDK.ini":
-                continue  # the user's own settings
-            sys.exit(f"{dst} exists and was not installed by this tool; move it away first")
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
+        shutil.copy2(BIN / rel, dst)
         installed.append(rel)
+    MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST.write_text(json.dumps({"system": str(system), "files": installed}, indent=1), encoding="utf-8")
     print(f"deployed {len(installed)} files to {system}")
 
 
 def cmd_undeploy(args: argparse.Namespace) -> None:
     if not MANIFEST.is_file():
-        sys.exit("nothing deployed (no build/sdk/deployed.json)")
+        sys.exit(f"nothing deployed (no {MANIFEST})")
     data = json.loads(MANIFEST.read_text())
     system = Path(data["system"])
     for rel in data["files"]:
@@ -423,7 +432,7 @@ def main() -> None:
     keys.add_argument("--delay", type=float, default=0.4, help="seconds between keys")
     keys.add_argument("--hold", type=float, default=0.1, help="seconds each key is held")
     shot = sub.add_parser("screenshot")
-    shot.add_argument("-o", "--output", default=str(BUILD / "screenshot.png"))
+    shot.add_argument("-o", "--output", default=str(OUT / "screenshot.png"))
     shot.add_argument("--max-width", type=int, default=1280, help="downscale wider captures (0 = full size)")
     for name in ("deploy", "undeploy", "log"):
         sub.add_parser(name)

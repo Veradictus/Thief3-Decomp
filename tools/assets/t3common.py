@@ -20,7 +20,10 @@ from pathlib import Path
 from typing import Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_DIR = REPO_ROOT / "build" / "assets"
+# Output goes under <repo>/build, or under $T3SDK_BUILD_DIR: the launcher points
+# that at a per-user folder when it runs the copy of the tools it ships with.
+BUILD_ROOT = Path(os.environ.get("T3SDK_BUILD_DIR") or REPO_ROOT / "build")
+BUILD_DIR = BUILD_ROOT / "assets"
 
 _U8 = struct.Struct("<B")
 _U16 = struct.Struct("<H")

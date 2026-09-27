@@ -1,12 +1,69 @@
 # Thief: Deadly Shadows modding SDK
 
 [![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hdAXH73tEG)
+[![Download the launcher](https://img.shields.io/github/v/release/Veradictus/Thief3-Decomp?include_prereleases&label=Download&style=for-the-badge)](https://github.com/Veradictus/Thief3-Decomp/releases/latest)
 
 **T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
-It loads into your installed copy of the game, gives mods access to the engine
-(objects, names, the engine log, function hooks) and fixes the PC version's
-display problems. The goal is mods as large as multiplayer. The repository
-also holds the reverse-engineering workbench used to find what the SDK hooks.
+It fixes the PC version's display problems, loads mods into your installed
+copy of the game, and gives them access to the engine. The goal is mods as
+large as multiplayer. It comes with a launcher, tools to edit maps in Godot,
+and the workbench for a matching decompilation of the game.
+
+**What do you want to do?**
+
+- [Play with the fixes and mods](#quick-start): download the launcher, click Install, click Play.
+- [Edit maps](#edit-maps): export a map to Godot, change it, put it back into the game.
+- [Write a mod](#write-a-mod): a DLL with a small C API.
+- [Help decompile the game](#reverse-engineering-workbench-and-matching-decompilation).
+
+## Quick start
+
+1. Own **Thief: Deadly Shadows on Steam** ([buy it](#buy-the-damn-game)),
+   installed. The SDK supports the Steam release (patch 1.1).
+2. Download the launcher from the
+   [latest release](https://github.com/Veradictus/Thief3-Decomp/releases/latest):
+   `T3SDK-Launcher_<version>_x64-setup.exe`, or the `_portable.zip` to unzip
+   anywhere. Windows may warn about an unknown publisher (the installer is not
+   code-signed): choose *More info*, then *Run anyway*.
+3. Start **T3SDK Launcher**. It finds the game and its own tools by itself;
+   when they show **OK**, click **Continue** (Godot is only needed to edit
+   maps).
+4. On the **Play** page, click **Install** in the T3SDK box, then **Play**.
+
+That's all: the launcher brings its own copy of the tools and of Python. You
+now have:
+
+- no logo movies at start-up;
+- your monitor's native resolution in Options;
+- a borderless window instead of exclusive fullscreen (alt-tab, other
+  monitors and screenshots work);
+- menus laid out for widescreen;
+- the mod loader: mod DLLs go into the game's `System\mods` folder
+  (**Mods** page, **Open folder**).
+
+Change any of it on the **SDK settings** page. **Remove** on the Play page
+takes T3SDK out again and leaves the game as it was. More in
+[docs/launcher.md](docs/launcher.md) and [docs/sdk.md](docs/sdk.md).
+
+## Edit maps
+
+Experimental: tested on synthetic maps; moving, rotating and scaling what is
+already in a map and changing its properties works, adding and removing things
+does not yet.
+
+1. Install [Godot 4.7 or newer](https://godotengine.org/download/). The
+   launcher usually finds it; otherwise set it under **Settings**.
+2. In the launcher, open **Map Studio**, pick a map and click **Export**.
+3. Click **Edit in Godot**. Move, rotate and scale things with Godot's tools,
+   or change their properties in the **T3 Map** dock (below the Inspector).
+   Then click **Save T3 edits** in that dock.
+4. Back in Map Studio, click **Repack**, then **Install**, and play the map.
+5. **Restore original** puts the unmodified map back. Every original is backed
+   up once, before it is first replaced.
+
+**View** opens a map in a fly-through viewer instead. How the maps are stored
+and converted is in [docs/assets.md](docs/assets.md). What the tools extract
+from your copy is for your own modding: don't share it.
 
 ## Buy the damn game
 
@@ -45,53 +102,28 @@ left untouched.
   Eidos Interactive or the current owners of the Thief series. *Thief* and
   *Thief: Deadly Shadows* are trademarks of their respective owners and are
   used here only to name the game this software works with.
-- The repository holds only original work: the SDK, the tools, and notes on
-  how the game works (addresses, data layouts, file formats) written so that
-  mods can interoperate with it. It contains no files from the game, no game
-  assets and no game code, decompiled or otherwise.
-- The tools only read your own installed copy. What they produce from it
+- The repository holds work written by its contributors: the SDK, the
+  launcher, the tools, notes on how the game works (addresses, data layouts,
+  file formats) so that mods can interoperate with it, and a matching
+  decompilation: C++ source that the game's original compiler turns into the
+  same machine code. It contains no files from the game, no game assets, no
+  disassembly and no raw decompiler output, and the libraries the game links
+  (Microsoft's runtime, D3DX, Havok) are not decompiled.
+- The tools work on your own installed copy. What they produce from it
   (Ghidra databases, split objects, decompiler output, extracted assets) stays
   on your machine in ignored folders (`orig/`, `ghidra/`, `build/`). Don't
   commit or redistribute any of it; extracted assets are for your own modding.
 - T3SDK does not circumvent copy protection and does not touch DRM components.
   On a Steam install, `tools/sdk.py run` starts the game through Steam, as the
   Play button does.
-- The SDK changes the game only in memory while it runs. `deploy` adds its own
-  files to the game's `System/` folder, and `undeploy` removes exactly those.
+- The SDK changes the game only in memory while it runs. Installing it adds
+  its own files to the game's `System/` folder, and removing it deletes
+  exactly those. Installing an edited map replaces that one map, after the
+  original is backed up.
 - The software is provided as is, without warranty of any kind. Back up your
   saves before modding.
 
-## Using the SDK
-
-See [docs/sdk.md](docs/sdk.md) for the settings, the built-in fixes, the tools
-and the mod API's lifecycle and threading rules.
-
-Requires Windows, Python 3.10+, and Visual Studio 2022 or newer with
-"Desktop development with C++" (the SDK is built for 32-bit x86, like the game).
-
-```sh
-python -m venv .venv
-.venv/Scripts/pip install -r requirements.txt
-
-.venv/Scripts/python tools/sdk.py build     # dinput8.dll + example mod into build/sdk/bin/
-.venv/Scripts/python tools/sdk.py deploy    # copy into the game's System/ folder
-.venv/Scripts/python tools/sdk.py run       # start the game (through Steam)
-.venv/Scripts/python tools/sdk.py log       # show System/T3SDK.log
-.venv/Scripts/python tools/sdk.py undeploy  # remove everything deploy installed
-```
-
-The game folder is found through the registry entry the game's installer
-writes. Pass `--game-dir` to override it.
-
-The SDK installs itself as `System/dinput8.dll`, which the game loads at
-startup, and forwards DirectInput to the real system DLL. It does not replace
-`d3d8.dll`, so it coexists with Sneaky Upgrade's Direct3D wrappers. Settings
-live in `System/T3SDK.ini`. Besides the mod API, it fixes the PC version's
-display: the monitor's native resolution, a borderless window instead of
-exclusive fullscreen (alt-tab and screenshots work), menus laid out for
-widescreen, and skipping the start-up logo movies.
-
-## Writing a mod
+## Write a mod
 
 A mod is a 32-bit DLL in `System/mods/` that exports `T3Mod_Init` and receives
 the API table from [sdk/include/t3sdk/t3sdk.h](sdk/include/t3sdk/t3sdk.h):
@@ -118,28 +150,52 @@ T3SDK_EXPORT int T3SDK_CALL T3Mod_Init(const T3SdkApi* sdk) {
 `T3Mod_Init` runs before the engine starts, so do engine work from callbacks
 once `EngineReady()` is true. [sdk/mods/hello](sdk/mods/hello/hello.cpp) is a
 complete example, and [sdk/include/t3sdk/unreal.hpp](sdk/include/t3sdk/unreal.hpp)
-has the engine's memory layouts for direct access. To build a mod with the SDK,
-add a folder under `sdk/mods/` and list it in `sdk/CMakeLists.txt`.
+has the engine's memory layouts for direct access. Build it as a 32-bit DLL
+with any compiler, or along with the SDK (see [Build from source](#build-from-source)).
+The settings, the fixes, the API's lifecycle and threading rules are in
+[docs/sdk.md](docs/sdk.md).
 
-## Maps and assets in Godot
+## Build from source
 
-`tools/assets/` converts the maps and assets of your installed game into a
-Godot 4.7 project in `build/assets/godot/`: textured static meshes, the level
-geometry, lights, and every actor with its gameplay properties. The project
-opens on a map picker, and each map gets a fly camera and an actor inspector.
-It is the groundwork for a map editor. The formats, the tools and the viewer's
-controls are described in [docs/assets.md](docs/assets.md).
+Every push builds the launcher (installer and portable zip) and the SDK on
+GitHub Actions; they are the run's artifacts. Pushing a tag such as `v0.2.0`
+publishes them as a release. To build locally:
+
+| Part | Needs | Commands |
+|---|---|---|
+| SDK (`dinput8.dll`, example mod) | Windows, Python 3.10+, Visual Studio 2022+ with "Desktop development with C++" | see below |
+| Launcher | Node 20+, Rust (stable); Linux also [Tauri's prerequisites](https://tauri.app/start/prerequisites/) | `cd launcher`, `npm install`, `npm run tauri dev` |
+| Map tools | Python 3.10+, Godot 4.7+ | `python tools/assets/t3map.py --all`, then `godot --path build/assets/godot` |
+
+The SDK, from the repository's folder:
 
 ```sh
-.venv/Scripts/python tools/assets/t3map.py --all    # export every map (about 790 MB)
-godot --path build/assets/godot                     # open the viewer
+python -m venv .venv
+.venv/Scripts/pip install -r requirements.txt
+
+.venv/Scripts/python tools/sdk.py build     # dinput8.dll + example mod into build/sdk/bin/
+.venv/Scripts/python tools/sdk.py deploy    # copy into the game's System/ folder
+.venv/Scripts/python tools/sdk.py run       # start the game (through Steam)
+.venv/Scripts/python tools/sdk.py log       # show System/T3SDK.log
+.venv/Scripts/python tools/sdk.py undeploy  # remove everything deploy installed
 ```
 
-What the tools extract from your copy is for your own modding: don't share it.
+The tools find the game through the registry entry its installer writes; pass
+`--game-dir` (or set `T3_GAME_DIR`) to override it. The launcher also works
+with a checkout: pick the repository's folder as the T3SDK folder in its
+settings.
 
-## Reverse-engineering workbench
+The SDK installs itself as `System/dinput8.dll`, which the game loads at
+startup, and forwards DirectInput to the real system DLL. It does not replace
+`d3d8.dll`, so it coexists with Sneaky Upgrade's Direct3D wrappers. To build a
+mod along with the SDK, add a folder under `sdk/mods/` and list it in
+`sdk/CMakeLists.txt`.
 
-What the SDK hooks is found here. [docs/engine.md](docs/engine.md) collects the
+## Reverse-engineering workbench and matching decompilation
+
+What the SDK hooks is found here, and the game is being decompiled function by
+function into C++ that compiles back to the same bytes (a matching
+decompilation, in `src/`). [docs/engine.md](docs/engine.md) collects the
 engine addresses and layouts with their evidence, and
 [docs/target.md](docs/target.md) describes the binary. Everything below runs on
 your own copy of `T3Main.exe` and writes its results into ignored folders.
@@ -158,7 +214,13 @@ your own copy of `T3Main.exe` and writes its results into ignored folders.
   compiled with the game's own compiler (MSVC 7.1), to check how a function was
   compiled. It needs `msvcr71.dll` and `msvcp71.dll`
   (`configure.py --msvc-runtime <folder>`), which many games from 2003-2006
-  ship with.
+  ship with. On Linux and macOS the compiler runs through
+  [wibo](https://github.com/decompals/wibo) instead.
+- **Matching**: `tools/agent/` is the per-function loop used by people and AI
+  agents alike (claim a function, get its context, try a candidate, pass the
+  strict gate); see [docs/matching.md](docs/matching.md). Progress is published
+  on [decomp.dev](https://decomp.dev) by CI
+  ([docs/decomp-dev.md](docs/decomp-dev.md)).
 
 ## Contributing
 
@@ -172,12 +234,17 @@ repository.
 ## Layout
 
 ```
-sdk/                 the SDK: loader (dinput8.dll), public headers, example mods, MinHook
-tools/sdk.py         build / deploy / run / drive the SDK
-tools/assets/        map and asset export to Godot, and the Godot map viewer
-tools/ghidra/        Ghidra scripts (export, names, decompile, disassemble)
-tools/               split/diff pipeline and binary tools
-config/PC_20040610/  symbols.txt, splits.txt
-docs/                engine notes, SDK guide, target analysis, current status
-orig/PC_20040610/    your copy of T3Main.exe for the workbench (never committed)
+sdk/                     the SDK: loader (dinput8.dll), public headers, example mods, MinHook
+launcher/                the desktop launcher (Tauri: Rust backend, Svelte UI)
+tools/sdk.py             build / deploy / run / drive the SDK
+tools/stage_launcher.py  what the release launcher ships with (tools, SDK, Python)
+tools/assets/            map and asset export to Godot, the viewer, the editor plugin, repacking
+tools/ghidra/            Ghidra scripts (export, names, decompile, disassemble)
+tools/agent/             the matching loop: work queue, context, try, accept, integrate
+tools/                   split/diff pipeline and binary tools
+src/, include/           the matching decompilation
+config/PC_20040610/      symbols.txt, splits.txt
+docs/                    engine notes, SDK and launcher guides, formats, matching, current status
+orig/PC_20040610/        your copy of T3Main.exe for the workbench (never committed)
+.github/workflows/       CI: launcher and SDK builds, releases, the decomp.dev report
 ```

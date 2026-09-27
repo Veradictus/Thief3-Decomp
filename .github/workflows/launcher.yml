@@ -1,0 +1,33 @@
+# Checks and builds the launcher and the SDK whenever they (or the tools the
+# launcher ships with) change. The Windows installer, the portable zip and the
+# SDK are the run's artifacts.
+name: launcher
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "launcher/**"
+      - "sdk/**"
+      - "tools/sdk.py"
+      - "tools/assets/**"
+      - "tools/stage_launcher.py"
+      - "requirements.txt"
+      - ".github/workflows/launcher*.yml"
+  pull_request:
+    paths:
+      - "launcher/**"
+      - "sdk/**"
+      - "tools/sdk.py"
+      - "tools/assets/**"
+      - "tools/stage_launcher.py"
+      - "requirements.txt"
+      - ".github/workflows/launcher*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/launcher-build.yml

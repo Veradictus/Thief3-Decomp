@@ -1,0 +1,42 @@
+# Publishes a GitHub release for a version tag (v1.2.3; v1.2.3-beta.1 is a
+# pre-release):
+#   T3SDK-Launcher_<version>_x64-setup.exe  installer, with the tools, the
+#                                           prebuilt SDK and Python bundled
+#   T3SDK-Launcher_<version>_portable.zip   the same, to unzip and run
+#   T3SDK_<version>_x86.zip                 the SDK alone, for System/ by hand
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: ./.github/workflows/launcher-build.yml
+    with:
+      version: ${{ github.ref_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Files
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir dist
+          cp artifacts/launcher-windows/* dist/
+          (cd artifacts/sdk-bin && zip -r "../../dist/T3SDK_${version}_x86.zip" .)
+          ls -l dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
