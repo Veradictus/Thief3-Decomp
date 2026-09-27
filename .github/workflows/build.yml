@@ -1,0 +1,49 @@
+# Builds the matching decompilation and uploads the objdiff report that
+# decomp.dev reads (artifact <version>_report, from pushes to the default
+# branch). The build needs T3Main.exe, which never enters this repository: it
+# comes from a private container image (docs/decomp-dev.md). The job is skipped
+# until the repository variable T3_BUILD_IMAGE names that image.
+name: build
+
+on:
+  push:
+    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md"]
+  pull_request:
+    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: vars.T3_BUILD_IMAGE != ''
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.T3_BUILD_IMAGE }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [PC_20040610]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Original files
+        run: cp -a /orig .
+      - name: Cache tools and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/tools
+            build/compilers
+          key: tools-${{ hashFiles('configure.py') }}
+      - name: Build
+        run: |
+          python3 -m pip install -r requirements.txt
+          python3 configure.py --version ${{ matrix.version }}
+          ninja all_source build/${{ matrix.version }}/report.json progress
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.version }}_report
+          path: build/${{ matrix.version }}/report.json
+          if-no-files-found: error
