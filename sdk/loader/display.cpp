@@ -1,6 +1,6 @@
-// Two independent display features, each behind its own T3SDK.ini option
-// (see display.hpp): rewriting the resolution table, and running the
-// Direct3D 8 device windowed and borderless.
+// Three independent display features, each behind its own T3SDK.ini option
+// (see display.hpp): rewriting the resolution table, running the Direct3D 8
+// device windowed and borderless, and rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
 
@@ -218,11 +218,185 @@ void* WINAPI Direct3DCreate8Detour(UINT sdkVersion) {
     return d3d;
 }
 
+// ---- widescreen UI ----------------------------------------------------------------
+// The window manager reads [WindowManager] AssumedUIScreenWidth/Height (640x480)
+// once at start-up and scales that layout to the screen, so on a wide screen
+// everything is stretched sideways. Answering 480 x aspect for the width keeps
+// the proportions; placement anchors (LEFT/CENTER/RIGHT) then use the full width.
+constexpr uintptr_t kConfigGetFloat = 0x10910B60;  // bool Config::GetFloat(section, key, float*, file)
+
+using GetFloatFn = int(__fastcall*)(void* self, void* edx, const char* section, const char* key, float* value,
+                                    const char* file);
+GetFloatFn g_getFloat = nullptr;
+float g_uiWidth = 0;
+
+int __fastcall GetFloatDetour(void* self, void* edx, const char* section, const char* key, float* value,
+                              const char* file) {
+    int found = g_getFloat(self, edx, section, key, value, file);
+    if (found && section && key && value && _stricmp(section, "WindowManager") == 0 &&
+        _stricmp(key, "AssumedUIScreenWidth") == 0) {
+        T3_LOG("display: UI layout width %.0f -> %.0f", *value, g_uiWidth);
+        *value = g_uiWidth;
+    }
+    return found;
+}
+
+// The widened layout keeps proportions, but menus were designed for 640 wide:
+// whatever they position from the left edge (LEFT and absolute placement, and
+// full-width windows with an x offset, like the main menu buttons) drifts left
+// of center, and RIGHT anchors drift to the screen edge. Children of a
+// full-width window inside a modal window (every menu, popup and briefing
+// screen) are therefore moved into a centered 640-wide frame. The in-game HUD
+// is not modal and keeps its anchors at the screen edges.
+constexpr uintptr_t kWindowManager = 0x10F35DC4;         // WindowManager* global
+constexpr uint32_t kWindowManagerUIWidth = 0xCC;         // float: layout width (AssumedUIScreenWidth)
+constexpr uint32_t kWindowManagerTopLeftOrigin = 0x1E4;  // int: 1 = positions measured from the parent's top-left
+constexpr uintptr_t kWindowPlacedPosition = 0x10A52530;  // FVector* UIWindow::PlacedPosition(FVector*), vtable +0x18
+constexpr uint32_t kWindowPosX = 0x1C;                   // float: Pos_X
+constexpr uint32_t kWindowFlags = 0xE8;                  // 0x800 ListenForMouseClicks, 0x1000 IsModal
+constexpr uint32_t kWindowPlacementX = 0xD0;             // int: 0 absolute, 1 CENTER, 4 LEFT, 5 RIGHT
+constexpr uint32_t kWindowGetSizeSlot = 0x84 / 4;        // const FVector* UIWindow::GetSize() (vtable)
+constexpr uint32_t kWindowGetParentSlot = 0xA4 / 4;      // UIWindow* UIWindow::GetParent() (vtable)
+constexpr uint32_t kWindowFlagModal = 0x1000;
+constexpr int kPlacementAbsolute = 0;
+constexpr int kPlacementCenter = 1;
+constexpr int kPlacementLeft = 4;
+constexpr int kPlacementRight = 5;
+constexpr float kDesignedUIWidth = 640.0f;
+
+using PlacedPositionFn = float*(__fastcall*)(void* window, void* edx, float* position);
+using GetSizeFn = const float*(__fastcall*)(void* window, void* edx);
+using GetParentFn = void*(__fastcall*)(void* window, void* edx);
+PlacedPositionFn g_placedPosition = nullptr;
+bool g_traceLayout = false;
+
+template <class Fn>
+Fn Virtual(void* object, uint32_t slot) {
+    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(object))[slot]);
+}
+
+template <class T>
+T Field(const void* object, uint32_t offset) {
+    return *reinterpret_cast<const T*>(static_cast<const uint8_t*>(object) + offset);
+}
+
+float Width(void* window) { return Virtual<GetSizeFn>(window, kWindowGetSizeSlot)(window, nullptr)[0]; }
+void* Parent(void* window) { return Virtual<GetParentFn>(window, kWindowGetParentSlot)(window, nullptr); }
+
+bool FullWidth(void* window, float uiWidth) { return std::fabs(Width(window) - uiWidth) < 0.5f; }
+
+// A window spanning the whole layout inside a modal window: the area a menu's
+// contents were laid out in, at 640 wide.
+bool IsMenuFrame(void* window, float uiWidth) {
+    if (!FullWidth(window, uiWidth) || Field<float>(window, kWindowPosX) != 0.0f) {
+        return false;
+    }
+    for (int depth = 0; window && depth < 16; ++depth, window = Parent(window)) {
+        if (Field<uint32_t>(window, kWindowFlags) & kWindowFlagModal) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// How far a child of a menu frame moves to land where it would in a centered
+// 640-wide frame.
+float FrameShift(void* window, float uiWidth) {
+    const float margin = (uiWidth - kDesignedUIWidth) * 0.5f;
+    const bool fullWidth = FullWidth(window, uiWidth);
+    if (fullWidth && Field<float>(window, kWindowPosX) == 0.0f) {
+        return 0;  // a background or a nested frame: keeps covering the screen
+    }
+    switch (Field<int>(window, kWindowPlacementX)) {
+    case kPlacementAbsolute:
+    case kPlacementLeft:
+        return margin;
+    case kPlacementCenter:
+        return fullWidth ? margin : 0;  // centered windows already are
+    case kPlacementRight:
+        return fullWidth ? margin : -margin;
+    default:
+        return 0;
+    }
+}
+
+// [Display] UILayoutTrace: logs the first placement of each window, to map out
+// a screen's window tree.
+void TracePlacement(void* window, void* parent, const float* position, float shift) {
+    static void* traced[1024];
+    static int count = 0;
+    for (int i = 0; i < count; ++i) {
+        if (traced[i] == window) {
+            return;
+        }
+    }
+    if (count == 1024) {
+        return;
+    }
+    traced[count++] = window;
+    const float* size = Virtual<GetSizeFn>(window, kWindowGetSizeSlot)(window, nullptr);
+    T3_LOG("ui: window %p (vtable %08X) parent %p placement %d/%d pos %.1f,%.1f size %.1f,%.1f flags %X -> %.1f,%.1f "
+           "(shifted %+.1f)",
+           window, Field<unsigned>(window, 0), parent, Field<int>(window, kWindowPlacementX),
+           Field<int>(window, kWindowPlacementX + 4), Field<float>(window, kWindowPosX),
+           Field<float>(window, kWindowPosX + 4), size[0], size[1], Field<unsigned>(window, kWindowFlags),
+           position[0], position[1], shift);
+}
+
+// Returns what the original returns (`position`): callers use the result.
+float* __fastcall PlacedPositionDetour(void* window, void* edx, float* position) {
+    float* result = g_placedPosition(window, edx, position);
+    auto manager = *reinterpret_cast<const uint8_t**>(kWindowManager);
+    if (!manager || !Field<int>(manager, kWindowManagerTopLeftOrigin)) {
+        return result;  // centre-origin layout: not used by the PC menus, left alone
+    }
+    const float uiWidth = Field<float>(manager, kWindowManagerUIWidth);
+    void* parent = Parent(window);
+    float shift = 0;
+    if (uiWidth > kDesignedUIWidth && parent && IsMenuFrame(parent, uiWidth)) {
+        shift = FrameShift(window, uiWidth);
+        position[0] += shift;
+    }
+    if (g_traceLayout) {
+        TracePlacement(window, parent, position, shift);
+    }
+    return result;
+}
+
+bool Hook(uintptr_t target, void* detour, void** original, const char* what) {
+    MH_STATUS status = MH_CreateHook(reinterpret_cast<void*>(target), detour, original);
+    if (status == MH_OK) {
+        status = MH_EnableHook(reinterpret_cast<void*>(target));
+    }
+    if (status != MH_OK) {
+        T3_LOG("display: %s hook failed (%s)", what, MH_StatusToString(status));
+    }
+    return status == MH_OK;
+}
+
+void InstallWidescreenUI() {
+    DEVMODEW mode{};
+    mode.dmSize = sizeof(mode);
+    EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &mode);
+    // Multiples of 4: the community fix found 852 (not 853) stable for 16:9.
+    g_uiWidth = float(uint32_t(480.0 * mode.dmPelsWidth / mode.dmPelsHeight) / 4 * 4);
+    Hook(kConfigGetFloat, reinterpret_cast<void*>(&GetFloatDetour), reinterpret_cast<void**>(&g_getFloat),
+         "widescreen UI width");
+}
+
 }  // namespace
 
 void Install(const Options& options) {
     if (options.nativeResolutions) {
         PatchResolutionTable();
+    }
+    if (options.widescreenUI) {
+        InstallWidescreenUI();
+    }
+    if (options.widescreenUI || options.uiLayoutTrace) {
+        g_traceLayout = options.uiLayoutTrace;
+        Hook(kWindowPlacedPosition, reinterpret_cast<void*>(&PlacedPositionDetour),
+             reinterpret_cast<void**>(&g_placedPosition), "UI placement");
     }
     if (options.borderless) {
         g_direct3DCreate8 = reinterpret_cast<Direct3DCreate8Fn>(PatchImport(
@@ -231,8 +405,9 @@ void Install(const Options& options) {
             T3_LOG("display: borderless unavailable (no Direct3DCreate8 import)");
         }
     }
-    T3_LOG("display: native resolutions %s, borderless %s", options.nativeResolutions ? "on" : "off",
-           options.borderless && g_direct3DCreate8 ? "on" : "off");
+    T3_LOG("display: native resolutions %s, borderless %s, widescreen UI %s (width %.0f)",
+           options.nativeResolutions ? "on" : "off", options.borderless && g_direct3DCreate8 ? "on" : "off",
+           options.widescreenUI ? "on" : "off", g_uiWidth);
 }
 
 }  // namespace t3sdk::display
