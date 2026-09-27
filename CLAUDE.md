@@ -1,51 +1,61 @@
-# Thief: Deadly Shadows decompilation
+# Thief: Deadly Shadows modding SDK (T3SDK)
 
-Matching decompilation of `T3Main.exe` (PC, Steam build of 2004-06-10, version
-ID `PC_20040610`). README.md covers setup and the pipeline; docs/target.md
-covers what is known about the binary.
+Goal: a modding SDK for the Steam `T3Main.exe` that injects into the local
+game install and enables large mods, multiplayer first among them. The
+matching-decompilation tooling in this repo is the reverse-engineering
+workbench, and decompilation proceeds alongside the SDK: name what we
+identify (`symbols.txt`) and document it (`docs/engine.md`). Decompiler output
+stays local; the repository never holds game code or data.
 
-## Facts
-
-- Compiler: MSVC 13.10.3077 (VC++ .NET 2003 RTM), from the Rich header. Flags
-  `/O2 /GX` are verified on three functions; `CFLAGS` in configure.py holds the
-  project defaults and `UNITS` holds per-unit overrides.
-- Image base 0x10900000, no relocation table. Functions in the main `.text` are
-  16-byte aligned with int3 padding. EH unwind funclets live in `.text$x` at
-  the end of `.text`; catch blocks are inline in their parent function.
-- Engine is Ion Storm's Unreal Engine 2 fork (shared with Deus Ex: Invisible
-  War), statically linked with Havok 2, D3DX 8, libjpeg 6a, CppUnit and the
-  static CRT.
+**Start with [docs/handoff.md](docs/handoff.md)**: current status and next
+steps. Engine addresses and layouts, with evidence, are in
+[docs/engine.md](docs/engine.md); SDK settings and tools in
+[docs/sdk.md](docs/sdk.md).
 
 ## Commands
 
 ```sh
-.venv/Scripts/python configure.py --msvc-runtime <dir with msvcr71.dll+msvcp71.dll>
-.venv/Scripts/ninja                          # split, compile, report, print progress
-python tools/ghidra_headless.py bootstrap    # rebuild ghidra/ and symbols.txt (~12 min)
-python tools/peinfo.py orig/PC_20040610/T3Main.exe
+.venv/Scripts/python tools/sdk.py build|deploy|run|log|undeploy   # the SDK (MSVC x86, CMake + Ninja)
+.venv/Scripts/python tools/sdk.py screenshot|click <x> <y>|keys <k..>|close   # drive and check a running game
+python tools/ghidra_headless.py script tools/ghidra/Decompile.java <addr> [refs:<addr>]
+python tools/ghidra_headless.py script tools/ghidra/Disassemble.java <addr> [<addr>+<count>]
+python tools/ghidra_headless.py names                              # apply symbols.txt names to ghidra/
+python tools/ghidra_headless.py bootstrap                          # rebuild ghidra/ + symbols.txt (~12 min)
+.venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
 ```
 
-## Conventions
+## Facts
 
-- `config/PC_20040610/symbols.txt` is the source of truth for names and
-  function extents. Decompiled functions get their MSVC decorated name there so
-  objdiff pairs them. Unnamed functions are `FUN_xxxxxxxx`.
-- `config/PC_20040610/splits.txt` lists identified translation units; unit
-  paths are relative to `src/`. Unclaimed functions fall into `auto/` units.
-- Generated files (`build/`, `build.ninja`, `objdiff.json`) and `orig/`,
-  `ghidra/`, `.venv/` are never committed.
+- Image base `0x10900000`, no relocations, so absolute addresses are stable.
+  The SDK refuses to hook any build other than PE timestamp `0x40C8A4DA`.
+- The SDK loads as `System/dinput8.dll`, patches the exe entry point to start
+  outside the loader lock, hooks `PeekMessageA` (frames), `ExitProcess` and
+  `TerminateProcess` (shutdown), and `FOutputDeviceFile::Serialize` (engine
+  log). It validates the UObject layout at runtime before `EngineReady()`.
+- Built-in fixes (`T3SDK.ini`): skip intros, native resolutions, borderless
+  window (hooks `Direct3DCreate8` → `CreateDevice`/`Reset`), widescreen UI
+  (`Config::GetFloat`, `Window::PlacedPosition`). A vectored handler logs
+  crashes to `System/T3SDK.log`.
+- Mods: `System/mods/*.dll` exporting `T3Mod_Init(const T3SdkApi*)`. The API is
+  plain C, `__cdecl`, and only grows (check `api->size`).
+- Engine: Ion Storm's early Unreal Engine 2 fork (script packages version 95 /
+  licensee 133). FName carries a 16-bit instance number, printed as
+  `Name__N`. UStruct SuperField is at `0x2C`. Unreal's network layer is
+  absent.
+- Workbench compiler: MSVC 13.10.3077 (`/O2 /GX`), verified byte for byte on
+  three functions.
 
-## Known gaps in the split
+## Working agreements
 
-- Function extents run to the next function start minus int3 padding, so an
-  undiscovered function would be absorbed by the one before it. delink
-  reports 3 unresolved call targets.
-- Switch byte index tables that follow a jump table are emitted inside the
-  function; delink's rel32 recovery decodes them as code, so large index
-  tables may get spurious relocations.
-- 20 undecodable instructions remain, all in library code (CRT x87 assembly,
-  D3DX PSGP data).
-- String literals and most data are named `DAT_xxxxxxxx`, not MSVC's
-  `??_C@...` names, so relocations to them show as differences until renamed.
-- Unwind funclets are named `Unwind@<address>`, not
-  `__unwindfunclet$<parent>$<n>`.
+- Ask the user before deploying into the game folder or launching the game,
+  and close the game after each test.
+- The user commits and pushes; don't commit unless asked. Commit messages
+  follow Conventional Commits (`feat`, `fix`, `docs`, ...; see
+  [CONTRIBUTING.md](CONTRIBUTING.md)).
+- Legal: no game files, extracted assets, decompiled or disassembled game code
+  (beyond a few documenting instructions), DRM work or personal data (local
+  paths, names) in the repository. Details in CONTRIBUTING.md.
+- `config/PC_20040610/symbols.txt` is the name database; record identified
+  functions and globals there (MSVC decorated names where known, otherwise
+  `Class::Method`), then run `ghidra_headless.py names`.
+- Never commit `orig/`, `ghidra/`, `build/`, `.venv/` or game files.
