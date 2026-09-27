@@ -73,7 +73,10 @@ A project stays hidden on decomp.dev until 0.5% of its code matches (about
 ## Keeping the number honest
 
 `objdiff-cli report generate` ignores relocation targets by default, so a
-function that calls the wrong callee still counts as matched. Functions enter
-`src/` only through `tools/agent/accept.py`, which checks callees and data
-values (see [matching.md](matching.md)); the report is the progress display,
-the gate is the proof.
+function that calls the wrong callee would still count as matched;
+`configure.py` pins `functionRelocDiffs: name_address` in `objdiff.json` to
+stop that. It still cannot see a wrong float or string literal (MSVC's COMDAT
+constants all sit at offset 0). So functions enter `src/` only through
+`tools/agent/accept.py`, which checks callees and data values by address and by
+value (see [matching.md](matching.md)): the report is the progress display, the
+gate is the proof.

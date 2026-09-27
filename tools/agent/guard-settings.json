@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write(build/scratch/**)",
+      "Edit(build/scratch/**)",
+      "Bash(python tools/agent/next.py:*)",
+      "Bash(python tools/agent/context.py:*)",
+      "Bash(python tools/agent/try.py:*)",
+      "Bash(python tools/agent/accept.py:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(diff:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Write(config/**)",
+      "Edit(config/**)",
+      "Write(configure.py)",
+      "Edit(configure.py)",
+      "Write(objdiff.json)",
+      "Edit(objdiff.json)",
+      "Write(orig/**)",
+      "Edit(orig/**)",
+      "Write(build/**/obj/**)",
+      "Edit(build/**/obj/**)",
+      "Write(src/**)",
+      "Edit(src/**)",
+      "Write(include/**)",
+      "Edit(include/**)",
+      "Write(tools/**)",
+      "Edit(tools/**)",
+      "Write(.claude/**)",
+      "Edit(.claude/**)",
+      "Bash(git stash:*)",
+      "Bash(git reset:*)",
+      "Bash(git checkout:*)",
+      "Bash(git clean:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(python tools/agent/integrate.py:*)",
+      "Bash(python tools/agent/wave.py:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/agent/hooks/guard.py\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

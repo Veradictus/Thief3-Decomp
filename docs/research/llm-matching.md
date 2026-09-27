@@ -58,7 +58,7 @@ report, which decomp.dev's code does not forbid but does not document either.
    - Build the planned SDK generator (UProperty reflection, handoff roadmap item 2) and emit `include/` headers with size and offset asserts.
    - Wrong struct offsets are a top failure mode in every write-up. UE2 public headers are either UE1-era (UT432, non-commercial licence) or unofficial.
 4. **Pilot (about 300 functions).**
-   - Stratify by size. Workers are `claude-sonnet-5` headless runs (`claude -p --bare --output-format json`, which reports `total_cost_usd`), one function per session, 12 build-diff cycles maximum, with "defer" counted as success.
+   - Stratify by size. Workers are `claude-sonnet-5` headless runs (`claude -p --output-format json`, which reports `total_cost_usd`), one function per session, 12 build-diff cycles maximum, with "defer" counted as success.
    - Review every pilot result by hand. Measure the success rate and the cost per match per size bucket, then set the budget from those numbers.
 5. **Scale in waves.**
    - N workers (start at 8-16), each in its own git worktree, each claiming a disjoint TU or auto-chunk.
@@ -210,7 +210,9 @@ That band is where agents spin.
   `--permission-mode`, `--permission-prompts none` and `--bare`. `--bare` skips CLAUDE.md, hooks and skills; it is "the recommended mode for scripted and SDK calls",
   and context is then passed with `--append-system-prompt-file`, `--settings` and `--agents`
   ([docs](https://code.claude.com/docs/en/headless)).
-  Caution: `--bare` skips project hooks, so pass guard hooks explicitly through `--settings`.
+  Caution: `--bare` switches off hooks altogether, including ones passed with `--settings`
+  (checked in the CLI since this report), so guarded workers must not use it; `tools/agent/wave.py`
+  doesn't.
 - **Sub-agents:** `.claude/agents/*.md` with `model: sonnet` and `isolation: worktree` (a temporary worktree
   branched from the default branch, cleaned up if unchanged). The default limit is 20 concurrent sub-agents
   (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`) with nesting depth 3 ([docs](https://code.claude.com/docs/en/sub-agents)).
@@ -568,7 +570,7 @@ The counts inform the plan:
 
 ## Appendix A: concrete per-agent loop and prompt skeleton [mine]
 
-**Worker** (`claude -p --bare --model claude-sonnet-5 --output-format json --settings guard-settings.json --append-system-prompt-file tools/agent/worker.md`, cwd = worker worktree):
+**Worker** (`claude -p --model claude-sonnet-5 --output-format json --settings guard-settings.json --append-system-prompt-file tools/agent/worker.md`, cwd = worker worktree):
 
 1. `python tools/agent/next.py claim --agent w07` returns `{addr, symbol, unit, size, siblings[], callees[]}`, or exits when the queue is empty.
 2. `python tools/agent/context.py 0x10A52530` prints:
