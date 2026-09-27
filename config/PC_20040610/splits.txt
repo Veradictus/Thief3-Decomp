@@ -1,0 +1,8 @@
+# Translation units of T3Main.exe, in link order. Format: tools/splits.py.
+#
+#   <path relative to src/>:
+#   	.text  start:0x<ADDRESS> end:0x<ADDRESS>
+#   	.rdata start:0x<ADDRESS> end:0x<ADDRESS>
+#
+# Functions no unit claims are grouped into automatic auto/text_<ADDRESS> units;
+# data no unit claims stays in __shared_data.
