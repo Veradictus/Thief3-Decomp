@@ -1,10 +1,11 @@
 // The SDK's own start-up and per-frame pump: loads T3SDK.ini, installs the
-// built-in features, hooks the main loop and process exit, loads mods, and
-// implements the T3SdkApi they call into. Initialize() is the only entry
-// point, called once from dllmain.cpp's entry-point trampoline on the game's
-// main thread.
+// crash reporter and the built-in fixes/display/menu features, hooks the main
+// loop and process exit, loads mods, and implements the T3SdkApi they call
+// into. Initialize() is the only entry point, called once from dllmain.cpp's
+// entry-point trampoline on the game's main thread.
 #include "sdk.hpp"
 
+#include "crash.hpp"
 #include "display.hpp"
 #include "engine.hpp"
 #include "fixes.hpp"
@@ -317,6 +318,7 @@ void Start() {
                build.timestamp, build.imageSize);
         return;
     }
+    crash::Install(g_self);
     if (MH_STATUS status = MH_Initialize(); status != MH_OK) {
         T3_LOG("MinHook initialisation failed: %s; SDK disabled", MH_StatusToString(status));
         return;
