@@ -50,3 +50,9 @@ __pycache__/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Launcher build output (npm, Vite, Cargo, Tauri)
+/launcher/node_modules/
+/launcher/dist/
+/launcher/src-tauri/target/
+/launcher/src-tauri/gen/
