@@ -6,11 +6,15 @@ Subcommands:
   analyze    Re-run auto-analysis on the already imported program.
   discover   Create functions auto-analysis missed
              (tools/ghidra/FindMissingFunctions.java), then re-analyse.
+  names      Apply the names recorded in config/<version>/symbols.txt to the
+             program (tools/ghidra/ImportNames.java): run it after naming
+             something there, so decompiles show the name.
   export     Write config/<version>/symbols.txt from the analysed program
              (tools/ghidra/ExportSymbols.java).
-  bootstrap  import, discover, discover, export: rebuilds the database from
-             scratch (about 12 minutes).
+  bootstrap  import, discover, discover, names, export: rebuilds the database
+             from scratch, keeping the recorded names (about 12 minutes).
   script     Run any GhidraScript read-only: script <Script.java> [args...]
+             (--write saves what the script changes)
 
 Ghidra is located via --ghidra, then $GHIDRA_INSTALL_DIR, then the newest
 ghidra_* directory under %LOCALAPPDATA%/Programs/Ghidra (Windows) or
@@ -51,6 +55,12 @@ def find_ghidra(explicit: Optional[str]) -> Path:
 
 
 def headless(ghidra: Path, project_dir: Path, args: List[str]) -> int:
+    """Run analyzeHeadless against the "T3Main" Ghidra project in `project_dir`.
+
+    "T3Main" here is the Ghidra project name (a fixed choice for this repo),
+    not PROGRAM_NAME (the imported program's name inside that project, used
+    by -process elsewhere).
+    """
     script = "analyzeHeadless.bat" if os.name == "nt" else "analyzeHeadless"
     project_dir.mkdir(parents=True, exist_ok=True)
     cmd = [str(ghidra / "support" / script), str(project_dir), "T3Main", *args]
@@ -68,11 +78,14 @@ def main() -> None:
     sub.add_parser("import", help="import and analyse orig/<version>/T3Main.exe")
     sub.add_parser("analyze", help="re-run auto-analysis")
     sub.add_parser("discover", help="create missed functions, then re-analyse")
+    names = sub.add_parser("names", help="apply the names in config/<version>/symbols.txt")
+    names.add_argument("-i", "--input", type=Path, help="symbols file (default: config/<version>/symbols.txt)")
     for name in ("export", "bootstrap"):
         exp = sub.add_parser(name, help="write config/<version>/symbols.txt" if name == "export"
-                             else "import, discover twice, export")
+                             else "import, discover twice, names, export")
         exp.add_argument("-o", "--output", type=Path, help="output path (default: config/<version>/symbols.txt)")
     run = sub.add_parser("script", help="run a GhidraScript read-only")
+    run.add_argument("--write", action="store_true", help="save the script's changes to the database")
     run.add_argument("script", type=Path)
     run.add_argument("script_args", nargs=argparse.REMAINDER)
     args = parser.parse_args()
@@ -87,8 +100,16 @@ def main() -> None:
     discover_args = ["-process", PROGRAM_NAME, "-scriptPath", str(scripts),
                      "-preScript", "FindMissingFunctions.java", *common]
 
+    symbols_txt = ROOT / "config" / args.version / "symbols.txt"
+    # Not read-only: the names are saved into the database.
+    # getattr: --input is only defined on the "names" subparser; args has no
+    # such attribute when this runs as part of "bootstrap".
+    names_args = ["-process", PROGRAM_NAME, "-noanalysis", "-scriptPath", str(scripts),
+                  "-postScript", "ImportNames.java", str((getattr(args, "input", None) or symbols_txt).resolve()),
+                  *common]
+
     def export_args() -> List[str]:
-        out = args.output or ROOT / "config" / args.version / "symbols.txt"
+        out = args.output or symbols_txt
         return ["-process", PROGRAM_NAME, "-noanalysis", "-readOnly", "-scriptPath", str(scripts),
                 "-postScript", "ExportSymbols.java", str(out.resolve()), *common]
 
@@ -101,11 +122,13 @@ def main() -> None:
         rc = headless(ghidra, args.project, ["-process", PROGRAM_NAME, *common])
     elif args.cmd == "discover":
         rc = headless(ghidra, args.project, discover_args)
+    elif args.cmd == "names":
+        rc = headless(ghidra, args.project, names_args)
     elif args.cmd == "export":
         rc = headless(ghidra, args.project, export_args())
     elif args.cmd == "bootstrap":
         rc = 0
-        for step in (import_args, discover_args, discover_args, export_args()):
+        for step in (import_args, discover_args, discover_args, names_args, export_args()):
             rc = headless(ghidra, args.project, step)
             if rc != 0:
                 break
@@ -115,7 +138,7 @@ def main() -> None:
             ghidra,
             args.project,
             [
-                "-process", PROGRAM_NAME, "-noanalysis", "-readOnly",
+                "-process", PROGRAM_NAME, "-noanalysis", *([] if args.write else ["-readOnly"]),
                 "-scriptPath", str(script.parent),
                 "-postScript", script.name, *args.script_args,
                 *common,
