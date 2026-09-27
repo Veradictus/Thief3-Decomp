@@ -45,11 +45,14 @@ left untouched.
   Eidos Interactive or the current owners of the Thief series. *Thief* and
   *Thief: Deadly Shadows* are trademarks of their respective owners and are
   used here only to name the game this software works with.
-- The repository holds only original work: the SDK, the tools, and notes on
-  how the game works (addresses, data layouts, file formats) written so that
-  mods can interoperate with it. It contains no files from the game, no game
-  assets and no game code, decompiled or otherwise.
-- The tools only read your own installed copy. What they produce from it
+- The repository holds work written by its contributors: the SDK, the
+  launcher, the tools, notes on how the game works (addresses, data layouts,
+  file formats) so that mods can interoperate with it, and a matching
+  decompilation: C++ source that the game's original compiler turns into the
+  same machine code. It contains no files from the game, no game assets, no
+  disassembly and no raw decompiler output, and the libraries the game links
+  (Microsoft's runtime, D3DX, Havok) are not decompiled.
+- The tools work on your own installed copy. What they produce from it
   (Ghidra databases, split objects, decompiler output, extracted assets) stays
   on your machine in ignored folders (`orig/`, `ghidra/`, `build/`). Don't
   commit or redistribute any of it; extracted assets are for your own modding.
@@ -90,6 +93,18 @@ live in `System/T3SDK.ini`. Besides the mod API, it fixes the PC version's
 display: the monitor's native resolution, a borderless window instead of
 exclusive fullscreen (alt-tab and screenshots work), menus laid out for
 widescreen, and skipping the start-up logo movies.
+
+## The launcher
+
+[`launcher/`](launcher/) is a desktop app (Tauri) that puts all of this behind
+buttons: it finds the game, Godot and Python, installs T3SDK, starts the game,
+switches mods on and off, edits `T3SDK.ini`, and takes a map through export,
+editing in Godot, repacking and installing (with the original backed up).
+See [docs/launcher.md](docs/launcher.md).
+
+```sh
+cd launcher && npm install && npm run tauri dev
+```
 
 ## Writing a mod
 
@@ -137,9 +152,11 @@ godot --path build/assets/godot                     # open the viewer
 
 What the tools extract from your copy is for your own modding: don't share it.
 
-## Reverse-engineering workbench
+## Reverse-engineering workbench and matching decompilation
 
-What the SDK hooks is found here. [docs/engine.md](docs/engine.md) collects the
+What the SDK hooks is found here, and the game is being decompiled function by
+function into C++ that compiles back to the same bytes (a matching
+decompilation, in `src/`). [docs/engine.md](docs/engine.md) collects the
 engine addresses and layouts with their evidence, and
 [docs/target.md](docs/target.md) describes the binary. Everything below runs on
 your own copy of `T3Main.exe` and writes its results into ignored folders.
@@ -158,7 +175,13 @@ your own copy of `T3Main.exe` and writes its results into ignored folders.
   compiled with the game's own compiler (MSVC 7.1), to check how a function was
   compiled. It needs `msvcr71.dll` and `msvcp71.dll`
   (`configure.py --msvc-runtime <folder>`), which many games from 2003-2006
-  ship with.
+  ship with. On Linux and macOS the compiler runs through
+  [wibo](https://github.com/decompals/wibo) instead.
+- **Matching**: `tools/agent/` is the per-function loop used by people and AI
+  agents alike (claim a function, get its context, try a candidate, pass the
+  strict gate); see [docs/matching.md](docs/matching.md). Progress is published
+  on [decomp.dev](https://decomp.dev) by CI
+  ([docs/decomp-dev.md](docs/decomp-dev.md)).
 
 ## Contributing
 
@@ -173,10 +196,13 @@ repository.
 
 ```
 sdk/                 the SDK: loader (dinput8.dll), public headers, example mods, MinHook
+launcher/            the desktop launcher (Tauri: Rust backend, Svelte UI)
 tools/sdk.py         build / deploy / run / drive the SDK
 tools/assets/        map and asset export to Godot, and the Godot map viewer
 tools/ghidra/        Ghidra scripts (export, names, decompile, disassemble)
+tools/agent/         the matching loop: work queue, context, try, accept, integrate
 tools/               split/diff pipeline and binary tools
+src/, include/       the matching decompilation
 config/PC_20040610/  symbols.txt, splits.txt
 docs/                engine notes, SDK guide, target analysis, current status
 orig/PC_20040610/    your copy of T3Main.exe for the workbench (never committed)
