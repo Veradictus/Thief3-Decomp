@@ -108,6 +108,12 @@ def main() -> None:
     exe = Path("orig") / version / info["exe"]
     symbols_txt = config_dir / "symbols.txt"
     splits_txt = config_dir / "splits.txt"
+    # Per-unit options that tools/agent/integrate.py records (categories), under
+    # anything set in UNITS above.
+    units_json = config_dir / "units.json"
+    if units_json.is_file():
+        for source, opts in json.loads(units_json.read_text(encoding="utf-8")).items():
+            UNITS[source] = {**opts, **UNITS.get(source, {})}
 
     if not exe.is_file():
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
@@ -271,6 +277,10 @@ def main() -> None:
         "build_target": False,
         "build_base": True,
         "watch_patterns": ["*.c", "*.cpp", "*.h", "*.hpp", "*.inl", "*.txt", "*.py"],
+        # A call to the wrong function must not count as matched: `report
+        # generate` ignores relocation targets unless told otherwise. The real
+        # gate is tools/agent/accept.py (docs/matching.md).
+        "options": {"functionRelocDiffs": "name_address"},
         "units": unit_json,
         "progress_categories": [{"id": k, "name": v} for k, v in CATEGORIES.items()],
     }
