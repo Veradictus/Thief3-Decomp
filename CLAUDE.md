@@ -25,6 +25,10 @@ python tools/ghidra_headless.py script tools/ghidra/Disassemble.java <addr> [<ad
 python tools/ghidra_headless.py names                              # apply symbols.txt names to ghidra/
 python tools/ghidra_headless.py bootstrap                          # rebuild ghidra/ + symbols.txt (~12 min)
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
+python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
+python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
+cd launcher && npm run tauri dev                                                   # the launcher (docs/launcher.md)
+python tools/assets/selftest.py; python tools/agent/selftest.py                    # tests that need no game files
 ```
 
 ## Facts
