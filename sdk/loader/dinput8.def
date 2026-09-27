@@ -1,0 +1,10 @@
+; dinput8.dll must keep exporting the real DirectInput8 API by name (T3Main.exe
+; imports DirectInput8Create), so the proxies in dllmain.cpp are exported under
+; the original names instead of their own C++ ones.
+LIBRARY dinput8
+EXPORTS
+    DirectInput8Create = Proxy_DirectInput8Create
+    DllCanUnloadNow = Proxy_DllCanUnloadNow PRIVATE
+    DllGetClassObject = Proxy_DllGetClassObject PRIVATE
+    DllRegisterServer = Proxy_DllRegisterServer PRIVATE
+    DllUnregisterServer = Proxy_DllUnregisterServer PRIVATE
