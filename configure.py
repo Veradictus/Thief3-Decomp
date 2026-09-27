@@ -56,15 +56,36 @@ CFLAGS = [
 
 # Per-unit options, keyed by source path relative to src/ (as in splits.txt):
 #   "status":   "NonMatching" (default) | "Matching"
-#   "category": one of CATEGORIES
+#   "category": "game", "engine" or "libs" (default: from the unit's address)
 #   "cflags":   replaces CFLAGS for this unit
 UNITS: Dict[str, dict] = {}
 
+# objdiff/decomp.dev progress categories. "main" is the headline (decomp.dev's
+# default category): the game and its engine, without the libraries that are
+# matched from their own objects or sources rather than decompiled.
 CATEGORIES = {
+    "main": "Game & engine",
     "game": "Game",
     "engine": "Engine",
-    "sdk": "SDK & runtime",
+    "libs": "Libraries",
 }
+
+# Where code comes from, by address, for units without a category. Code before
+# the C runtime's entry point is the game and its engine (with Havok, libjpeg
+# and CppUnit until they are split out); from the entry point on it is mostly
+# the runtime, STL and D3DX. .text$x holds the exception-handling funclets of
+# every function, which the compiler emits with their parents (docs/target.md).
+CRT_ENTRY = 0x10D1F7AF
+FUNCLETS = (0x10E02DA0, 0x10E3BF77)
+
+
+def unit_categories(unit: splitslib.Unit, category: str = "") -> List[str]:
+    if category in ("game", "engine"):
+        return ["main", category]
+    if category:
+        return [category]
+    start = unit.text[0][0] if unit.text else 0
+    return ["main"] if start < CRT_ENTRY or FUNCLETS[0] <= start < FUNCLETS[1] else ["libs"]
 
 
 def main() -> None:
@@ -87,12 +108,18 @@ def main() -> None:
     exe = Path("orig") / version / info["exe"]
     symbols_txt = config_dir / "symbols.txt"
     splits_txt = config_dir / "splits.txt"
+    # Per-unit options that tools/agent/integrate.py records (categories), under
+    # anything set in UNITS above.
+    units_json = config_dir / "units.json"
+    if units_json.is_file():
+        for source, opts in json.loads(units_json.read_text(encoding="utf-8")).items():
+            UNITS[source] = {**opts, **UNITS.get(source, {})}
 
     if not exe.is_file():
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
 
     functions = [s for s in symbolslib.load(symbols_txt) if s.is_function and s.size > 0]
-    units = splitslib.plan(splitslib.load(splits_txt), functions, CHUNK_SIZE)
+    units = splitslib.plan(splitslib.load(splits_txt), functions, CHUNK_SIZE, breaks=(CRT_ENTRY, *FUNCLETS))
     for source in UNITS:
         if not any(u.source == source for u in units):
             sys.exit(f"UNITS entry {source} is not declared in {splits_txt}")
@@ -210,8 +237,7 @@ def main() -> None:
             metadata["source_path"] = str(source).replace(os.sep, "/")
         if opts.get("status") == "Matching":
             metadata["complete"] = True
-        if opts.get("category"):
-            metadata["progress_categories"] = [opts["category"]]
+        metadata["progress_categories"] = unit_categories(u, opts.get("category", ""))
         unit_json.append({
             "name": u.name,
             "target_path": str(obj_dir / u.object).replace(os.sep, "/"),
@@ -251,6 +277,10 @@ def main() -> None:
         "build_target": False,
         "build_base": True,
         "watch_patterns": ["*.c", "*.cpp", "*.h", "*.hpp", "*.inl", "*.txt", "*.py"],
+        # A call to the wrong function must not count as matched: `report
+        # generate` ignores relocation targets unless told otherwise. The real
+        # gate is tools/agent/accept.py (docs/matching.md).
+        "options": {"functionRelocDiffs": "name_address"},
         "units": unit_json,
         "progress_categories": [{"id": k, "name": v} for k, v in CATEGORIES.items()],
     }

@@ -4,8 +4,11 @@ Goal: a modding SDK for the Steam `T3Main.exe` that injects into the local
 game install and enables large mods, multiplayer first among them. The
 matching-decompilation tooling in this repo is the reverse-engineering
 workbench, and decompilation proceeds alongside the SDK: name what we
-identify (`symbols.txt`) and document it (`docs/engine.md`). Decompiler output
-stays local; the repository never holds game code or data.
+identify (`symbols.txt`) and document it (`docs/engine.md`). The matching
+decompilation is public: hand-written C++ in `src/`/`include/` that compiles
+to the game's bytes (process in [docs/matching.md](docs/matching.md)). Raw
+decompiler output, disassembly and game binaries or data never enter the
+repository.
 
 **Start with [docs/handoff.md](docs/handoff.md)**: current status and next
 steps. Engine addresses and layouts, with evidence, are in
@@ -22,6 +25,10 @@ python tools/ghidra_headless.py script tools/ghidra/Disassemble.java <addr> [<ad
 python tools/ghidra_headless.py names                              # apply symbols.txt names to ghidra/
 python tools/ghidra_headless.py bootstrap                          # rebuild ghidra/ + symbols.txt (~12 min)
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
+python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
+python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
+cd launcher && npm run tauri dev                                                   # the launcher (docs/launcher.md)
+python tools/assets/selftest.py; python tools/agent/selftest.py                    # tests that need no game files
 ```
 
 ## Facts
@@ -52,9 +59,10 @@ python tools/ghidra_headless.py bootstrap                          # rebuild ghi
 - The user commits and pushes; don't commit unless asked. Commit messages
   follow Conventional Commits (`feat`, `fix`, `docs`, ...; see
   [CONTRIBUTING.md](CONTRIBUTING.md)).
-- Legal: no game files, extracted assets, decompiled or disassembled game code
-  (beyond a few documenting instructions), DRM work or personal data (local
-  paths, names) in the repository. Details in CONTRIBUTING.md.
+- Legal: no game files, extracted assets, raw decompiler output or disassembly
+  (beyond a few documenting instructions), decompiled library code (MSVC
+  runtime, D3DX, Havok), fake matches (inline asm), DRM work or personal data
+  (local paths, names) in the repository. Details in CONTRIBUTING.md.
 - `config/PC_20040610/symbols.txt` is the name database; record identified
   functions and globals there (MSVC decorated names where known, otherwise
   `Class::Method`), then run `ghidra_headless.py names`.

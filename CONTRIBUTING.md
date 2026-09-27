@@ -8,9 +8,21 @@ not negotiable:
 - **No game files.** Nothing from the game's install, whole or in part:
   executables, DLLs, packages, textures, sounds, videos, maps, INI files.
   `.gitignore` blocks the game's file types; don't force them in.
-- **No game code.** No decompiler output and no disassembly beyond the few
-  instructions needed to document an address or a pattern in `docs/`.
-  Decompiled functions stay in your local `build/` and `ghidra/` folders.
+- **Matched source, not decompiler output.** The matching decompilation in
+  `src/` and `include/` is C++ written by contributors (and their agents) that
+  the game's own compiler turns into the same machine code as `T3Main.exe`.
+  Raw Ghidra or IDA output, disassembly listings, `.s`/`.asm` files and bytes
+  copied from the binary don't belong here; they stay in your local `build/`
+  and `ghidra/` folders. `docs/` may quote the few instructions needed to
+  document an address or a pattern.
+- **No fake matches.** No inline assembly, `__declspec(naked)`, `#pragma
+  optimize` or register tricks to force a match. Code produced with AI help
+  passes the same gate as anyone's (`tools/agent/accept.py`, see
+  [docs/matching.md](docs/matching.md)) and is reviewed before it is merged.
+- **Only our own code.** The statically linked libraries (the MSVC runtime and
+  STL, D3DX 8, Havok) are not decompiled or published: they are matched from
+  the user's own library files or left out. Public libraries (libjpeg 6a,
+  CppUnit) come from their published sources, under their licences.
 - **No extracted assets.** The asset tools write into `build/assets/`, which is
   ignored. Test fixtures must be synthetic, not cut from game files.
 - **No DRM work.** Don't analyse, patch, bypass or document copy protection
@@ -19,9 +31,10 @@ not negotiable:
   folders), user names, e-mail addresses, keys or tokens in files. Tools find
   the game through the registry, `--game-dir` or `T3_GAME_DIR`.
 
-What does belong here: the SDK and tools (original code), and notes on how the
-game works (addresses, structure layouts, file formats) with the evidence for
-them, which mods need in order to interoperate with the game.
+What does belong here: the SDK, the launcher and the tools (original code),
+the matching source, and notes on how the game works (addresses, structure
+layouts, file formats) with the evidence for them. Building the matching
+source, like using the SDK, needs your own copy of the game.
 
 ## Commit messages
 
@@ -43,7 +56,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
   - `chore`: repository housekeeping (ignore rules, configuration).
   - `build`: build system changes.
 - **scope** (optional) names the area: `sdk`, `display`, `fixes`, `menu`,
-  `crash`, `tools`, `workbench`, `assets`, `docs`.
+  `crash`, `tools`, `workbench`, `decomp`, `assets`, `launcher`, `docs`.
 - **summary**: imperative mood ("add", not "added"), lower case, no final
   period, at most 72 characters in all.
 - **body**: optional for small changes. For fixes, say what broke and how it
@@ -66,6 +79,8 @@ describes it can go together; unrelated clean-ups go in their own commit.
 
 Match the surrounding code: its naming, comment density and idiom. The SDK is
 C++ built with MSVC for 32-bit x86 and must build without warnings. Tools are
-Python using only the standard library, plus Ghidra scripts in Java. Record
+Python using only the standard library, plus Ghidra scripts in Java. The
+launcher is Rust and Svelte/TypeScript: `cargo fmt`, `cargo clippy` and
+`npm run check` must pass (see [docs/launcher.md](docs/launcher.md)). Record
 every engine address you use in `docs/engine.md` with its evidence, and its
 name in `config/PC_20040610/symbols.txt`.

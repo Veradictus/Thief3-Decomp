@@ -4,28 +4,33 @@
 
 A **modding SDK** for Thief: Deadly Shadows (Steam, `T3Main.exe`), used
 against the local game install. It should support ambitious mods, multiplayer
-first among them. The matching-decompilation setup (objdiff, delink,
-`symbols.txt`) is the reverse-engineering workbench. Decompilation goes along
-with the SDK work: whatever we identify gets its name in `symbols.txt` and its
-notes in `docs/engine.md`. Decompiler output stays local (`build/`,
-`ghidra/`); the repository never holds game code or data (see
+first among them. Around it: a **launcher** for players and map makers, a
+**Godot map workflow** (export, edit, repack), and a public **matching
+decompilation** worked mostly by Claude agents under the strict gate in
+`tools/agent/`, listed on decomp.dev. What we identify gets its name in
+`symbols.txt` and its notes in `docs/engine.md`. Matched source is public
+(`src/`, `include/`); raw decompiler output stays local (`build/`,
+`ghidra/`), and the repository never holds game files or data (see
 [CONTRIBUTING.md](../CONTRIBUTING.md)).
 
 ## State of the machine
 
-- The game is **closed**. The current SDK build is **deployed** in `System/`
-  (manifest `build/sdk/deployed.json`), with `T3SDK.ini` at its defaults.
-  `System/T3SDK.log` is appended to on every run.
-- The repository is on GitHub (`git@github.com:Veradictus/Thief3-Decomp.git`,
-  branch `main`), committed in Conventional Commits style (see
-  [CONTRIBUTING.md](../CONTRIBUTING.md)). The user decides when to commit and
-  push.
+- The game is **closed**. The SDK build from before this round is deployed
+  in `System/` (manifest `build/sdk/deployed.json`), with `T3SDK.ini` at its
+  defaults. `System/T3SDK.log` is appended to on every run.
+- GitHub: `Veradictus/Thief3-Decomp`, Conventional Commits (see
+  [CONTRIBUTING.md](../CONTRIBUTING.md)); the user decides what is merged.
+  This round's work is on branch `claude/keen-ramanujan-g6qnld` (PR #1).
+  Commits and PRs carry no session links.
 - The Ghidra database in `ghidra/` is analysed and has the names from
   `symbols.txt` applied (the export round-trips byte for byte).
-- The asset exporter (`tools/assets/`, formats in `docs/assets.md`) turns all
-  32 maps into a Godot 4.7 project in `build/assets/godot/` with a map
-  picker, a fly camera and an actor inspector. It is tested against the
-  user's local Godot 4.7.2.
+- The asset exporter turns all 32 maps into a Godot 4.7 project in
+  `build/assets/godot/`, tested against the user's Godot 4.7.2. Maps
+  exported before this round lack the editor plugin's metadata: re-export.
+- None of this round's work has touched the real install yet: the launcher,
+  the map writer, the editor plugin and the matching harness were tested on
+  placeholder installs, synthetic maps and synthetic target objects (see Next
+  steps 1).
 
 ## What exists
 
@@ -44,6 +49,12 @@ notes in `docs/engine.md`. Decompiler output stays local (`build/`,
 | Build/deploy/run/screenshot/click/keys/close tool | `tools/sdk.py` | works |
 | Ghidra scripts: Decompile, Disassemble, ImportNames, ExportSymbols | `tools/ghidra/` | work |
 | Map and asset export to Godot 4.7; Godot map viewer | `tools/assets/`, `tools/assets/godot/` | works for all 32 maps (static geometry, lights, actor data) |
+| Godot editor plugin: move/rotate/scale actors, edit gamesys values, save `<Level>.edits.json` | `tools/assets/godot/addons/t3_map_editor/` | headless tests pass; not tried on a real map |
+| Map writer: byte-exact round trip, apply edits, install/restore with backup | `tools/assets/upkgwrite.py`, `t3pack.py` | synthetic tests pass; not run on real maps |
+| Launcher (Tauri): setup, play, SDK install, mods, `T3SDK.ini`, Map Studio, task queue | `launcher/`, [launcher.md](launcher.md) | runs (tested under Xvfb on Linux); Windows build green in CI, not yet run on Windows |
+| Release bundle (tools, prebuilt SDK, embeddable Python) | `tools/stage_launcher.py` | builds in CI |
+| Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | 14 synthetic tests pass with the real MSVC 7.1 via wibo; not run on the real exe |
+| CI: launcher and SDK builds (artifacts), releases on `v*` tags, decomp.dev report | `.github/workflows/` | launcher/SDK green; decomp.dev job waits for `T3_BUILD_IMAGE` ([decomp-dev.md](decomp-dev.md)) |
 
 Commands are in [sdk.md](sdk.md) (SDK) and [../CLAUDE.md](../CLAUDE.md).
 `tools/sdk.py click`/`keys`/`screenshot` make UI tests possible without
@@ -80,32 +91,53 @@ touching the user's mouse: the main menu reacts to posted clicks.
 
 ## Next steps
 
-1. **Ask the user to confirm** real alt-tab and clicks on another monitor.
-   Only the message was simulated here. Then check the HUD in a level.
-2. **SDK options in the game's settings** (user request): a way to toggle
-   "skip intros" (and the display options) from the options screen. Leads:
-   the options names table `0x10E6ED70`, the A/V row refresh `0x10B72DD0`,
-   `T3UI.ini` (`TitleOptionsWindow`, `AVOptionsWindow`, `UniqueOptionsWindow`),
-   and `UILayoutTrace` to map the screen.
-3. **3D field of view for widescreen** (Hor+): not found yet. The
+1. **Verify this round on the real install** (ask the user; close the game
+   after each test):
+   - `tools/assets/t3pack.py roundtrip --all`: every package `identical`;
+     note what it says about the summary DWORD at 0x24.
+   - Re-export a small map, open it in Godot: "Changed actors: 0" with no
+     warnings. Move one visible prop, **Save T3 edits**, `t3pack.py apply`,
+     `install`, load the map in the game, `restore`.
+   - Install the launcher from the PR's `launcher-windows` artifact and run
+     setup, Install T3SDK, Play, Remove. Then tag `v0.1.0` for the first
+     release.
+2. **decomp.dev**: the private build image, the `T3_BUILD_IMAGE` variable and
+   the registration ([decomp-dev.md](decomp-dev.md)). Needs the owner's GitHub
+   account.
+3. **Matching pilot** (about 300 functions, stratified by size; see
+   [matching.md](matching.md) and
+   [research/llm-matching.md](research/llm-matching.md)): first check `try.py`
+   and `accept.py` on real split functions (a plain one, a switch, an EH
+   function), then `wave.py` with a few workers, review every result by hand,
+   and measure matches and cost per size bucket before scaling. Pin the
+   compiler flags first with ~20 varied functions (`/G6` vs `/G7`, `/GS`).
+4. **SDK generator** (roadmap 2 below): the class layouts it emits are what
+   matching agents most need (wrong offsets are the top failure in every
+   published agent decomp).
+5. **Ask the user to confirm** real alt-tab and clicks on another monitor,
+   then check the HUD in a level.
+6. **SDK options in the game's settings** (user request). The launcher's SDK
+   settings page covers it outside the game; in-game leads: the options names
+   table `0x10E6ED70`, the A/V row refresh `0x10B72DD0`, `T3UI.ini`
+   (`TitleOptionsWindow`, `AVOptionsWindow`, `UniqueOptionsWindow`), and
+   `UILayoutTrace`.
+7. **3D field of view for widescreen** (Hor+): not found yet. The
    `[WindowManager]` FOV is the UI camera's; `0x10A39230` is a camera-overlay
    FOV. The community's `T3FovPatch.exe` binary patch has not been reverse
    engineered.
-4. **Shutdown crash** at `0x1098A466` (vanilla bug): fix it, so the game exits
+8. **Shutdown crash** at `0x1098A466` (vanilla bug): fix it, so the game exits
    cleanly.
-5. **Background behaviour**: borderless keeps the game running when it loses
+9. **Background behaviour**: borderless keeps the game running when it loses
    focus. The user may want a pause-on-focus-loss option.
-6. **Map editor** (see `docs/assets.md`, "Toward a Godot map editor"):
-   - some materials show a noise texture as their colour: the exporter's
-     choice of texture stage needs a look;
-   - characters, animation, physics hulls, particles and sounds are not
-     exported yet;
-   - nothing is written back to the game: start with a byte-exact rewrite
-     of an unchanged `.gmp`.
-7. **Name and document as we go**: every function the SDK touches gets its
-   name in `symbols.txt` and an entry in `docs/engine.md`. Matching a function
-   with MSVC 7.1 (`/O2 /GX`) through `splits.txt` and `configure.py` is useful
-   to confirm how it was compiled, but the decompiled code stays local.
+10. **Map editor** (see `docs/assets.md`, sections 6 and 8):
+    - skins and other struct values in `t3pack.py`, then adding and removing
+      actors;
+    - some materials show a noise texture as their colour: the exporter's
+      choice of texture stage needs a look;
+    - characters, animation, physics hulls, particles and sounds are not
+      exported yet.
+11. **Name and document as we go**: every function the SDK touches gets its
+    name in `symbols.txt` and an entry in `docs/engine.md`.
 
 ## Roadmap towards multiplayer
 
@@ -130,6 +162,20 @@ touching the user's mouse: the main menu reacts to posted clicks.
    no engine net layer to reuse.
 
 ## Useful facts
+
+- The MSVC 7.1 bundle, wibo and objdiff-cli run in a Linux cloud container
+  (`tools/download_tool.py`), so matching can run in the cloud too, given the
+  exe from a private source.
+- objdiff's relocation rulers cannot tell MSVC COMDAT constants apart (every
+  one sits at offset 0), and `report generate` ignores callees unless
+  `functionRelocDiffs` is pinned (it now is). `accept.py` resolves both sides
+  to addresses instead ([matching.md](matching.md)).
+- MSVC 7.1 names unwind funclets `$Lnnn`, not `__unwindfunclet$...`, and `/O2`
+  inlines same-file functions even when defined after the caller.
+- `T3SDK_BUILD_DIR` moves every tool's output (the launcher sets it for its
+  bundled tools: `%LOCALAPPDATA%\org.t3sdk.launcher\build`).
+- Godot 4.7.2 runs headless for the plugin and viewer tests:
+  `godot_check.py --editor-selftest`, `--viewer`.
 
 - Decompiled outputs from this work are in `build/re_*.c` (regenerate with
   `Decompile.java`).

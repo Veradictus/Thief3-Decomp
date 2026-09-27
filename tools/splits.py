@@ -79,8 +79,11 @@ def load(path: Path) -> List[Unit]:
     return units
 
 
-def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int) -> List[Unit]:
-    """Declared units plus auto units covering every unclaimed function."""
+def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int,
+         breaks: Sequence[int] = ()) -> List[Unit]:
+    """Declared units plus auto units covering every unclaimed function. An auto
+    unit never spans an address in `breaks` (e.g. a boundary between progress
+    categories)."""
     claimed = sorted(r for u in declared for r in u.text)
     for a, b in zip(claimed, claimed[1:]):
         if b[0] < a[1]:
@@ -109,7 +112,8 @@ def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int)
         # (e.g. pure padding), so claimed_at() alone would not have reset
         # `chunk` already; without this check the auto chunk would silently
         # swallow bytes a declared unit owns.
-        if chunk is None or f.address - chunk.text[0][0] >= chunk_size or claim_between(chunk.text[0][1], f.address):
+        if (chunk is None or f.address - chunk.text[0][0] >= chunk_size or claim_between(chunk.text[0][1], f.address)
+                or any(chunk.text[0][0] < b <= f.address for b in breaks)):
             chunk = Unit(source=f"auto/text_{f.address:08X}", auto=True, text=[(f.address, f.end)])
             auto.append(chunk)
         else:

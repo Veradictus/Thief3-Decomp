@@ -18,20 +18,35 @@ Usage:
       e.g. -- --t3-select --t3-help --t3-camera x y z tx ty tz
   godot_check.py --render res://Inn/Inn.tscn out.png [cx cy cz tx ty tz]
       renders one frame of a scene with t3_tools/render_scene.gd (opens a window).
+  godot_check.py --editor-selftest [DIR]
+      tests the map editor plugin without game files: writes a synthetic level
+      (hand-made actors, a generated cube) into a project at DIR (default
+      build/assets/editor_selftest), imports it, runs the plugin's model test
+      (addons/t3_map_editor/selftest.gd: rotator round trip, edits, save,
+      load), checks the edits file it wrote, then opens the level in the
+      headless editor and drives the dock (select, edit, save, undo).
+      Afterwards --project DIR --viewer and --project DIR also work on it.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gltf import GLTFBuilder  # noqa: E402
 from t3common import BUILD_DIR, run_cli  # noqa: E402
-from t3map import ensure_project  # noqa: E402
+from t3map import ActorRecord, ensure_project, update_index, write_tscn  # noqa: E402
+from t3mesh import DEFAULT_SCALE  # noqa: E402
+
+EDIT_TEST_LEVEL = "T3EditTest"
 
 
 def godot_exe(explicit: str | None) -> str:
@@ -62,6 +77,179 @@ def import_project(exe: str, project: Path, timeout: int) -> int:
     return 1 if (r.returncode or errors) else 0
 
 
+# --- map editor self-test ----------------------------------------------------------------
+
+def cube_glb(path: Path, size: float) -> None:
+    """A cube of edge `size` metres centred on its origin, in Godot space."""
+    b = GLTFBuilder()
+    h = size / 2.0
+    pos: List[Tuple[float, float, float]] = []
+    nrm: List[Tuple[float, float, float]] = []
+    idx: List[int] = []
+    # (normal, u, v) with u x v = normal, so each face winds counter-clockwise seen from outside
+    for n, u, v in (((1, 0, 0), (0, 1, 0), (0, 0, 1)), ((-1, 0, 0), (0, 0, 1), (0, 1, 0)),
+                    ((0, 1, 0), (0, 0, 1), (1, 0, 0)), ((0, -1, 0), (1, 0, 0), (0, 0, 1)),
+                    ((0, 0, 1), (1, 0, 0), (0, 1, 0)), ((0, 0, -1), (0, 1, 0), (1, 0, 0))):
+        base = len(pos)
+        for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            pos.append(tuple(h * (n[i] + su * u[i] + sv * v[i]) for i in range(3)))
+            nrm.append(n)
+        idx += [base, base + 1, base + 2, base, base + 2, base + 3]
+    # extras as t3mesh.py writes them (the viewer's inspector reads them)
+    mat = b.material("TestCube_Mat", base_color=(0.62, 0.5, 0.36, 1.0),
+                     extras={"t3_material": "TestCube_Mat", "stages": ["", "", ""], "category": ""})
+    prim = {"attributes": {"POSITION": b.add_floats(pos, "VEC3", with_bounds=True),
+                           "NORMAL": b.add_floats(nrm, "VEC3")},
+            "indices": b.add_indices(idx), "material": mat}
+    extras = {"t3_mesh": "TestCube", "t3_skin": "Default", "t3_skins": ["Default"]}
+    b.node("TestCube", mesh=b.mesh("TestCube", [prim], extras), extras=extras, root=True)
+    b.write_glb(path)
+
+
+def edit_fixture_actors() -> List[ActorRecord]:
+    """Hand-made actors covering what the editor test needs: every scalar
+    gamesys type, rotations at and near pitch +-90 and outside the canonical
+    range, a draw scale, lights and markers.  All names and values are made up."""
+    types = {"Brightness": "float", "Health": "int", "bActive": "bool", "Mode": "byte:ETestMode",
+             "Channel": "byte", "Target": "name", "Message": "string", "Offsets": "array",
+             "Flags": "bitfield:ETestFlags", "DrawScale": "float", "Owner": "object"}
+    props = {"Brightness": 1.2345000505447388, "Health": 100, "bActive": 1, "Mode": "MODE_B", "Channel": 3,
+             "Target": "Door1", "Message": "hello", "Offsets": [1, 2], "Flags": ["FLAG_Y"], "DrawScale": 1.0,
+             "Owner": {"ref": 5, "name": "TestPackage.Owner0"}}
+    light = {"flesh_type": "LT_Test", "kind": "omni", "hue": 0, "saturation": 255, "brightness": 64,
+             "radius": 12.0, "inner_radius": None, "cone": None, "color": [1.0, 0.9, 0.7], "energy": 0.8,
+             "on": True}
+
+    def point(name: str, loc: Tuple[float, float, float], rot: Tuple[int, int, int], scale: float = 1.0,
+              cls: str = "TestPoint") -> ActorRecord:
+        return ActorRecord(name, cls, base=cls, location=loc, rotation=rot, draw_scale=scale)
+
+    return [
+        ActorRecord("LevelInfo0", "LevelInfo", base="LevelInfo", properties={"AmbientBrightness": 40}),
+        ActorRecord("StaticMeshActor0", "StaticMeshActor", base="StaticMeshActor", location=(100.5, -250.25, 32.0),
+                    rotation=(0, 16384, 0), mesh="TestCube", skin="Default", tag="Crate", gamesys=dict(props),
+                    gamesys_types=dict(types)),
+        ActorRecord("StaticMeshActor1", "StaticMeshActor", base="StaticMeshActor",
+                    location=(1234.5677490234375, -987.654296875, 0.0009765625), mesh="TestCube", skin="Default"),
+        ActorRecord("D_100_0", "D_100", archetype="Test lamp", base="Light", location=(0.0, 0.0, 128.0),
+                    rotation=(0, -8192, 0), mesh="TestCube", skin="Default", light=dict(light),
+                    gamesys={"bLightOn": 1, "Mode": 7}, gamesys_types={"bLightOn": "bool", "Mode": "byte:ETestMode"}),
+        ActorRecord("Light0", "Light", base="Light", location=(256.0, 256.0, 192.0), rotation=(-16384, 0, 0),
+                    light={**light, "kind": "spot", "cone": 30.0}),
+        ActorRecord("PlayerStart0", "PlayerStart", base="PlayerStart", location=(0.0, -128.0, 48.0),
+                    rotation=(0, 16384, 0), gamesys={"TeleportDestName": "start"},
+                    gamesys_types={"TeleportDestName": "name"}),
+        point("Gimbal_Up", (-64.0, 32.0, 16.0), (16384, 5000, 1200)),
+        point("Gimbal_Down", (-96.0, 32.0, 16.0), (-16384, -3000, 700)),
+        point("Near_Gimbal", (-128.0, 32.0, 16.0), (16383, 12345, -2222)),
+        point("Wound", (-160.0, 32.0, 16.0), (40000, 70000, -100)),
+        point("Yawed", (-192.0, 32.0, 16.0), (0, 1000, 0)),
+        point("Scaled", (-224.0, 32.0, 16.0), (1000, 2000, 3000), 2.5),
+        point("Far", (30000.0, -29999.5, 4000.25), (0, 0, 0)),
+    ]
+
+
+def build_edit_fixture(project: Path) -> str:
+    """Writes the synthetic level into `project` (a Godot project made by
+    ensure_project()) with the exporter's own writers; returns its scene path."""
+    ensure_project(project)
+    level = EDIT_TEST_LEVEL
+    out = project / level
+    if out.is_dir():
+        shutil.rmtree(out)
+    (out / "meshes").mkdir(parents=True)
+    cube_glb(out / "meshes" / "TestCube.glb", 64 * DEFAULT_SCALE)
+    actors = edit_fixture_actors()
+    enums = {"ETestMode": ["MODE_A", "MODE_B", "", "MODE_D"], "ETestFlags": ["FLAG_X", "FLAG_Y"],
+             "EUnusedEnum": ["UNUSED"]}
+    blob = b"synthetic T3EditTest map, not game data"
+    source = {"file": f"{level}.gmp", "size": len(blob), "sha1": hashlib.sha1(blob).hexdigest()}
+    write_tscn(out / f"{level}.tscn", level, actors, {("TestCube", "Default"): "TestCube.glb"}, DEFAULT_SCALE,
+               None, "PlayerStart0", "Editor self-test", enums, source)
+    doc = {"level": level, "source": source["file"], "source_size": source["size"], "source_sha1": source["sha1"],
+           "units": "unreal (Z up)", "actor_count": len(actors), "actors": [vars(a) for a in actors], "links": []}
+    (out / f"{level}.actors.json").write_text(json.dumps(doc, indent=1), encoding="utf-8")
+    update_index(project, {"id": level, "title": "Editor self-test", "scene": f"res://{level}/{level}.tscn",
+                           "actors": len(actors), "meshes": 1, "lights": sum(1 for a in actors if a.light),
+                           "units_per_meter": round(1.0 / DEFAULT_SCALE, 4), "default_start": "PlayerStart0",
+                           "source": source})
+    return f"res://{level}/{level}.tscn"
+
+
+def check_edits_file(path: Path) -> List[str]:
+    """Checks the edits file the model test saved, with Python's json (value
+    types included: rotations must be ints, locations floats)."""
+    problems: List[str] = []
+    try:
+        doc: Dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as ex:
+        return [f"cannot read {path.name}: {ex}"]
+
+    def expect(what: str, got: Any, want: Any) -> None:
+        if got != want or type(got) is not type(want) or (
+                isinstance(got, list) and [type(x) for x in got] != [type(x) for x in want]):
+            problems.append(f"{what}: {got!r}, expected {want!r}")
+
+    expect("format", doc.get("format"), "t3-map-edits")
+    expect("version", doc.get("version"), 1)
+    expect("level", doc.get("level"), EDIT_TEST_LEVEL)
+    expect("source keys", sorted(doc.get("source", {})), ["file", "sha1", "size"])
+    expect("source size", doc.get("source", {}).get("size"), len(b"synthetic T3EditTest map, not game data"))
+    actors = doc.get("actors", {})
+    crate = actors.get("StaticMeshActor0", {})
+    expect("moved location", crate.get("location"), [152.99, -250.25, 32.0])
+    expect("gamesys", crate.get("gamesys"), {"Brightness": 2.5, "Health": 7, "bActive": False, "Mode": "MODE_D",
+                                            "Channel": 9, "Target": "Door2", "Message": 'say "hi"'})
+    expect("rotation", actors.get("Yawed", {}).get("rotation"), [0, -15384, 0])
+    expect("draw scale", actors.get("Scaled", {}).get("draw_scale"), 5.0)
+    expect("gimbal rotation", actors.get("Gimbal_Up", {}).get("rotation"), [16384, 5000, 17584])
+    for name in ("LevelInfo0", "StaticMeshActor1", "Near_Gimbal", "Far"):
+        if name in actors:
+            problems.append(f"{name} is in the file but was not changed")
+    return problems
+
+
+def editor_selftest(exe: str, project: Path, timeout: int) -> int:
+    scene = build_edit_fixture(project)
+    print(f"synthetic level {scene} in {project}")
+    failed = import_project(exe, project, timeout)
+
+    edits = project / EDIT_TEST_LEVEL / f"{EDIT_TEST_LEVEL}.edits.json"
+    edits.unlink(missing_ok=True)
+    r = run([exe, "--headless", "--path", str(project), "--script", "res://addons/t3_map_editor/selftest.gd",
+             "--", scene], timeout)
+    out = r.stdout + r.stderr
+    for ln in out.splitlines():
+        if ln.startswith(("  ok", "  FAIL", "SELFTEST", "T3 ", "  time")):
+            print(ln)
+    problems = problem_lines(out)
+    for ln in problems[:20]:
+        print("  " + ln)
+    failed |= 1 if (r.returncode or problems) else 0
+
+    file_problems = check_edits_file(edits)
+    for p in file_problems:
+        print("  FAIL  edits file " + p)
+    if not file_problems:
+        print(f"  ok    {edits.name} checked with Python's json (values and types)")
+    failed |= 1 if file_problems else 0
+
+    r = run([exe, "--headless", "--editor", "--path", str(project), "--", "--t3-editor-selftest", scene], timeout)
+    out = r.stdout + r.stderr
+    for ln in out.splitlines():
+        if ln.startswith(("  ok", "  FAIL", "EDITOR SELFTEST", "T3 ")):
+            print(ln)
+    # "T3 edits:" lines are the plugin's own messages to the user (the test enters a bad value on purpose)
+    problems = [ln for ln in problem_lines(out) if "T3 edits:" not in ln]
+    for ln in problems[:20]:
+        print("  " + ln)
+    if "EDITOR SELFTEST PASSED" not in out:
+        failed = 1
+    failed |= 1 if (r.returncode or problems) else 0
+    print("editor self-test " + ("FAILED" if failed else "passed"))
+    return failed
+
+
 def main() -> None:
     argv = sys.argv[1:]
     extra: List[str] = []
@@ -76,11 +264,16 @@ def main() -> None:
     ap.add_argument("--viewer-shot", metavar="PNG", help="save a frame of the viewer or the picker")
     ap.add_argument("--map", default="", help="map id for --viewer-shot")
     ap.add_argument("--size", default="1600x900", help="window size for --viewer-shot")
+    ap.add_argument("--editor-selftest", nargs="?", const="", metavar="DIR",
+                    help="test the map editor plugin on a synthetic level (no game files needed)")
     ap.add_argument("--no-import", action="store_true", help="skip the headless import step")
     ap.add_argument("--timeout", type=int, default=1800)
     ap.add_argument("scenes", nargs="*")
     args = ap.parse_args(argv)
     exe = godot_exe(args.godot)
+    if args.editor_selftest is not None:
+        sys.exit(editor_selftest(exe, Path(args.editor_selftest or BUILD_DIR / "editor_selftest").resolve(),
+                                 args.timeout))
     project = Path(args.project).resolve()
     ensure_project(project)
 

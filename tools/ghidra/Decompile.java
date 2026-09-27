@@ -1,10 +1,13 @@
 // Prints Ghidra's decompilation of the functions containing the given
 // addresses, or of every function that references a given data address when it
-// is prefixed with "refs:".
+// is prefixed with "refs:". With "out:<dir>", each function is written to
+// <dir>/<ENTRY>.c instead (tools/agent/context.py caches them that way).
 //
 //   tools/ghidra_headless.py script tools/ghidra/Decompile.java 0x109b2010 refs:0x10f7af1c
 //@category Thief3-Decomp
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -22,8 +25,12 @@ public class Decompile extends GhidraScript {
 	@Override
 	protected void run() throws Exception {
 		Set<Function> functions = new LinkedHashSet<>();
+		String outDir = null;
 		for (String arg : getScriptArgs()) {
-			if (arg.startsWith("refs:")) {
+			if (arg.startsWith("out:")) {
+				outDir = arg.substring(4);
+			}
+			else if (arg.startsWith("refs:")) {
 				Address target = toAddr(Long.decode(arg.substring(5)));
 				int n = 0;
 				for (Reference r : getReferencesTo(target)) {
@@ -50,9 +57,19 @@ public class Decompile extends GhidraScript {
 		try {
 			for (Function f : functions) {
 				DecompileResults res = decompiler.decompileFunction(f, 60, monitor);
-				println("==== " + f.getName() + " @ " + f.getEntryPoint());
-				println(res.decompileCompleted() ? res.getDecompiledFunction().getC()
-						: "decompile failed: " + res.getErrorMessage());
+				String header = "==== " + f.getName() + " @ " + f.getEntryPoint();
+				String text = res.decompileCompleted() ? res.getDecompiledFunction().getC()
+						: "decompile failed: " + res.getErrorMessage();
+				if (outDir == null) {
+					println(header);
+					println(text);
+					continue;
+				}
+				java.nio.file.Path file = java.nio.file.Path.of(outDir,
+					String.format("%08X.c", f.getEntryPoint().getOffset()));
+				Files.createDirectories(file.getParent());
+				Files.writeString(file, "// " + header + "\n" + text, StandardCharsets.UTF_8);
+				println("wrote " + file);
 			}
 		}
 		finally {

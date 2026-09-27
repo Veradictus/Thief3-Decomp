@@ -7,8 +7,9 @@ property table from the script packages.
 
 Output (default build/assets/godot/, itself a Godot 4.7 project):
 
-  project.godot                  created if missing
-  t3_tools/check_scene.gd        headless load check
+  project.godot                  the viewer project, rewritten on every export
+  t3_tools/                      the viewer and the headless check scripts
+  addons/t3_map_editor/          the map editor plugin (edits -> <Level>/<Level>.edits.json)
   <Level>/<Level>.actors.json    every actor: class, archetype, transform, mesh,
                                  light, instance gamesys properties, links
   <Level>/<Level>.tscn           Node3D scene: static meshes instanced from
@@ -31,6 +32,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import shutil
@@ -52,6 +54,7 @@ from t3bsp import export_bsp  # noqa: E402
 from upkg import RF_HasStack, GamesysBlock, Package, _jsonable, prop_value, struct_fields  # noqa: E402
 
 TOOLS_DIR = Path(__file__).resolve().parent
+EDITOR_PLUGIN = "t3_map_editor"  # tools/assets/godot/addons/<name>, installed into every exported project
 
 
 def light_kind(enum_name: Optional[str]) -> str:
@@ -95,6 +98,7 @@ class ActorRecord:
     group: Optional[str] = None
     properties: Dict[str, Any] = field(default_factory=dict)  # tagged properties (instance)
     gamesys: Dict[str, Any] = field(default_factory=dict)     # instance gamesys overrides
+    gamesys_types: Dict[str, str] = field(default_factory=dict)  # name -> block kind[:enum], see gamesys_types()
     links: List[str] = field(default_factory=list)
     attached_to: Optional[str] = None     # parent actor of an attachment link
     attached_bone: Optional[str] = None   # parent hardpoint/bone
@@ -153,6 +157,23 @@ def hsv_to_rgb_unreal(hue: int, sat: int, bright: int) -> Tuple[float, float, fl
     s = sat / 255.0
     rgb = tuple((c + s * (1.0 - c)) for c in base)
     return rgb[0], rgb[1], rgb[2], b
+
+
+def gamesys_types(blocks: Dict[int, GamesysBlock], names: PropertyNames) -> Dict[str, str]:
+    """Property name -> value type of an actor's own gamesys blocks, keyed like
+    blocks_to_dict(): the block kind ("float", "int", "bool", "byte", "name",
+    "string", "struct", "array", "object", "class", "bitfield"), with the enum
+    type appended for enum bytes and bitfields ("byte:<Enum>")."""
+    out: Dict[str, str] = {}
+    for pid, b in sorted(blocks.items()):
+        kind = b.kind
+        p = names.get(b.id)
+        if p and kind == "byte" and p["type"] in names.enums:
+            kind += ":" + p["type"]
+        elif p and kind == "bitfield" and p["type"].startswith("bitfield<"):
+            kind += ":" + p["type"][9:-1]
+        out[names.name(b.id)] = kind
+    return out
 
 
 def _block_value(blocks: Dict[int, GamesysBlock], pid: Optional[int], default: Any = None) -> Any:
@@ -216,6 +237,7 @@ def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[Acto
                           if p.name not in ("Location", "Rotation", "Level", "Region", "PhysicsVolume",
                                             "bSentSpawnNotification", "ColLocation")}
         rec.gamesys = blocks_to_dict(own, names)
+        rec.gamesys_types = gamesys_types(own, names)
         ts = own.get(ids.trigger_scripts) if ids.trigger_scripts is not None else None
         if ts is not None and isinstance(ts.value, dict) and ts.value.get("as") == "index":
             rec.gamesys["TriggerScripts"] = [pkg.names[i] if 0 <= i < len(pkg.names) else i
@@ -253,12 +275,28 @@ def _node_name(name: str, used: Dict[str, int]) -> str:
     return n
 
 
+def _fmt_exact(v: float) -> str:
+    """Float for a scene transform: enough digits to round-trip Godot's 32-bit
+    floats, so the map editor plugin can tell moved actors from unmoved ones
+    exactly; rounding noise from the rotation matrix (1e-16) becomes 0."""
+    if not math.isfinite(v) or abs(v) < 1e-12:
+        return "0"
+    return f"{v:.9g}"
+
+
 def transform3d(rec: ActorRecord, scale: float, extra_scale: float = 1.0) -> str:
     s = rec.draw_scale * extra_scale
     cols = godot_basis(rec.rotation[0], rec.rotation[1], rec.rotation[2], (s, s, s))
     o = u2g(rec.location, scale)
     rows = [cols[j][i] for i in range(3) for j in range(3)]
-    return "Transform3D(" + ", ".join(fmt_float(x) for x in rows + list(o)) + ")"
+    return "Transform3D(" + ", ".join(_fmt_exact(x) for x in rows + list(o)) + ")"
+
+
+def origin_meta(rec: ActorRecord) -> Dict[str, Any]:
+    """The actor's placement in Unreal units as exported, for the map editor
+    plugin: it compares nodes against this to find what was changed."""
+    return {"location": [float(c) for c in rec.location], "rotation": [int(c) for c in rec.rotation],
+            "draw_scale": float(rec.draw_scale)}
 
 
 def level_environment(actors: List[ActorRecord]) -> Optional[Dict[str, Any]]:
@@ -282,7 +320,11 @@ def level_environment(actors: List[ActorRecord]) -> Optional[Dict[str, Any]]:
 
 def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Dict[Tuple[str, str], str],
                scale: float, bsp_file: Optional[str] = None, default_start: Optional[str] = None,
-               title: str = "") -> None:
+               title: str = "", enums: Optional[Dict[str, List[str]]] = None,
+               source: Optional[Dict[str, Any]] = None) -> None:
+    """`enums` (enum type -> value names) supplies the value names of the enum
+    properties in the scene; `source` ({file, size, sha1} of the .gmp) is
+    stored on the root for the edits file of the map editor plugin."""
     ext: Dict[str, str] = {}
     lines_nodes: List[str] = []
     used: Dict[str, int] = {}
@@ -318,6 +360,9 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
                 out.append(f"metadata/t3_attached_bone = {_tscn_str(rec.attached_bone)}")
         if rec.gamesys:
             out.append(f"metadata/t3_gamesys = {_tscn_str(json.dumps(rec.gamesys, default=str))}")
+            if rec.gamesys_types:
+                out.append(f"metadata/t3_gamesys_types = {_tscn_str(json.dumps(rec.gamesys_types))}")
+        out.append(f"metadata/t3_origin = {_tscn_str(json.dumps(origin_meta(rec)))}")
         if default_start and rec.name == default_start:
             out.append("metadata/t3_default_start = true")
         return out
@@ -393,7 +438,14 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
     body = [f'\n[node name="{_node_name(level, {})}" type="Node3D"]',
             f"metadata/t3_level = {_tscn_str(level)}",
             f"metadata/t3_title = {_tscn_str(title or level)}",
-            f"metadata/t3_units_per_meter = {fmt_float(1.0 / scale)}"]
+            f"metadata/t3_units_per_meter = {repr(1.0 / scale)}",
+            f"metadata/t3_actor_count = {len(actors)}"]
+    if source:
+        body.append(f"metadata/t3_source = {_tscn_str(json.dumps(source))}")
+    used_enums = {t.split(":", 1)[1] for a in actors for t in a.gamesys_types.values() if ":" in t}
+    scene_enums = {e: (enums or {})[e] for e in sorted(used_enums) if e in (enums or {})}
+    if scene_enums:
+        body.append(f"metadata/t3_enums = {_tscn_str(json.dumps(scene_enums))}")
     if env:
         body += ['\n[node name="T3Environment" type="WorldEnvironment" parent="."]',
                  'environment = SubResource("Environment_t3")',
@@ -500,16 +552,31 @@ def project_godot_text() -> str:
         lines.append('"deadzone": 0.2,')
         lines.append('"events": [' + "\n, ".join(_input_event(k, c) for k, c in events) + "\n]")
         lines.append("}")
+    lines += ["", "[editor_plugins]", "",
+              f'enabled=PackedStringArray("res://addons/{EDITOR_PLUGIN}/plugin.cfg")']
     lines += ["", "[rendering]", "", 'renderer/rendering_method="forward_plus"', ""]
     return "\n".join(lines)
 
 
 def ensure_project(root: Path) -> None:
-    """Make `root` a Godot 4.7 project running the map viewer: project.godot
-    plus a copy of tools/assets/godot/ in res://t3_tools/."""
+    """Make `root` a Godot 4.7 project running the map viewer: project.godot,
+    a copy of tools/assets/godot/ in res://t3_tools/, and the map editor
+    plugin in res://addons/t3_map_editor/ (enabled in project.godot)."""
     root.mkdir(parents=True, exist_ok=True)
     (root / "project.godot").write_text(project_godot_text(), encoding="utf-8")
-    shutil.copytree(TOOLS_DIR / "godot", root / "t3_tools", dirs_exist_ok=True)
+    shutil.copytree(TOOLS_DIR / "godot", root / "t3_tools", dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("addons"))
+    shutil.copytree(TOOLS_DIR / "godot" / "addons" / EDITOR_PLUGIN, root / "addons" / EDITOR_PLUGIN,
+                    dirs_exist_ok=True)
+
+
+def source_info(path: Path) -> Dict[str, Any]:
+    """File name, size and SHA-1 of a map, so edits can be checked against it."""
+    h = hashlib.sha1()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return {"file": path.name, "size": path.stat().st_size, "sha1": h.hexdigest()}
 
 
 # --- map index and titles ---------------------------------------------------------------
@@ -596,7 +663,9 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
     actors = extract_actors(pkg, names, gs)
     links = extract_links(pkg)
     apply_attachments(actors, links)
-    doc = {"level": level, "source": gmp.name, "units": "unreal (Z up)", "actor_count": len(actors),
+    source = source_info(gmp)
+    doc = {"level": level, "source": gmp.name, "source_size": source["size"], "source_sha1": source["sha1"],
+           "units": "unreal (Z up)", "actor_count": len(actors),
            "actors": [vars(a) for a in actors], "links": links}
     (out / f"{level}.actors.json").write_text(json.dumps(doc, indent=1, default=str), encoding="utf-8")
     print(f"{level}: {len(actors)} actors -> {level}/{level}.actors.json ({time.time() - t0:.1f} s)")
@@ -635,11 +704,12 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
         title = level_title(actors, strings or {}, level)
         start = default_player_start(actors)
         write_tscn(out / f"{level}.tscn", level, actors, mesh_files, scale, bsp.name if bsp else None,
-                   start, title)
+                   start, title, names.enums, source)
         update_index(root, {"id": level, "title": title, "scene": f"res://{level}/{level}.tscn",
                             "actors": len(actors), "meshes": len(mesh_files),
                             "lights": sum(1 for a in actors if a.light is not None),
-                            "units_per_meter": round(1.0 / scale, 4), "default_start": start or ""})
+                            "units_per_meter": round(1.0 / scale, 4), "default_start": start or "",
+                            "source": source})
         print(f"  scene: {level}/{level}.tscn  ({title})")
     finally:
         for b in bundles:
