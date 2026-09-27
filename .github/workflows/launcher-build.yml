@@ -1,0 +1,124 @@
+# Checks and builds the launcher and the SDK on Windows; the files are the
+# calling run's artifacts (sdk-bin, launcher-windows). Called by launcher.yml
+# for every change and by release.yml for a version tag.
+name: launcher build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: launcher version (semver, a leading "v" is dropped); empty for a development build
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: launcher/package-lock.json
+      - name: Tauri's Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher/src-tauri
+      - name: UI
+        working-directory: launcher
+        run: |
+          npm ci
+          npm run check
+          npm run build
+      - name: Backend
+        working-directory: launcher/src-tauri
+        run: |
+          cargo fmt --check
+          cargo clippy -- -D warnings
+          cargo test
+      - name: Bundled tools
+        run: |
+          python3 tools/assets/selftest.py
+          python3 tools/stage_launcher.py stage --no-sdk --no-python
+
+  sdk:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - run: python tools/sdk.py build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-bin
+          path: |
+            build/sdk/bin/**/*.dll
+            build/sdk/bin/**/*.pdb
+            build/sdk/bin/T3SDK.ini
+          if-no-files-found: error
+
+  launcher:
+    needs: [check, sdk]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdk-bin
+          path: build/sdk/bin
+      - name: Version
+        id: version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "label=${VERSION:-dev-${GITHUB_SHA::8}}" >> "$GITHUB_OUTPUT"
+      - name: Stage the tools, the SDK and Python
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: python tools/stage_launcher.py stage ${VERSION:+--version "$VERSION"}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: launcher/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: launcher/src-tauri
+      - name: Build
+        working-directory: launcher
+        run: |
+          npm ci
+          npx tauri build --config src-tauri/bundle/tauri.bundle.conf.json
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp launcher/src-tauri/target/release/bundle/nsis/*-setup.exe "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_x64-setup.exe"
+          python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe \
+            "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launcher-windows
+          path: dist/*
+          if-no-files-found: error
+
