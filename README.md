@@ -1,5 +1,7 @@
 # Thief: Deadly Shadows modding SDK
 
+[![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hdAXH73tEG)
+
 **T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
 It loads into your installed copy of the game, gives mods access to the engine
 (objects, names, the engine log, function hooks) and fixes the PC version's
@@ -143,6 +145,9 @@ your own copy of `T3Main.exe` and writes its results into ignored folders.
   ship with.
 
 ## Contributing
+
+Questions, ideas, or want to help? Come to the
+[Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG).
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages follow
 Conventional Commits, and there are hard rules about what may enter the
