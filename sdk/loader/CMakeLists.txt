@@ -7,6 +7,7 @@ add_library(t3sdk_loader SHARED
   executable_hash.cpp
   iat.cpp
   log.cpp
+  menu.cpp
   mods.cpp
   sdk.cpp
   dinput8.def)

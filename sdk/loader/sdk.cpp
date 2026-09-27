@@ -1,12 +1,14 @@
-// The SDK's own start-up and per-frame pump: loads T3SDK.ini, hooks the main
-// loop and process exit, loads mods, and implements the T3SdkApi they call
-// into. Initialize() is the only entry point, called once from dllmain.cpp's
-// entry-point trampoline on the game's main thread.
+// The SDK's own start-up and per-frame pump: loads T3SDK.ini, installs the
+// built-in features, hooks the main loop and process exit, loads mods, and
+// implements the T3SdkApi they call into. Initialize() is the only entry
+// point, called once from dllmain.cpp's entry-point trampoline on the game's
+// main thread.
 #include "sdk.hpp"
 
 #include "engine.hpp"
 #include "iat.hpp"
 #include "log.hpp"
+#include "menu.hpp"
 #include "mods.hpp"
 
 #include <MinHook.h>
@@ -29,6 +31,8 @@ struct Settings {
     bool console = false;
     bool engineLog = true;
     int dumpObjectsKey = VK_F10;
+    bool menuVersionLabel = true;
+    bool menuInputTrace = false;
 };
 
 struct FrameCallback {
@@ -73,6 +77,8 @@ Settings LoadSettings(const fs::path& ini) {
     wchar_t key[32];
     GetPrivateProfileStringW(L"T3SDK", L"DumpObjectsKey", L"0x79", key, 32, file);
     s.dumpObjectsKey = int(wcstol(key, nullptr, 0));
+    s.menuVersionLabel = GetPrivateProfileIntW(L"T3SDK", L"MenuVersionLabel", s.menuVersionLabel, file) != 0;
+    s.menuInputTrace = GetPrivateProfileIntW(L"T3SDK", L"MenuInputTrace", s.menuInputTrace, file) != 0;
     return s;
 }
 
@@ -306,6 +312,9 @@ void Start() {
         return;
     }
 
+    const char* menuVersion = g_settings.menuVersionLabel ? (menu::InstallModdedVersionFormat() ? "ok" : "MISSING") : "off";
+    const char* menuInput = g_settings.menuInputTrace ? (menu::InstallInputDiagnostics() ? "ok" : "MISSING") : "off";
+
     HMODULE exe = GetModuleHandleW(nullptr);
     g_peekMessageA = reinterpret_cast<PeekMessageAFn>(
         PatchImport(exe, "USER32.dll", "PeekMessageA", reinterpret_cast<void*>(&PeekMessageADetour)));
@@ -315,8 +324,9 @@ void Start() {
         PatchImport(exe, "KERNEL32.dll", "TerminateProcess", reinterpret_cast<void*>(&TerminateProcessDetour)));
     engine::SetLogSink(&OnEngineLog);
     bool engineLog = engine::HookEngineLog();
-    T3_LOG("hooks: frame %s, exit %s, engine log %s", g_peekMessageA ? "ok" : "MISSING",
-           g_exitProcess && g_terminateProcess ? "ok" : "MISSING", engineLog ? "ok" : "MISSING");
+    T3_LOG("hooks: frame %s, exit %s, engine log %s, menu version label %s, menu input trace %s",
+           g_peekMessageA ? "ok" : "MISSING", g_exitProcess && g_terminateProcess ? "ok" : "MISSING",
+           engineLog ? "ok" : "MISSING", menuVersion, menuInput);
 
     mods::LoadAll(g_dir / "mods", &g_api, &DropCallbacksOf);
     T3_LOG("started; waiting for the engine");
