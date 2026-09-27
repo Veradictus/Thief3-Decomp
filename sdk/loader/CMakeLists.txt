@@ -2,6 +2,7 @@
 # per concern (see each file's header comment). Built as t3sdk_loader and
 # renamed to dinput8 below so it matches the real DLL it stands in for.
 add_library(t3sdk_loader SHARED
+  display.cpp
   dllmain.cpp
   engine.cpp
   executable_hash.cpp

@@ -5,6 +5,7 @@
 // main thread.
 #include "sdk.hpp"
 
+#include "display.hpp"
 #include "engine.hpp"
 #include "fixes.hpp"
 #include "iat.hpp"
@@ -35,6 +36,7 @@ struct Settings {
     bool menuVersionLabel = true;
     bool menuInputTrace = false;
     fixes::Options fixes;
+    display::Options display;
 };
 
 struct FrameCallback {
@@ -82,6 +84,9 @@ Settings LoadSettings(const fs::path& ini) {
     s.menuVersionLabel = GetPrivateProfileIntW(L"T3SDK", L"MenuVersionLabel", s.menuVersionLabel, file) != 0;
     s.menuInputTrace = GetPrivateProfileIntW(L"T3SDK", L"MenuInputTrace", s.menuInputTrace, file) != 0;
     s.fixes.skipIntros = GetPrivateProfileIntW(L"Fixes", L"SkipIntros", s.fixes.skipIntros, file) != 0;
+    s.display.nativeResolutions =
+        GetPrivateProfileIntW(L"Display", L"NativeResolutions", s.display.nativeResolutions, file) != 0;
+    s.display.borderless = GetPrivateProfileIntW(L"Display", L"Borderless", s.display.borderless, file) != 0;
     return s;
 }
 
@@ -316,6 +321,7 @@ void Start() {
     }
 
     fixes::Install(g_settings.fixes);
+    display::Install(g_settings.display);
     const char* menuVersion = g_settings.menuVersionLabel ? (menu::InstallModdedVersionFormat() ? "ok" : "MISSING") : "off";
     const char* menuInput = g_settings.menuInputTrace ? (menu::InstallInputDiagnostics() ? "ok" : "MISSING") : "off";
 
