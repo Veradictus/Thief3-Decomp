@@ -162,10 +162,20 @@ void MakeBorderless(HWND window) {
                  SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 }
 
+// The present parameters the game created its device with. The viewport's
+// WM_ACTIVATEAPP handler (call at 0x10C8BF6B) resets the device to them when
+// the game loses focus, unless the device is already lost, which an exclusive
+// fullscreen device always is by then. The borderless device is not lost, the
+// reset fails, and the engine then waits for the device forever: the game
+// freezes after alt-tab, a click on another monitor, or closing the window.
+constexpr uintptr_t kCreationPresentParams = 0x10F2C86C;
+
 HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
-    // On exit the engine "leaves fullscreen" with a Reset. A borderless device
-    // has nothing to leave, and a Reset that fails there (device lost) makes the
-    // engine wait forever for the device to come back.
+    if (reinterpret_cast<uintptr_t>(params) == kCreationPresentParams) {
+        T3_LOG("display: focus-loss Reset skipped (the borderless device stays as it is)");
+        return S_OK;
+    }
+    // Nothing to reset while shutting down either.
     if (engine::Exiting()) {
         T3_LOG("display: Reset skipped, the game is exiting");
         return S_OK;
