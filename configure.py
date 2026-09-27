@@ -56,15 +56,36 @@ CFLAGS = [
 
 # Per-unit options, keyed by source path relative to src/ (as in splits.txt):
 #   "status":   "NonMatching" (default) | "Matching"
-#   "category": one of CATEGORIES
+#   "category": "game", "engine" or "libs" (default: from the unit's address)
 #   "cflags":   replaces CFLAGS for this unit
 UNITS: Dict[str, dict] = {}
 
+# objdiff/decomp.dev progress categories. "main" is the headline (decomp.dev's
+# default category): the game and its engine, without the libraries that are
+# matched from their own objects or sources rather than decompiled.
 CATEGORIES = {
+    "main": "Game & engine",
     "game": "Game",
     "engine": "Engine",
-    "sdk": "SDK & runtime",
+    "libs": "Libraries",
 }
+
+# Where code comes from, by address, for units without a category. Code before
+# the C runtime's entry point is the game and its engine (with Havok, libjpeg
+# and CppUnit until they are split out); from the entry point on it is mostly
+# the runtime, STL and D3DX. .text$x holds the exception-handling funclets of
+# every function, which the compiler emits with their parents (docs/target.md).
+CRT_ENTRY = 0x10D1F7AF
+FUNCLETS = (0x10E02DA0, 0x10E3BF77)
+
+
+def unit_categories(unit: splitslib.Unit, category: str = "") -> List[str]:
+    if category in ("game", "engine"):
+        return ["main", category]
+    if category:
+        return [category]
+    start = unit.text[0][0] if unit.text else 0
+    return ["main"] if start < CRT_ENTRY or FUNCLETS[0] <= start < FUNCLETS[1] else ["libs"]
 
 
 def main() -> None:
@@ -92,7 +113,7 @@ def main() -> None:
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
 
     functions = [s for s in symbolslib.load(symbols_txt) if s.is_function and s.size > 0]
-    units = splitslib.plan(splitslib.load(splits_txt), functions, CHUNK_SIZE)
+    units = splitslib.plan(splitslib.load(splits_txt), functions, CHUNK_SIZE, breaks=(CRT_ENTRY, *FUNCLETS))
     for source in UNITS:
         if not any(u.source == source for u in units):
             sys.exit(f"UNITS entry {source} is not declared in {splits_txt}")
@@ -210,8 +231,7 @@ def main() -> None:
             metadata["source_path"] = str(source).replace(os.sep, "/")
         if opts.get("status") == "Matching":
             metadata["complete"] = True
-        if opts.get("category"):
-            metadata["progress_categories"] = [opts["category"]]
+        metadata["progress_categories"] = unit_categories(u, opts.get("category", ""))
         unit_json.append({
             "name": u.name,
             "target_path": str(obj_dir / u.object).replace(os.sep, "/"),
