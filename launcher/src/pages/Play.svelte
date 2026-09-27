@@ -32,7 +32,7 @@
 
   function sdkTitle() {
     if (!o) return "";
-    if (o.sdk.installed) return o.sdk.managed ? "Installed" : "Installed (not by this T3SDK folder)";
+    if (o.sdk.installed) return o.sdk.managed ? "Installed" : "Installed manually";
     return o.sdk.built ? "Not installed" : "Not built";
   }
 </script>
@@ -91,8 +91,10 @@
           <button class="btn small" disabled={busy || !o?.sdk.built}
             onclick={() => enqueue({ kind: "sdkDeploy" }, "Install T3SDK")}><Icon name="download" size={14} />Install</button>
         {/if}
-        <button class="btn small ghost" disabled={busy} title="Needs Visual Studio with the C++ tools"
-          onclick={() => enqueue({ kind: "sdkBuild" }, "Build T3SDK")}><Icon name="hammer" size={14} />Build</button>
+        {#if o?.sdk.buildable}
+          <button class="btn small ghost" disabled={busy} title="Needs Visual Studio with the C++ tools"
+            onclick={() => enqueue({ kind: "sdkBuild" }, "Build T3SDK")}><Icon name="hammer" size={14} />Build</button>
+        {/if}
       </div>
     </div>
 

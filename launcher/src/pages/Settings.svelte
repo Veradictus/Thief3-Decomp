@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import Icon from "../components/Icon.svelte";
   import PathField from "../components/PathField.svelte";
-  import { api, type Config, type Detected } from "../lib/api";
+  import { api, launcherVersion, type Config, type Detected } from "../lib/api";
   import { app, guard, saveConfig, toast } from "../lib/app.svelte";
 
   let { setup = false }: { setup?: boolean } = $props();
@@ -16,6 +16,7 @@
   let godotOk = $state(false);
   let pythonOk = $state(false);
   let rootOk = $state(false);
+  let version = $state("");
 
   const ready = $derived(gameOk && pythonOk && rootOk);
   const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(app.config));
@@ -34,6 +35,7 @@
 
   onMount(() => {
     if (setup || !app.config?.gameDir) void detect();
+    void launcherVersion().then((v) => (version = v));
   });
 
   async function save() {
@@ -88,11 +90,11 @@
       candidates={detected?.games} check={gameCheck}
       action={{ label: "Get Thief: Deadly Shadows on Steam", href: "https://store.steampowered.com/app/6980/" }} />
     <PathField label="T3SDK folder" bind:value={draft.sdkRoot} bind:ok={rootOk}
-      hint="The T3SDK checkout or release: it contains tools and sdk."
+      hint="The T3SDK tools and SDK. The launcher ships with its own copy; a T3SDK checkout (for developers) works too."
       candidates={detected?.sdkRoots} check={rootCheck}
       action={{ label: "Get T3SDK", href: "https://github.com/Veradictus/Thief3-Decomp" }} />
     <PathField label="Python" bind:value={draft.python} bind:ok={pythonOk} directory={false}
-      hint="Python 3.10 or newer runs the T3SDK tools (map export, repack, SDK install)."
+      hint="Runs the T3SDK tools (SDK install, map export, repack). The launcher ships with one; any Python 3.10+ works too."
       candidates={detected?.pythons} check={pythonCheck}
       action={{ label: "Get Python", href: "https://www.python.org/downloads/" }} />
     <PathField label="Godot" bind:value={draft.godot} bind:ok={godotOk} directory={false} optional
@@ -124,7 +126,7 @@
     <div class="about card">
       <h3>About</h3>
       <p class="muted">
-        T3SDK Launcher 0.1. T3SDK is a fan project, not affiliated with or endorsed by the owners of the Thief
+        T3SDK Launcher {version}. T3SDK is a fan project, not affiliated with or endorsed by the owners of the Thief
         series. It changes the game only in memory while it runs; map repacks replace map files only when you
         install them, after backing up the originals.
       </p>

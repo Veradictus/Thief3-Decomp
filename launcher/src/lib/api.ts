@@ -1,6 +1,7 @@
 // Typed wrappers around the Rust commands (src-tauri/src). Outside Tauri, in a
 // plain browser (`npm run dev`), calls go to mock.ts so the UI can be worked on
 // and screenshotted without the game.
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -65,7 +66,7 @@ export interface CheckResult {
 
 export interface Overview {
   game: GameCheck | null;
-  sdk: { installed: boolean; managed: boolean; built: boolean; settings: boolean };
+  sdk: { installed: boolean; managed: boolean; built: boolean; buildable: boolean; settings: boolean };
   modsEnabled: number;
   modsDisabled: number;
   maps: { total: number; exported: number; edited: number; patched: number; installed: number };
@@ -169,6 +170,11 @@ export const api = {
   startTask: (spec: TaskSpec) => call<TaskStarted>("start_task", { spec }),
   cancelTask: (id: number) => call<void>("cancel_task", { id }),
 };
+
+/** The launcher's version ("preview" outside Tauri). */
+export function launcherVersion(): Promise<string> {
+  return inTauri ? getVersion() : Promise.resolve("preview");
+}
 
 export function onEvent<T>(name: string, handler: (payload: T) => void): Promise<UnlistenFn> {
   return inTauri ? listen<T>(name, (e) => handler(e.payload)) : mockListen<T>(name, handler);
