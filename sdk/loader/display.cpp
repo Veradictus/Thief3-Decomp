@@ -45,7 +45,8 @@ std::set<Mode> MonitorModes(Mode* native) {
 }
 
 // Native resolution last; before it the largest smaller modes with the same
-// aspect ratio, topped up with classic 4:3 modes when there are too few.
+// aspect ratio, topped up with classic 4:3 modes (those not listed yet) when
+// there are too few.
 std::vector<Mode> ChooseResolutions() {
     Mode native;
     std::set<Mode> modes = MonitorModes(&native);
@@ -62,7 +63,8 @@ std::vector<Mode> ChooseResolutions() {
     });
     smaller.resize(std::min<size_t>(smaller.size(), kResolutionCount - 1));
     for (Mode classic : {Mode{1024, 768}, Mode{800, 600}, Mode{640, 480}}) {
-        if (smaller.size() < kResolutionCount - 1 && classic.first < native.first) {
+        bool listed = std::find(smaller.begin(), smaller.end(), classic) != smaller.end();
+        if (smaller.size() < kResolutionCount - 1 && classic.first < native.first && !listed) {
             smaller.push_back(classic);
         }
     }
