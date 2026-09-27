@@ -31,7 +31,11 @@ from typing import Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "build" / "sdk"
 BIN = BUILD / "bin"
-MANIFEST = BUILD / "deployed.json"
+# The record of what deploy installed, and other output, goes under
+# $T3SDK_BUILD_DIR when it is set: the launcher sets it to a per-user folder
+# when it runs the copy of this tool (and the prebuilt BIN) it ships with.
+OUT = Path(os.environ.get("T3SDK_BUILD_DIR") or ROOT / "build") / "sdk"
+MANIFEST = OUT / "deployed.json"
 SUPPORTED_SHA1 = "40bf68a54246bcde2fb5fcbc75b94dc7c7f78305"  # T3Main.exe, PC_20040610
 STEAM_APP_ID = "6980"  # Thief: Deadly Shadows
 
@@ -124,13 +128,14 @@ def cmd_deploy(args: argparse.Namespace) -> None:
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(BIN / rel, dst)
         installed.append(rel)
+    MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST.write_text(json.dumps({"system": str(system), "files": installed}, indent=1), encoding="utf-8")
     print(f"deployed {len(installed)} files to {system}")
 
 
 def cmd_undeploy(args: argparse.Namespace) -> None:
     if not MANIFEST.is_file():
-        sys.exit("nothing deployed (no build/sdk/deployed.json)")
+        sys.exit(f"nothing deployed (no {MANIFEST})")
     data = json.loads(MANIFEST.read_text())
     system = Path(data["system"])
     for rel in data["files"]:
@@ -427,7 +432,7 @@ def main() -> None:
     keys.add_argument("--delay", type=float, default=0.4, help="seconds between keys")
     keys.add_argument("--hold", type=float, default=0.1, help="seconds each key is held")
     shot = sub.add_parser("screenshot")
-    shot.add_argument("-o", "--output", default=str(BUILD / "screenshot.png"))
+    shot.add_argument("-o", "--output", default=str(OUT / "screenshot.png"))
     shot.add_argument("--max-width", type=int, default=1280, help="downscale wider captures (0 = full size)")
     for name in ("deploy", "undeploy", "log"):
         sub.add_parser(name)

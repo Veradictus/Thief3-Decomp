@@ -16,8 +16,8 @@ Python, and shows their output live.
 
 | Screen | What it does |
 |---|---|
-| Setup | First run: finds the game (installer registry entry, Steam libraries, `T3_GAME_DIR`), Godot (`GODOT`, `PATH`, common folders), Python (the T3SDK `.venv`, the `py` launcher, `PATH`) and the T3SDK folder (walks up from the launcher). Each path is checked: the game's `T3Main.exe` SHA-1, `godot --version` (4.7+), Python 3.10+, the tools. |
-| Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log`. |
+| Setup | First run: finds the game (installer registry entry, Steam libraries, `T3_GAME_DIR`), Godot (`GODOT`, `PATH`, common folders), Python (the bundled one, the T3SDK `.venv`, the `py` launcher, `PATH`) and the T3SDK folder (the bundled one, or a checkout found by walking up from the launcher). Each path is checked: the game's `T3Main.exe` SHA-1, `godot --version` (4.7+), Python 3.10+, the tools. |
+| Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it from a checkout (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log`. |
 | Map Studio | Per map: export to Godot (then a headless Godot import), open it in the Godot editor or the viewer, repack the saved edits into a patched `.gmp`, install it into the game, restore the original. Also a byte-exact round-trip check of the unchanged map. |
 | Mods | Lists `System/mods/*.dll`. Turning a mod off moves its `.dll` (and `.pdb`/`.ini`) into `System/mods/disabled/`, which the SDK does not load. |
 | SDK settings | `System/T3SDK.ini` as switches. The list, order and descriptions come from the comments in the SDK's own `sdk/T3SDK.ini`, so new settings appear without launcher changes. Values are edited in place; the file's comments and line endings are kept. |
@@ -40,8 +40,38 @@ tools are run by hand:
 | in the game | `<game>/Content/T3/Maps/<id>.gmp` |
 | exported, title, actor count | `<project>/<id>/<id>.tscn`, `<project>/t3_maps.json` |
 | edited | `<project>/<id>/<id>.edits.json` (actors changed = keys of `actors`) |
-| repacked | `<T3SDK>/build/assets/patched/<id>.gmp`; "repack needed" when the edits are newer |
-| installed | a backup exists in `<T3SDK>/build/assets/backup/` and the game's map differs from it |
+| repacked | `<build>/assets/patched/<id>.gmp`; "repack needed" when the edits are newer |
+| installed | a backup exists in `<build>/assets/backup/` and the game's map differs from it |
+
+`<build>` is the T3SDK folder's `build/`, or the per-user folder for the
+bundled tools (see Releases).
+
+## Releases
+
+`.github/workflows/launcher.yml` checks and builds the launcher and the SDK on
+every change; a `v*` tag runs `release.yml`, which publishes the files as a
+GitHub release (both call `launcher-build.yml`):
+
+| File | What it is |
+|---|---|
+| `T3SDK-Launcher_<version>_x64-setup.exe` | NSIS installer (per user, no admin rights) |
+| `T3SDK-Launcher_<version>_portable.zip` | the same files, to unzip and run |
+| `T3SDK_<version>_x86.zip` | the SDK alone (`dinput8.dll`, mods, `T3SDK.ini`), for `System/` by hand |
+
+A release launcher is self-contained. `tools/stage_launcher.py stage` puts
+three things next to it (its resource folder), and setup picks them first:
+
+- `t3sdk/`: `tools/sdk.py`, `tools/assets/`, `sdk/T3SDK.ini` and the prebuilt
+  SDK in `build/sdk/bin/`, laid out like a checkout;
+- `python/`: CPython's embeddable package for Windows (pinned by SHA-256), so
+  players need no Python of their own.
+
+The bundled folder is replaced on update and may not be writable, so for it
+the launcher sets `T3SDK_BUILD_DIR` to `build\` in the per-user local app data
+(`%LOCALAPPDATA%\org.t3sdk.launcher\`). The tools write there instead of into
+`build/`: the SDK's deploy manifest, the Godot project, patched maps and the
+backups of original maps. With a checkout as the T3SDK folder, everything stays
+in the checkout's `build/`.
 
 ## Building
 
@@ -54,6 +84,15 @@ cd launcher
 npm install
 npm run tauri dev        # the app, with live reload
 npm run tauri build      # release build and NSIS installer in src-tauri/target/release/bundle/
+```
+
+A release-style build with the bundled tools, SDK and Python (the SDK built
+first with `tools/sdk.py build`):
+
+```sh
+python tools/stage_launcher.py stage [--version 0.2.0]
+cd launcher && npx tauri build --config src-tauri/bundle/tauri.bundle.conf.json
+python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe dist/portable.zip
 ```
 
 `npm run dev` serves the UI alone in a browser. Outside Tauri, `src/lib/mock.ts`

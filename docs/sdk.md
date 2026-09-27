@@ -39,10 +39,12 @@ the reason and leaves the game unmodified by SDK hooks. The addresses in
 [`engine.md`](engine.md) are for this exact executable.
 
 Deploy copies DLL, PDB, and INI files from `build/sdk/bin/` into `System/` and
-records the files it installed in `build/sdk/deployed.json`. It refuses to
-overwrite an existing file it does not own, except that an existing
-`System/T3SDK.ini` that is not already in the manifest is kept as the user's
-settings. `undeploy` removes only files in the manifest.
+records the files it installed in `build/sdk/deployed.json` (under
+`$T3SDK_BUILD_DIR/sdk/` when that is set, as the launcher does for its bundled
+copy). It refuses to overwrite an existing file it does not own, and then
+copies nothing, except that an existing `System/T3SDK.ini` that is not already
+in the manifest is kept as the user's settings. `undeploy` removes only files
+in the manifest.
 
 ## Settings and built-in fixes
 

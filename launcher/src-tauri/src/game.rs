@@ -39,6 +39,8 @@ pub struct SdkStatus {
     pub managed: bool,
     /// build/sdk/bin/dinput8.dll exists, so it can be installed.
     pub built: bool,
+    /// The SDK's sources are there (a checkout, not the launcher's own copy).
+    pub buildable: bool,
     /// System/T3SDK.ini exists.
     pub settings: bool,
 }
@@ -72,10 +74,12 @@ fn sdk_status(cfg: &Config) -> SdkStatus {
         status.settings = system.join("T3SDK.ini").is_file();
     }
     if let Some(root) = &cfg.sdk_root {
-        let sdk = root.join("build").join("sdk");
-        status.built = sdk.join("bin").join("dinput8.dll").is_file();
-        status.managed = status.installed
-            && std::fs::read_to_string(sdk.join("deployed.json")).is_ok_and(|t| t.contains("dinput8.dll"));
+        status.built = root.join("build").join("sdk").join("bin").join("dinput8.dll").is_file();
+        status.buildable = root.join("sdk").join("CMakeLists.txt").is_file();
+    }
+    if let Some(build) = cfg.build_root() {
+        let manifest = build.join("sdk").join("deployed.json");
+        status.managed = status.installed && std::fs::read_to_string(manifest).is_ok_and(|t| t.contains("dinput8.dll"));
     }
     status
 }

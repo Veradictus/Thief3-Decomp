@@ -210,6 +210,9 @@ pub async fn start_task(app: AppHandle, state: State<'_, AppState>, spec: TaskSp
     if let Some(game) = &cfg.game_dir {
         cmd.env("T3_GAME_DIR", game);
     }
+    if let Some(build) = cfg.build_root() {
+        cmd.env("T3SDK_BUILD_DIR", build);
+    }
     if let Some(godot) = &cfg.godot {
         cmd.env("GODOT", godot);
     }

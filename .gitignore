@@ -56,3 +56,4 @@ Thumbs.db
 /launcher/dist/
 /launcher/src-tauri/target/
 /launcher/src-tauri/gen/
+/launcher/src-tauri/bundle/

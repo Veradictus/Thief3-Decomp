@@ -8,6 +8,7 @@ use std::time::{Duration, SystemTime};
 
 use serde::Serialize;
 use sha1::{Digest, Sha1};
+use tauri::{AppHandle, Manager};
 
 use crate::proc;
 
@@ -263,8 +264,15 @@ fn scan_for_godot(dir: &Path, source: &str, depth: u32, list: &mut Vec<Candidate
     }
 }
 
-fn python_candidates(sdk_roots: &[Candidate]) -> Vec<Candidate> {
+fn python_candidates(sdk_roots: &[Candidate], resources: Option<&Path>) -> Vec<Candidate> {
     let mut list = Vec::new();
+    // Release builds ship CPython's embeddable package (tools/stage_launcher.py).
+    if let Some(res) = resources {
+        let bundled = res.join("python").join(exe_name("python"));
+        if bundled.is_file() {
+            push(&mut list, bundled, "bundled with the launcher");
+        }
+    }
     for root in sdk_roots {
         let venv = if cfg!(windows) {
             root.path.join(".venv").join("Scripts").join("python.exe")
@@ -306,8 +314,12 @@ fn is_sdk_root(dir: &Path) -> bool {
     dir.join("tools").join("assets").join("t3map.py").is_file() && dir.join("tools").join("sdk.py").is_file()
 }
 
-fn sdk_root_candidates() -> Vec<Candidate> {
+fn sdk_root_candidates(resources: Option<&Path>) -> Vec<Candidate> {
     let mut list = Vec::new();
+    // Release builds ship the tools and the prebuilt SDK as t3sdk/.
+    if let Some(bundled) = resources.map(|r| r.join("t3sdk")).filter(|d| is_sdk_root(d)) {
+        push(&mut list, bundled, "bundled with the launcher");
+    }
     let starts = [
         (std::env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf)), "next to the launcher"),
         (std::env::current_dir().ok(), "working folder"),
@@ -418,9 +430,10 @@ pub fn sdk_root_check(path: &Path) -> SdkRootCheck {
 // ---- commands -------------------------------------------------------------------
 
 #[tauri::command]
-pub async fn detect_all() -> Result<Detected, String> {
-    let sdk_roots = sdk_root_candidates();
-    let pythons = python_candidates(&sdk_roots);
+pub async fn detect_all(app: AppHandle) -> Result<Detected, String> {
+    let resources = app.path().resource_dir().ok();
+    let sdk_roots = sdk_root_candidates(resources.as_deref());
+    let pythons = python_candidates(&sdk_roots, resources.as_deref());
     Ok(Detected { games: game_candidates(), godots: godot_candidates(), pythons, sdk_roots })
 }
 

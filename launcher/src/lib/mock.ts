@@ -107,7 +107,7 @@ export async function mockCall<T>(cmd: string, args: Record<string, any> = {}): 
       case "check_sdk_root": return { path: args.path, ok: true, mapTools: true, packTools: true, sdkBuilt: true, message: "Ready." };
       case "overview": return {
         game: state.config.gameDir ? game() : null,
-        sdk: { installed: true, managed: true, built: true, settings: true },
+        sdk: { installed: true, managed: true, built: true, buildable: true, settings: true },
         modsEnabled: state.mods.filter((m) => m.enabled).length,
         modsDisabled: state.mods.filter((m) => !m.enabled).length,
         maps: { total: maps.length, exported: maps.filter((m) => m.exported).length,
