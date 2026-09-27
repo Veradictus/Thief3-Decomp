@@ -77,6 +77,7 @@ public class FindMissingFunctions extends GhidraScript {
 			currentProgram.getFunctionManager().getFunctionCount(), total, coverage() * 100));
 	}
 
+	/** Fraction of .text accounted for: inside a function's body, or padding between them. */
 	private double coverage() {
 		AddressSet covered = new AddressSet();
 		for (Function f : currentProgram.getFunctionManager().getFunctions(text.getStart(), true)) {
@@ -92,6 +93,7 @@ public class FindMissingFunctions extends GhidraScript {
 		return (double) (covered.getNumAddresses() + padding) / text.getSize();
 	}
 
+	/** Whether every byte in `r` is padding: int3 (0xCC) or nop (0x90). */
 	private boolean isPadding(AddressRange r) {
 		try {
 			byte[] bytes = getBytes(r.getMinAddress(), (int) r.getLength());
@@ -150,6 +152,7 @@ public class FindMissingFunctions extends GhidraScript {
 		return true;
 	}
 
+	/** Signal 1: pointers in initialised data that land in uncovered .text. */
 	private List<Address> dataPointerTargets() throws MemoryAccessException {
 		List<Address> out = new ArrayList<>();
 		for (MemoryBlock b : currentProgram.getMemory().getBlocks()) {
@@ -173,6 +176,7 @@ public class FindMissingFunctions extends GhidraScript {
 		return out;
 	}
 
+	/** Signal 2: absolute instruction operands that land in uncovered .text. */
 	private List<Address> operandTargets() throws MemoryAccessException {
 		List<Address> out = new ArrayList<>();
 		InstructionIterator it = currentProgram.getListing()
@@ -206,6 +210,7 @@ public class FindMissingFunctions extends GhidraScript {
 		return out;
 	}
 
+	/** Signal 3: 16-byte-aligned candidates that directly follow int3 padding. */
 	private List<Address> paddedStarts() throws MemoryAccessException {
 		List<Address> out = new ArrayList<>();
 		AddressSet covered = new AddressSet();
@@ -226,6 +231,10 @@ public class FindMissingFunctions extends GhidraScript {
 		return out;
 	}
 
+	/**
+	 * Creates a function at each candidate in `starts`, skipping any that a
+	 * function created earlier in this same batch already covers.
+	 */
 	private int createAt(List<Address> starts) {
 		int created = 0;
 		for (Address a : starts) {

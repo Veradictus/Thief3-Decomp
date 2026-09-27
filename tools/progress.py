@@ -11,6 +11,7 @@ def num(measures: dict, key: str) -> float:
 
 
 def line(label: str, m: dict) -> str:
+    """One report line from an objdiff "measures" object (overall or one category)."""
     code = num(m, "matched_code_percent")
     data = num(m, "matched_data_percent")
     return (
@@ -27,6 +28,7 @@ def main() -> None:
     report = json.loads(args.report.read_text(encoding="utf-8"))
     print(line("All", report.get("measures", {})))
     for cat in report.get("categories", []):
+        # Skip categories with nothing assigned to them yet.
         if num(cat.get("measures", {}), "total_code") or num(cat.get("measures", {}), "total_data"):
             print(line(cat.get("name", cat.get("id", "?")), cat.get("measures", {})))
 

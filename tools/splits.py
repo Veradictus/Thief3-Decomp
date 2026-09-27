@@ -51,6 +51,7 @@ class Unit:
 
 
 def load(path: Path) -> List[Unit]:
+    """Parse splits.txt (see the module docstring for the format) into declared Units."""
     units: List[Unit] = []
     current = None
     for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -87,10 +88,12 @@ def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int)
     starts = [r[0] for r in claimed]
 
     def claimed_at(address: int) -> bool:
+        """Whether a declared unit's .text range already covers `address`."""
         i = bisect.bisect_right(starts, address) - 1
         return i >= 0 and address < claimed[i][1]
 
     def claim_between(lo: int, hi: int) -> bool:
+        """Whether a declared range starts in [lo, hi): a gap an auto chunk must not span."""
         i = bisect.bisect_left(starts, lo)
         return i < len(starts) and starts[i] < hi
 
@@ -100,6 +103,12 @@ def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int)
         if claimed_at(f.address):
             chunk = None
             continue
+        # Start a new auto chunk unless the current one can simply extend to
+        # cover `f` too: still under chunk_size, and with no declared unit's
+        # range in the gap. Such a range might hold no function of its own
+        # (e.g. pure padding), so claimed_at() alone would not have reset
+        # `chunk` already; without this check the auto chunk would silently
+        # swallow bytes a declared unit owns.
         if chunk is None or f.address - chunk.text[0][0] >= chunk_size or claim_between(chunk.text[0][1], f.address):
             chunk = Unit(source=f"auto/text_{f.address:08X}", auto=True, text=[(f.address, f.end)])
             auto.append(chunk)

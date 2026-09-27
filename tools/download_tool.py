@@ -17,9 +17,10 @@ import sys
 import urllib.request
 import zipfile
 from pathlib import Path
+from typing import Tuple
 
 
-def host() -> tuple:
+def host() -> Tuple[str, str, str]:
     system = platform.system().lower()
     system = {"darwin": "macos"}.get(system, system)
     arch = platform.machine().lower()

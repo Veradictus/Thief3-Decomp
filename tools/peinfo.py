@@ -12,6 +12,7 @@ from pe import PE, RICH_PRODUCTS
 
 
 def entropy(data: bytes) -> float:
+    """Shannon entropy of `data` in bits/byte; near 8 suggests packed or encrypted content."""
     if not data:
         return 0.0
     n = len(data)

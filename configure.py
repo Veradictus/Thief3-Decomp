@@ -121,6 +121,10 @@ def main() -> None:
     n.newline()
 
     n.rule("download_tool", f"$python tools/download_tool.py $tool $dest --tag $tag", description="TOOL $out")
+    # path is what ninja checks for freshness; dest is download_tool.py's own --output
+    # argument. They differ for "compilers": it extracts a whole tree, and cl.exe
+    # (part of that tree) stands in as the one file ninja can watch.
+    # wibo is fetched only when it will actually be used as the compiler wrapper.
     for tool, path, dest in (
         ("objdiff-cli", objdiff, objdiff),
         ("delink", delink, delink),

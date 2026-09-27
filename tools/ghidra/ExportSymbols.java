@@ -157,6 +157,12 @@ public class ExportSymbols extends GhidraScript {
 		return end;
 	}
 
+	/**
+	 * The name to export for a function: its mangled MSVC label if one exists;
+	 * for an unrenamed jmp-stub thunk, the target's COFF name if the target is
+	 * an import, else a generic FUN_ name; otherwise Ghidra's own name
+	 * (demangled, with any "FID_conflict:" prefix from Function ID stripped).
+	 */
 	private String functionName(Function f) {
 		String mangled = mangledLabel(f.getEntryPoint());
 		if (mangled != null) {
@@ -179,6 +185,7 @@ public class ExportSymbols extends GhidraScript {
 		return name;
 	}
 
+	/** The first mangled (MSVC "?"-decorated) symbol at `a`, Function ID's or the user's, if any. */
 	private String mangledLabel(Address a) {
 		for (Symbol s : currentProgram.getSymbolTable().getSymbols(a)) {
 			if (s.getName().startsWith("?")) {
@@ -203,6 +210,7 @@ public class ExportSymbols extends GhidraScript {
 		return "_" + name + "@" + purge;
 	}
 
+	/** Names import table slots __imp_<coff name>, from data references Ghidra resolved externally. */
 	private void exportImports() {
 		DataIterator it = currentProgram.getListing().getDefinedData(true);
 		while (it.hasNext() && !monitor.isCancelled()) {
@@ -233,6 +241,8 @@ public class ExportSymbols extends GhidraScript {
 				continue;
 			}
 			MemoryBlock block = getMemoryBlock(s.getAddress());
+			// Not real code/data: executable blocks (functions are exported separately),
+			// PE headers, resources, and Ghidra's own internal blocks.
 			if (block == null || block.isExecute() || block.getName().equals("Headers") ||
 				block.getName().equals(".rsrc") || block.getName().equals("tdb")) {
 				continue;
@@ -250,6 +260,7 @@ public class ExportSymbols extends GhidraScript {
 		}
 	}
 
+	/** Records one address's entry (first writer wins), disambiguating a name already used elsewhere. */
 	private void add(long address, String name, String type, long size) {
 		if (entries.containsKey(address)) {
 			return;

@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 IMAGE_SCN_CNT_CODE = 0x00000020
-IMAGE_SCN_CNT_UNINITIALIZED_DATA = 0x00000080
 IMAGE_SCN_MEM_EXECUTE = 0x20000000
-IMAGE_SCN_MEM_READ = 0x40000000
 IMAGE_SCN_MEM_WRITE = 0x80000000
 
+# IMAGE_DIRECTORY_ENTRY_* order (winnt.h): index into the optional header's
+# data directory array, which `directory()` looks up by name.
 DIRECTORY_NAMES = [
     "export", "import", "resource", "exception", "security", "basereloc",
     "debug", "architecture", "globalptr", "tls", "load_config", "bound_import",
@@ -42,6 +42,9 @@ class Section:
 
 @dataclass
 class RichEntry:
+    """One tool's contribution recorded in the Rich header: product id (see
+    RICH_PRODUCTS), build number, and how many objects it produced."""
+
     prodid: int
     build: int
     count: int
@@ -105,6 +108,9 @@ class PE:
 
     # -- metadata --------------------------------------------------------
     def rich_header(self) -> Tuple[Optional[int], List[RichEntry]]:
+        """(xor key, entries) from the Rich header: an undocumented, XOR-obfuscated
+        record the MSVC linker leaves between the MZ stub and the PE header, listing
+        every tool version that contributed an object to the link."""
         end = self.data.find(b"Rich", 0, self.pe_offset)
         if end < 0:
             return None, []
@@ -143,11 +149,12 @@ class PE:
                 break
             dll = self._cstr(name_rva)
             names = []
-            thunk = ilt or iat
+            thunk = ilt or iat  # the lookup table is the by-the-book source; some linkers omit it
             while True:
                 value = struct.unpack_from("<I", self.read_rva(thunk, 4))[0]
                 if not value:
                     break
+                # value + 2: skip IMAGE_IMPORT_BY_NAME's Hint field to reach the name string.
                 names.append(f"#{value & 0xFFFF}" if value & 0x80000000 else self._cstr(value + 2))
                 thunk += 4
             out.append((dll, names))

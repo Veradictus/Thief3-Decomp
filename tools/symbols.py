@@ -41,6 +41,7 @@ def _attrs(text: str) -> Dict[str, str]:
 
 
 def load(path: Path) -> List[Symbol]:
+    """Parse symbols.txt (see the module docstring for the format) into Symbols, sorted by address."""
     symbols: List[Symbol] = []
     names: Dict[str, int] = {}
     for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -77,6 +78,7 @@ def format_symbol(sym: Symbol) -> str:
 
 
 def save(path: Path, symbols: Iterable[Symbol], header: str = "") -> None:
+    """Write symbols.txt, sorted by address, with `header` as leading '#' comment lines."""
     lines = [f"# {line}" for line in header.splitlines()]
     lines += [format_symbol(s) for s in sorted(symbols, key=lambda s: s.address)]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

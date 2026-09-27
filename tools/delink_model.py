@@ -27,7 +27,7 @@ import json
 import sys
 from array import array
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from iced_x86 import Code, Decoder, MemorySize, Mnemonic, OpKind
 
@@ -39,9 +39,9 @@ from pe import PE
 def build_segments(pe: PE) -> List[dict]:
     base = pe.image_base
     iat_rva, iat_size = pe.directory("iat")
-    segments = []
+    segments: List[dict] = []
 
-    def seg(name, start, end, cls, w=False, x=False):
+    def seg(name: str, start: int, end: int, cls: str, w: bool = False, x: bool = False) -> None:
         if end > start:
             segments.append({
                 "name": name, "start": base + start, "end": base + end,
@@ -50,7 +50,7 @@ def build_segments(pe: PE) -> List[dict]:
 
     for s in pe.sections:
         if s.name in (".rsrc", ".reloc"):
-            continue
+            continue  # resources and relocations (stripped; the section would be empty anyway) are not code/data
         start, vend, init_end = s.va, s.va + s.vsize, s.va + s.initialized_size
         if s.executable:
             seg(s.name, start, vend, "CODE", x=True)
@@ -74,7 +74,7 @@ class Image:
         self.segments = segments
         self.starts = [s["start"] for s in segments]
 
-    def segment(self, va: int):
+    def segment(self, va: int) -> Optional[dict]:
         i = bisect.bisect_right(self.starts, va) - 1
         if i >= 0 and va < self.segments[i]["end"]:
             return self.segments[i]
@@ -139,6 +139,11 @@ def code_relocations(pe: PE, image: Image, functions: List[symbolslib.Symbol],
 
 
 def data_relocations(pe: PE, image: Image) -> List[dict]:
+    """Every 4-byte-aligned dword in DATA/CONST segments that points inside the image.
+
+    BSS is zero-filled (nothing to scan), and CODE/XTRN are handled elsewhere
+    (code operands by `code_relocations`, import slots by the loader).
+    """
     relocs = []
     for seg in image.segments:
         if seg["class"] not in ("DATA", "CONST"):
