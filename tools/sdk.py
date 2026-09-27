@@ -107,18 +107,22 @@ def cmd_deploy(args: argparse.Namespace) -> None:
         sys.exit("nothing to deploy: run `tools/sdk.py build` first")
     previous = set(json.loads(MANIFEST.read_text())["files"]) if MANIFEST.is_file() else set()
 
+    # sorted: a deterministic manifest, regardless of filesystem order
+    files = [src.relative_to(BIN).as_posix() for src in sorted(BIN.rglob("*"))
+             if src.is_file() and src.suffix.lower() in (".dll", ".pdb", ".ini")]
+    # A file already there that this tool did not install stops the deploy before
+    # anything is copied, so a refused deploy leaves the folder as it was.
+    # T3SDK.ini is the exception: an existing one is the user's own settings.
+    files = [rel for rel in files if not (rel == "T3SDK.ini" and rel not in previous and (system / rel).exists())]
+    conflicts = [system / rel for rel in files if (system / rel).exists() and rel not in previous]
+    if conflicts:
+        sys.exit("these files exist and were not installed by this tool; move them away first:\n  "
+                 + "\n  ".join(str(c) for c in conflicts))
     installed: List[str] = []
-    for src in sorted(BIN.rglob("*")):  # sorted: a deterministic manifest, regardless of filesystem order
-        if not src.is_file() or src.suffix.lower() not in (".dll", ".pdb", ".ini"):
-            continue
-        rel = src.relative_to(BIN).as_posix()
+    for rel in files:
         dst = system / rel
-        if dst.exists() and rel not in previous:
-            if rel == "T3SDK.ini":
-                continue  # the user's own settings
-            sys.exit(f"{dst} exists and was not installed by this tool; move it away first")
         dst.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dst)
+        shutil.copy2(BIN / rel, dst)
         installed.append(rel)
     MANIFEST.write_text(json.dumps({"system": str(system), "files": installed}, indent=1), encoding="utf-8")
     print(f"deployed {len(installed)} files to {system}")
