@@ -106,6 +106,42 @@ packages are loaded, about 6,000 objects and 9,800 names at the main menu. The
 menu level is `Entry`, and its player controller is `Entry.Camera__0` (class
 `Engine.Camera`, a `PlayerController`).
 
+## Script natives
+
+The UnrealScript interpreter runs a function's bytecode through native C++
+functions. `GNatives` maps each opcode or native index to one; `FFrame::Step`
+reads the next opcode and calls it.
+
+| What | Address | Status |
+|---|---|---|
+| native table: 254 `{"int<Class>exec<Name>", function}` pairs, the names `IMPLEMENT_FUNCTION` exports in stock Unreal Engine 2 (all `UObject`, plus `UCommandlet::execMain` with no function) | `0x10F012F8`-`0x10F01AF0` | static |
+| `GNatives` (`Native[4096]`, `Native` = `void (UObject::*)(FFrame&, void*)`) | `0x10F41C08` | static (`FFrame::Step`) |
+| `GCasts` (`Native[256]`) | `0x10F417F8` | static (`UObject::execPrimitiveCast`) |
+| `FFrame::Step(UObject* Context, void* Result)`, `__thiscall`, out of line (stock Unreal Engine 2 inlines it) | `0x10B0FC50` | static, matched as called |
+| `UObject::execPrimitiveCast` | `0x10AFDC90` | static |
+
+The table names 234 `UObject` natives in `symbols.txt`. Seven functions are
+shared by two or three natives (the linker folded identical bodies, such as
+`execIntZero`, `execFalse` and `execNoObject` at `0x10AFDC00`), and stay
+unnamed. Fifteen natives sat inside a neighbour's range in Ghidra's export,
+which never saw a function start there; see the note below.
+
+`FFrame` (stock layout; the natives read these offsets): `+0x00` vtable
+(`FOutputDevice`), `+0x04` Node, `+0x08` Object, `+0x0C` Code (the bytecode
+pointer), `+0x10` Locals. A native's parameters are read by `Step`, one per
+call, into zeroed locals, and `Code++` skips the end-of-parameters opcode; the
+header `include/Core/Core.h` has these as the stock `P_GET_*` and `P_FINISH`
+macros, which match (`execIsA`, `execAdd_IntInt`, `execMultiply_FloatFloat`,
+`execNot_PreBool`).
+
+**Functions only pointers reach.** Ghidra's export started a function only
+where code flows or calls go, so a function reached only through a pointer
+table (vtables, the native table) and placed right after another one's
+`ret` became part of it. Data pointers to 16-byte aligned addresses inside
+an exported function, right after a return, jump or padding, and sitting
+among other code pointers found 252 such starts inside 241 exported
+functions; `symbols.txt` now splits them.
+
 ## Logging
 
 | What | Address | Status |

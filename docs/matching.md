@@ -48,7 +48,7 @@ wave's commands, prompt, settings and results) and `worktrees/`.
 (`Unwind@`, `.text$x`), import thunks, the library region from `0x10CFBFB0`
 on (qhull, then the C runtime; `--all-regions` includes it), and functions already
 accepted, integrated (a `// FUNCTION:` line in `src/`), deferred or claimed.
-With the current `symbols.txt` that leaves 18,195 functions. They are
+With the current `symbols.txt` that leaves about 17,800 functions. They are
 ordered easy first by a difficulty score when iced-x86 and the target's
 bytes are available (instructions, plus 3 per conditional branch, 2 per
 call, 10 per switch, 10 for an EH frame and 1 per x87 instruction), else by
@@ -296,19 +296,27 @@ the tools in that temporary project and check:
 - the context packet and the queue order, the guard, wave.py's dry run, and
   compiling through configure.py's `build.ninja` rule.
 
+## Checked against the real exe
+
+The self-test cannot cover these, so they were checked on the real split:
+
+- try.py, accept.py and integrate.py on four functions (`Window::GetParent`,
+  `HasFlag`, `SetFlag`, `Options::Get`): each matched, a wrong field offset
+  and a wrong operator were rejected, integration wrote the units, ranges
+  (merged across padding) and names, and objdiff's report counts the four
+  (58 bytes). This found one bug the self-test could not: objdiff gives
+  section offsets, and a split object holds a whole auto unit per section,
+  so rows now use offsets from the function's start.
+- delink names the functions after `symbols.txt` and sizes them as it says;
+  the functions of an auto unit share its `.text` section.
+- next.py's queue over the full `symbols.txt`: about 17,800 functions,
+  ordered by instruction features (iced-x86) in about 4 seconds.
+
 ## Not yet checked against the real exe
 
-The self-test cannot cover these; check them on a machine with `orig/`:
-
-- try.py on a function of the real split, including one with a switch table
-  and one with EH funclets in another auto unit; a byte-for-byte match should
-  also come out as a match in objdiff's report once integrated.
-- How delink names and sizes functions in its objects (the boundary symbol
-  assumes code ends where `symbols.txt` says), and whether it ever relocates
-  against section symbols instead of names.
+- try.py on a function with a switch table, and on one with EH funclets in
+  another auto unit.
 - The exe path of the data ruler (pointers detected as in `delink_model.py`)
   on `__real@` constants, strings and EH tables.
-- next.py's queue and difficulty order over the full `symbols.txt` (speed,
-  iced-x86 installed), and integrate.py's ranges against the real layout.
 - A pilot wave: that hooks fire in headless workers with these settings, and
   the cost per match.
