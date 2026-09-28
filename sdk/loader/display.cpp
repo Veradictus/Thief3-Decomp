@@ -236,19 +236,37 @@ void* WINAPI Direct3DCreate8Detour(UINT sdkVersion) {
 // everything is stretched sideways. Answering 480 x aspect for the width keeps
 // the proportions; placement anchors (LEFT/CENTER/RIGHT) then use the full width.
 constexpr uintptr_t kConfigGetFloat = 0x10910B60;  // bool Config::GetFloat(section, key, float*, file)
+constexpr float kDesignedUIWidth = 640.0f;
 
 using GetFloatFn = int(__fastcall*)(void* self, void* edx, const char* section, const char* key, float* value,
                                     const char* file);
 GetFloatFn g_getFloat = nullptr;
 float g_uiWidth = 0;
 
+// The key-mapping table (Options > Inputs) is placed by ratios of the screen
+// width ([KeyboardLayoutWindow] TablePosRatio_X, TableWidthRatio), measured
+// from its window, which already sits in the centered menu frame. On a wide
+// layout the ratios stretch the table past the frame's scroll bar, so they
+// are scaled back to the 640-wide design. Its column ratios are relative to
+// the table: unchanged.
+void ConvertKeyMappingRatio(const char* key, float* value) {
+    if (_stricmp(key, "TablePosRatio_X") == 0 || _stricmp(key, "TableWidthRatio") == 0) {
+        *value = *value * kDesignedUIWidth / g_uiWidth;
+    }
+}
+
 int __fastcall GetFloatDetour(void* self, void* edx, const char* section, const char* key, float* value,
                               const char* file) {
     int found = g_getFloat(self, edx, section, key, value, file);
-    if (found && section && key && value && _stricmp(section, "WindowManager") == 0 &&
-        _stricmp(key, "AssumedUIScreenWidth") == 0) {
+    if (!found || !section || !key || !value) {
+        return found;
+    }
+
+    if (_stricmp(section, "WindowManager") == 0 && _stricmp(key, "AssumedUIScreenWidth") == 0) {
         T3_LOG("display: UI layout width %.0f -> %.0f", *value, g_uiWidth);
         *value = g_uiWidth;
+    } else if (_stricmp(section, "KeyboardLayoutWindow") == 0) {
+        ConvertKeyMappingRatio(key, value);
     }
     return found;
 }
@@ -274,7 +292,6 @@ constexpr int kPlacementAbsolute = 0;
 constexpr int kPlacementCenter = 1;
 constexpr int kPlacementLeft = 4;
 constexpr int kPlacementRight = 5;
-constexpr float kDesignedUIWidth = 640.0f;
 
 using PlacedPositionFn = float*(__fastcall*)(void* window, void* edx, float* position);
 using GetSizeFn = const float*(__fastcall*)(void* window, void* edx);
@@ -316,10 +333,21 @@ bool IsMenuFrame(void* window, float uiWidth) {
 float FrameShift(void* window, float uiWidth) {
     const float margin = (uiWidth - kDesignedUIWidth) * 0.5f;
     const bool fullWidth = FullWidth(window, uiWidth);
-    if (fullWidth && Field<float>(window, kWindowPosX) == 0.0f) {
-        return 0;  // a background or a nested frame: keeps covering the screen
+    const float posX = Field<float>(window, kWindowPosX);
+    const int placement = Field<int>(window, kWindowPlacementX);
+
+    // A background or a nested frame: keeps covering the screen.
+    if (fullWidth && posX == 0.0f) {
+        return 0;
     }
-    switch (Field<int>(window, kWindowPlacementX)) {
+
+    // Flush against the left or right edge (Pos_X 0), like the main menu's
+    // version line: anchored to the screen by design, so it stays there.
+    if ((placement == kPlacementLeft || placement == kPlacementRight) && posX == 0.0f) {
+        return 0;
+    }
+
+    switch (placement) {
     case kPlacementAbsolute:
     case kPlacementLeft:
         return margin;
