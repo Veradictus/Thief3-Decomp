@@ -1,0 +1,1 @@
+{"_expect": "requires", "id": "m", "requires": {"Other": ">=1.0.0"}, "format": 1, "name": "N", "version": "1.0.0", "authors": ["A"]}

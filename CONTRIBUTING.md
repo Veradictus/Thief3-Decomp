@@ -36,6 +36,9 @@ the matching source, and notes on how the game works (addresses, structure
 layouts, file formats) with the evidence for them. Building the matching
 source, like using the SDK, needs your own copy of the game.
 
+Contributions are accepted under the repository's [MIT license](LICENSE).
+Report security problems privately ([SECURITY.md](SECURITY.md)).
+
 ## Commit messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):
@@ -82,6 +85,20 @@ C++ built with MSVC for 32-bit x86 and must build without warnings. Tools are
 Python using only the standard library, plus Ghidra scripts in Java. The
 launcher is Rust and Svelte/TypeScript: `cargo fmt`, `cargo clippy` and
 `yarn verify` (types, lint, format, tests) must pass (see
-[docs/launcher.md](docs/launcher.md)). Record every engine address you use in
-`docs/engine.md` with its evidence, and its name in
-`config/PC_20040610/symbols.txt`.
+[docs/launcher.md](docs/launcher.md)). The tools' self-tests need no game
+files and must pass too: `python tools/assets/selftest.py`,
+`python tools/agent/selftest.py` and `python tools/mods/selftest.py` (the mod
+package tools, the shared fixtures in `tools/mods/fixtures/` and the mod
+template). Record every engine address you use in `docs/engine.md` with its
+evidence, and its name in `config/PC_20040610/symbols.txt`.
+
+## Documentation
+
+The Markdown files in `docs/` are also the
+[documentation site](https://veradictus.github.io/Thief3-Decomp/). Keep links
+relative, so that they work on GitHub too; the site turns links that leave
+`docs/` into GitHub links. Preview the site with
+`cd site && yarn install && yarn docs:dev`. `yarn docs:build` fails on dead
+links and on a stale API reference: after a change to
+`sdk/include/t3sdk/t3sdk.h`, run `yarn api` in `site/` and commit the
+result. A new page needs a sidebar entry; see [docs/site.md](docs/site.md).

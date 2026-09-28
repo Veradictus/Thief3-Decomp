@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "id": "x_1",
+  "name": "X",
+  "version": "10.20.30",
+  "authors": ["Someone"],
+  "entry": "X.DLL",
+  "api": 1,
+  "screenshots": ["a.png"],
+  "future": { "anything": true }
+}
