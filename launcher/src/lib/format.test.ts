@@ -62,6 +62,8 @@ describe("settings", () => {
     expect(isSwitch(setting("Borderless", "1"))).toBe(true);
     expect(isSwitch(setting("Borderless", "7", "", "0"))).toBe(true);
     expect(isSwitch(setting("DumpObjectsKey", "0x79"))).toBe(false);
+    expect(isSwitch(setting("SkipIntros", "1", "1 = skip the logo movies."))).toBe(true);
+    expect(isSwitch(setting("MaxFPS", "0", "Highest frame rate, 0 = no limit."))).toBe(false);
     expect(isKeySetting(setting("DumpObjectsKey", "0x79"))).toBe(true);
     expect(isKeySetting(setting("Console", "0"))).toBe(false);
   });
