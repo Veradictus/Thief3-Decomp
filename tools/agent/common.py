@@ -360,6 +360,12 @@ class Project:
         command, cwd = self.compile_command(source, output, cflags)
         # Like ninja: a rule's command runs through /bin/sh off Windows, as a command line on Windows.
         shell = isinstance(command, str) and os.name != "nt"
+        if isinstance(command, str) and os.name == "nt":
+            # Windows looks a relative program up from this process's directory, not
+            # from cwd, so a worker in a worktree would not find build/'s cl.exe.
+            program, sep, rest = command.partition(" ")
+            if not Path(program).is_absolute() and (cwd / program).is_file():
+                command = f'"{cwd / program}"{sep}{rest}'
         try:
             proc = subprocess.run(command, cwd=cwd, shell=shell, capture_output=True, text=True, errors="replace",
                                   timeout=300)
