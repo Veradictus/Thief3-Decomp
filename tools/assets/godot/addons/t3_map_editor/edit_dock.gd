@@ -237,6 +237,13 @@ func queue_refresh() -> void:
 func on_scene_changed(_scene_root: Node) -> void:
 	refresh()
 
+## Called when the editor saves a scene: saving the open level (Ctrl+S)
+## saves its T3 edits too, so the edits file never lags behind the scene.
+func on_scene_saved(path: String) -> void:
+	var scene := EditorInterface.get_edited_scene_root()
+	if Edits.is_level(scene) and scene.scene_file_path == path:
+		save_edits()
+
 ## Called when the editor's selection changes.
 func on_selection_changed() -> void:
 	var picked: Node = null
@@ -418,11 +425,6 @@ func set_editor(it: TreeItem, type: String, value: Variant, all_enums: Dictionar
 	it.set_editable(1, true)
 	it.set_tooltip_text(1, type)
 
-## Handles an edit in the properties tree.
-func _on_property_edited() -> void:
-	if not _building:
-		apply_cell(_props.get_edited())
-
 ## Applies what the user typed, ticked or picked in row `it` to the selected actor.
 func apply_cell(it: TreeItem) -> void:
 	var k := String(it.get_metadata(0))
@@ -442,16 +444,6 @@ func apply_cell(it: TreeItem) -> void:
 				return
 
 	set_property(actor, k, value)
-
-## Handles the revert button on a changed property's row.
-func _on_property_button(it: TreeItem, _column: int, id: int, _mouse: int) -> void:
-	if id != REVERT_BUTTON or actor == null:
-		return
-
-	var old := Edits.gamesys_edits(actor)
-	var new := old.duplicate()
-	new.erase(String(it.get_metadata(0)))
-	commit_gamesys(actor, old, new, 'Revert T3 property %s' % it.get_metadata(0))
 
 ## Sets gamesys property `key` of `node` to `value` through undo/redo (an edit
 ## back to the exported value removes the edit).  Returns false if `key`
@@ -615,3 +607,20 @@ func load_edits() -> Dictionary:
 		_status.text += '\n' + String(w)
 		push_warning('T3 edits: ' + String(w))
 	return plan
+
+# --- Engine Callbacks ---
+
+## Handles an edit in the properties tree.
+func _on_property_edited() -> void:
+	if not _building:
+		apply_cell(_props.get_edited())
+
+## Handles the revert button on a changed property's row.
+func _on_property_button(it: TreeItem, _column: int, id: int, _mouse: int) -> void:
+	if id != REVERT_BUTTON or actor == null:
+		return
+
+	var old := Edits.gamesys_edits(actor)
+	var new := old.duplicate()
+	new.erase(String(it.get_metadata(0)))
+	commit_gamesys(actor, old, new, 'Revert T3 property %s' % it.get_metadata(0))

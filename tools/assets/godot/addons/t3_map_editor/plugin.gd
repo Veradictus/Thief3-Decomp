@@ -7,7 +7,8 @@ extends EditorPlugin
 ## as <Level>/<Level>.edits.json, the input of tools/assets/t3pack.py.
 ##
 ## Adds the "T3 Map" dock (edit_dock.gd) and Project > Tools > "Save T3
-## edits" / "Load T3 edits".  With `-- --t3-editor-selftest <scene>` on the
+## edits" / "Load T3 edits"; saving the level's scene (Ctrl+S) saves its
+## edits too.  With `-- --t3-editor-selftest <scene>` on the
 ## editor's command line it runs editor_selftest.gd and quits.
 
 # =============================================================================
@@ -40,8 +41,8 @@ const MENU_LOAD := 'Load T3 edits'
 # METHODS
 # =============================================================================
 
-## Adds the dock and the menu entries, and follows scene, selection and
-## undo/redo changes.
+## Adds the dock and the menu entries, and follows scene, save, selection
+## and undo/redo changes.
 func _enter_tree() -> void:
 	dock = Dock.new()
 	dock.plugin = self
@@ -49,6 +50,7 @@ func _enter_tree() -> void:
 	add_tool_menu_item(MENU_SAVE, dock.save_edits)
 	add_tool_menu_item(MENU_LOAD, dock.load_edits)
 	scene_changed.connect(dock.on_scene_changed)
+	scene_saved.connect(dock.on_scene_saved)
 	EditorInterface.get_selection().selection_changed.connect(dock.on_selection_changed)
 	get_undo_redo().version_changed.connect(dock.queue_refresh)
 
@@ -62,6 +64,7 @@ func _enter_tree() -> void:
 func _exit_tree() -> void:
 	get_undo_redo().version_changed.disconnect(dock.queue_refresh)
 	EditorInterface.get_selection().selection_changed.disconnect(dock.on_selection_changed)
+	scene_saved.disconnect(dock.on_scene_saved)
 	scene_changed.disconnect(dock.on_scene_changed)
 	remove_tool_menu_item(MENU_SAVE)
 	remove_tool_menu_item(MENU_LOAD)

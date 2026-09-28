@@ -13,7 +13,8 @@ work yet.
    [Map editing](../maps.md)).
 2. Select the actor and move, rotate or scale it with Godot's own gizmos or
    the Inspector.
-3. Click **Save T3 edits** in the **T3 Map** dock.
+3. Save the scene (Ctrl+S), or click **Save T3 edits** in the **T3 Map**
+   dock: either writes the edits file.
 
 Scale is uniform only: Thief has no `DrawScale3D`, so a non-uniform or
 mirrored scale is reported by the dock and not saved. Rotating past a pole
