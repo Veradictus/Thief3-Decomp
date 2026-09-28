@@ -62,7 +62,8 @@ A release launcher is self-contained. `tools/stage_launcher.py stage` puts
 three things next to it (its resource folder), and setup picks them first:
 
 - `t3sdk/`: `tools/sdk.py`, `tools/assets/`, `sdk/T3SDK.ini` and the prebuilt
-  SDK in `build/sdk/bin/`, laid out like a checkout;
+  SDK in `build/sdk/bin/`, laid out like a checkout, with the repository's
+  `LICENSE` and `THIRD_PARTY_NOTICES.md` when it has them;
 - `python/`: CPython's embeddable package for Windows (pinned by SHA-256), so
   players need no Python of their own.
 
