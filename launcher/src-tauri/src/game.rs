@@ -1,5 +1,5 @@
-// The game side of the launcher: status, maps, mods, T3SDK.ini, the SDK log,
-// and starting the game or Godot.
+// The game side of the launcher: status, maps, T3SDK.ini, the SDK log, and
+// starting the game or Godot. Mods are in mods.rs.
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::{Duration, UNIX_EPOCH};
@@ -97,13 +97,13 @@ fn game_running() -> bool {
 pub async fn overview(state: State<'_, AppState>) -> Result<Overview, String> {
     let cfg = config(&state);
     let game = cfg.game_dir.as_deref().map(detect::game_check);
-    let mods = mods(&cfg).unwrap_or_default();
+    let (mods_enabled, mods_disabled) = crate::mods::counts(&cfg);
     let maps = maps(&cfg);
     Ok(Overview {
         game,
         sdk: sdk_status(&cfg),
-        mods_enabled: mods.iter().filter(|m| m.enabled).count(),
-        mods_disabled: mods.iter().filter(|m| !m.enabled).count(),
+        mods_enabled,
+        mods_disabled,
         maps: MapCounts {
             total: maps.len(),
             exported: maps.iter().filter(|m| m.exported).count(),
@@ -221,78 +221,6 @@ fn maps(cfg: &Config) -> Vec<MapEntry> {
 #[tauri::command]
 pub async fn list_maps(state: State<'_, AppState>) -> Result<Vec<MapEntry>, String> {
     Ok(maps(&config(&state)))
-}
-
-// ---- mods -----------------------------------------------------------------------
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModEntry {
-    pub name: String,
-    pub enabled: bool,
-    pub size: u64,
-    pub modified: Option<u64>,
-}
-
-fn mods_dirs(cfg: &Config) -> Result<(PathBuf, PathBuf), String> {
-    let mods = cfg.game()?.join("System").join("mods");
-    let disabled = mods.join("disabled");
-    Ok((mods, disabled))
-}
-
-fn mods(cfg: &Config) -> Result<Vec<ModEntry>, String> {
-    let (enabled_dir, disabled_dir) = mods_dirs(cfg)?;
-    let mut list = Vec::new();
-    for (dir, enabled) in [(enabled_dir, true), (disabled_dir, false)] {
-        let Ok(entries) = std::fs::read_dir(&dir) else { continue };
-        for e in entries.flatten() {
-            let path = e.path();
-            if path.is_file() && path.extension().is_some_and(|x| x.eq_ignore_ascii_case("dll")) {
-                let meta = e.metadata().ok();
-                list.push(ModEntry {
-                    name: path.file_stem().unwrap().to_string_lossy().into_owned(),
-                    enabled,
-                    size: meta.as_ref().map_or(0, |m| m.len()),
-                    modified: mtime(&path),
-                });
-            }
-        }
-    }
-    list.sort_by_key(|m| m.name.to_lowercase());
-    Ok(list)
-}
-
-#[tauri::command]
-pub async fn list_mods(state: State<'_, AppState>) -> Result<Vec<ModEntry>, String> {
-    mods(&config(&state))
-}
-
-/// Moves a mod's files (<name>.dll and its .pdb/.ini) between System/mods and
-/// System/mods/disabled: the SDK only loads DLLs directly in System/mods.
-#[tauri::command]
-pub async fn set_mod_enabled(state: State<'_, AppState>, name: String, enabled: bool) -> Result<(), String> {
-    if name.is_empty() || name.contains(['/', '\\', ':']) || name.starts_with('.') {
-        return Err(format!("invalid mod name {name:?}"));
-    }
-    let (on, off) = mods_dirs(&config(&state))?;
-    let (from, to) = if enabled { (off, on) } else { (on, off) };
-    std::fs::create_dir_all(&to).map_err(|e| format!("cannot create {}: {e}", to.display()))?;
-    let mut moved = 0;
-    for ext in ["dll", "pdb", "ini"] {
-        let src = from.join(format!("{name}.{ext}"));
-        if src.is_file() {
-            let dst = to.join(format!("{name}.{ext}"));
-            if dst.exists() {
-                return Err(format!("{} already exists", dst.display()));
-            }
-            std::fs::rename(&src, &dst).map_err(|e| format!("cannot move {}: {e}", src.display()))?;
-            moved += 1;
-        }
-    }
-    if moved == 0 {
-        return Err(format!("no mod named {name} in {}", from.display()));
-    }
-    Ok(())
 }
 
 // ---- T3SDK.ini ------------------------------------------------------------------

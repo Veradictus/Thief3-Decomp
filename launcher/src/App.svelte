@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import DropOverlay from "$components/DropOverlay.svelte";
   import Icon from "$components/Icon.svelte";
   import { inTauri } from "$lib/api";
   import { app, jobs, loadConfig, pending, refresh, running, type Page } from "$lib/app.svelte";
@@ -105,6 +106,8 @@
     </main>
   </div>
 {/if}
+
+<DropOverlay />
 
 <div class="toasts">
   {#each app.toasts as t (t.id)}

@@ -23,6 +23,8 @@ pub struct Config {
     pub project_dir: Option<PathBuf>,
     /// The first-run setup was finished (or skipped).
     pub setup_complete: bool,
+    /// The mod index the Mods page browses; default `mods::DEFAULT_INDEX_URL`.
+    pub mod_index_url: Option<String>,
     /// Where the tools write, when not <sdk_root>/build (see `resolve`).
     #[serde(skip)]
     pub data_dir: Option<PathBuf>,
