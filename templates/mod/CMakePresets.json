@@ -1,0 +1,31 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "msvc-x86",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": { "value": "x86", "strategy": "external" },
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "cl" }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (MSVC x86)",
+      "inherits": "msvc-x86",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "relwithdebinfo",
+      "displayName": "RelWithDebInfo (MSVC x86, with a PDB for debugging)",
+      "inherits": "msvc-x86",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "release", "configurePreset": "release" },
+    { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" },
+    { "name": "package", "displayName": "Package (Release)", "configurePreset": "release", "targets": ["package"] }
+  ]
+}
