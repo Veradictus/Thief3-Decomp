@@ -167,24 +167,39 @@ button {
   border-radius: var(--radius);
 }
 
+/* A page is a column as tall as the window. Long content (a list, a log)
+   scrolls inside its own panel, so the heading and the page's buttons stay in
+   view; the page itself scrolls only as a last resort. */
 .page {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: auto;
-  padding: 26px 30px 90px;
+  padding: 24px 28px;
 }
 
+.page > * {
+  flex-shrink: 0;
+}
+
+/* Title and buttons on one line, the description under both. */
 .page-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 16px;
+  margin-bottom: 16px;
+}
+
+.page-head h1 {
+  line-height: 1.25;
 }
 
 .page-head p {
-  margin-top: 4px;
+  grid-column: 1 / -1;
+  margin-top: 2px;
   color: var(--muted);
-  max-width: 70ch;
+  max-width: 100ch;
 }
 
 .row {

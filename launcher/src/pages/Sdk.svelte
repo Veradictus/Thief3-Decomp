@@ -47,16 +47,14 @@
 
 <div class="page">
   <div class="page-head">
-    <div>
-      <h1>SDK settings</h1>
-      <p>What T3SDK changes in the game. Stored in <code>System\T3SDK.ini</code>; the game reads it at start-up.</p>
-    </div>
+    <h1>SDK settings</h1>
     <div class="row">
       <button class="btn" onclick={() => load()} disabled={!changes.length}>Revert</button>
       <button class="btn primary" onclick={save} disabled={!changes.length}>
         <Icon name="check" />Save{changes.length ? ` (${changes.length})` : ""}
       </button>
     </div>
+    <p>What T3SDK changes in the game. Stored in <code>System\T3SDK.ini</code>; the game reads it at start-up.</p>
   </div>
 
   {#if settings && !settings.exists}
@@ -68,20 +66,19 @@
       </p>
     </div>
   {:else if settings}
-    <div class="sections">
+    <!-- One card; the settings run in two columns where they fit, left to right.
+         The list grows with the SDK, so it scrolls here, under the Save button. -->
+    <div class="list card">
       {#each settings.sections as section (section.name)}
-        <section class="card">
-          <h2>{section.name === "T3SDK" ? "General" : section.name}</h2>
+        <h2>{section.name === "T3SDK" ? "General" : section.name}</h2>
+        <div class="grid">
           {#each section.settings as s (s.key)}
             {@const k = id(section.name, s.key)}
             <div class="setting">
-              <div class="grow">
-                <h3>
-                  {settingLabel(s.key)}
-                  {#if values[k] !== saved[k]}<span class="badge warn">changed</span>{/if}
-                </h3>
-                <p class="muted">{settingDescription(s)}</p>
-              </div>
+              <h3>
+                {settingLabel(s.key)}
+                {#if values[k] !== saved[k]}<span class="badge warn">changed</span>{/if}
+              </h3>
               {#if isSwitch(s)}
                 <Toggle checked={values[k] === "1"} label={s.key} onchange={(on) => (values[k] = on ? "1" : "0")} />
               {:else if isKeySetting(s)}
@@ -90,6 +87,7 @@
                     type="text"
                     value={values[k]}
                     spellcheck="false"
+                    aria-label={s.key}
                     oninput={(e) => (values[k] = e.currentTarget.value.trim())}
                   />
                   <span class="faint">{keyName(values[k] ?? "")}</span>
@@ -100,42 +98,46 @@
                   type="text"
                   value={values[k]}
                   spellcheck="false"
+                  aria-label={s.key}
                   oninput={(e) => (values[k] = e.currentTarget.value)}
                 />
               {/if}
+              <p class="muted">{settingDescription(s)}</p>
             </div>
           {/each}
-        </section>
+        </div>
       {/each}
     </div>
   {/if}
 </div>
 
 <style>
-  .sections {
+  .list {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 18px 8px;
+  }
+
+  h2 {
+    padding: 14px 0 6px;
+  }
+
+  .grid {
     display: grid;
-    gap: 14px;
-    max-width: 920px;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    column-gap: 32px;
   }
 
-  section {
-    padding: 16px 18px 6px;
-  }
-
-  section h2 {
-    margin-bottom: 4px;
-  }
-
+  /* Name and control on one line, the description under both. */
   .setting {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 16px;
     align-items: center;
-    gap: 18px;
-    padding: 12px 0;
+    align-content: start;
+    padding: 10px 0;
     border-top: 1px solid var(--line);
-  }
-
-  section h2 + .setting {
-    border-top: 0;
   }
 
   .setting h3 {
@@ -147,6 +149,7 @@
   }
 
   .setting p {
+    grid-column: 1 / -1;
     font-size: 13px;
     margin-top: 2px;
   }
@@ -155,7 +158,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 150px;
+    width: 130px;
+    flex: none;
   }
 
   .keybox input {
@@ -163,7 +167,8 @@
   }
 
   .text {
-    width: 200px !important;
+    width: 120px !important;
+    flex: none;
   }
 
   .center {

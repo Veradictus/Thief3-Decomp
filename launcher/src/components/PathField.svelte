@@ -99,7 +99,7 @@
   </div>
   {#if result}
     <p class="result" class:bad={!result.ok}>
-      {result.message}{#if result.detail}<span class="faint"> · {result.detail}</span>{/if}
+      {result.message}{#if result.detail}<span class="faint">{` · ${result.detail}`}</span>{/if}
     </p>
   {/if}
   {#if others.length}
@@ -119,10 +119,10 @@
 
 <style>
   .field {
-    padding: 16px 18px;
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
 
   .head {

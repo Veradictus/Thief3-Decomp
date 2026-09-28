@@ -83,10 +83,12 @@
   };
 </script>
 
+<!-- The buttons stay in view (in the heading, or under the fields during setup)
+     while the fields scroll between them. -->
 <div class="page">
   {#if setup}
     <div class="welcome">
-      <img src="/icon.svg" alt="" width="64" height="64" />
+      <img src="/icon.svg" alt="" width="56" height="56" />
       <div>
         <h1>Welcome, taffer.</h1>
         <p class="muted">
@@ -97,102 +99,108 @@
     </div>
   {:else}
     <div class="page-head">
-      <div>
-        <h1>Settings</h1>
-        <p>Where the game and the tools are. Stored in your user profile, not in the game folder.</p>
+      <h1>Settings</h1>
+      <div class="row">
+        <button class="btn ghost" onclick={detect} disabled={detecting}>
+          <Icon name="search" />{detecting ? "Searching…" : "Search again"}
+        </button>
+        <button class="btn" onclick={() => (draft = { ...(app.config ?? emptyConfig) })} disabled={!dirty}
+          >Revert</button
+        >
+        <button class="btn primary" onclick={save} disabled={!dirty}><Icon name="check" />Save</button>
       </div>
+      <p>Where the game and the tools are. Stored in your user profile, not in the game folder.</p>
     </div>
   {/if}
 
-  <div class="fields">
-    <PathField
-      label="Thief: Deadly Shadows"
-      bind:value={draft.gameDir}
-      bind:ok={gameOk}
-      hint="The game folder: it contains System and Content. The Steam release (patch 1.1) gets the full SDK."
-      candidates={detected?.games}
-      check={gameCheck}
-      action={{ label: "Get Thief: Deadly Shadows on Steam", href: "https://store.steampowered.com/app/6980/" }}
-    />
-    <PathField
-      label="T3SDK folder"
-      bind:value={draft.sdkRoot}
-      bind:ok={rootOk}
-      hint="The T3SDK tools and SDK. The launcher ships with its own copy; a T3SDK checkout (for developers) works too."
-      candidates={detected?.sdkRoots}
-      check={rootCheck}
-      action={{ label: "Get T3SDK", href: "https://github.com/Veradictus/Thief3-Decomp" }}
-    />
-    <PathField
-      label="Python"
-      bind:value={draft.python}
-      bind:ok={pythonOk}
-      directory={false}
-      hint="Runs the T3SDK tools (SDK install, map export, repack). The launcher ships with one; any Python 3.10+ works too."
-      candidates={detected?.pythons}
-      check={pythonCheck}
-      action={{ label: "Get Python", href: "https://www.python.org/downloads/" }}
-    />
-    <PathField
-      label="Godot"
-      bind:value={draft.godot}
-      bind:ok={godotOk}
-      directory={false}
-      optional
-      hint="Godot 4.7 or newer, to view and edit exported maps. Not needed to play."
-      candidates={detected?.godots}
-      check={godotCheck}
-      action={{ label: "Get Godot", href: "https://godotengine.org/download/" }}
-    />
+  <div class="body">
+    <div class="fields">
+      <PathField
+        label="Thief: Deadly Shadows"
+        bind:value={draft.gameDir}
+        bind:ok={gameOk}
+        hint="The game folder: it contains System and Content. The Steam release (patch 1.1) gets the full SDK."
+        candidates={detected?.games}
+        check={gameCheck}
+        action={{ label: "Get Thief: Deadly Shadows on Steam", href: "https://store.steampowered.com/app/6980/" }}
+      />
+      <PathField
+        label="T3SDK folder"
+        bind:value={draft.sdkRoot}
+        bind:ok={rootOk}
+        hint="The T3SDK tools and SDK. The launcher ships with its own copy; a T3SDK checkout (for developers) works too."
+        candidates={detected?.sdkRoots}
+        check={rootCheck}
+        action={{ label: "Get T3SDK", href: "https://github.com/Veradictus/Thief3-Decomp" }}
+      />
+      <PathField
+        label="Python"
+        bind:value={draft.python}
+        bind:ok={pythonOk}
+        directory={false}
+        hint="Runs the T3SDK tools (SDK install, map export, repack). The launcher ships with one; any Python 3.10+ works too."
+        candidates={detected?.pythons}
+        check={pythonCheck}
+        action={{ label: "Get Python", href: "https://www.python.org/downloads/" }}
+      />
+      <PathField
+        label="Godot"
+        bind:value={draft.godot}
+        bind:ok={godotOk}
+        directory={false}
+        optional
+        hint="Godot 4.7 or newer, to view and edit exported maps. Not needed to play."
+        candidates={detected?.godots}
+        check={godotCheck}
+        action={{ label: "Get Godot", href: "https://godotengine.org/download/" }}
+      />
+      {#if !setup}
+        <PathField
+          label="Godot project folder"
+          bind:value={draft.projectDir}
+          optional
+          hint="Where maps are exported. Empty: build\assets\godot in the T3SDK folder."
+          check={projectCheck}
+        />
+        <PathField
+          label="Saves folder"
+          bind:value={draft.savesDir}
+          optional
+          hint={`The game's SaveGames folder, for save backups. Empty: found automatically${savesAuto ? ` (${savesAuto})` : ""}.`}
+          candidates={savesFound}
+          check={savesCheck}
+        />
+      {/if}
+    </div>
+
     {#if !setup}
-      <PathField
-        label="Godot project folder"
-        bind:value={draft.projectDir}
-        optional
-        hint="Where maps are exported. Empty: build\assets\godot in the T3SDK folder."
-        check={projectCheck}
-      />
-      <PathField
-        label="Saves folder"
-        bind:value={draft.savesDir}
-        optional
-        hint={`The game's SaveGames folder, for save backups. Empty: found automatically${savesAuto ? ` (${savesAuto})` : ""}.`}
-        candidates={savesFound}
-        check={savesCheck}
-      />
+      <UpdatesCard bind:autoCheck={draft.autoUpdateCheck} />
+      <ReportCard />
+
+      <div class="about card">
+        <h3>About</h3>
+        <p class="muted">
+          T3SDK Launcher {version}. T3SDK is a fan project, not affiliated with or endorsed by the owners of the Thief
+          series. It changes the game only in memory while it runs; map repacks replace map files only when you install
+          them, after backing up the originals.
+        </p>
+        <div class="row">
+          <button class="btn small" onclick={() => saveConfig({ ...(app.config ?? emptyConfig), setupComplete: false })}
+            >Run setup again</button
+          >
+        </div>
+      </div>
     {/if}
   </div>
 
-  <div class="actions">
-    <button class="btn ghost" onclick={detect} disabled={detecting}>
-      <Icon name="search" />{detecting ? "Searching…" : "Search again"}
-    </button>
-    <div class="grow"></div>
-    {#if setup}
+  {#if setup}
+    <div class="actions">
+      <button class="btn ghost" onclick={detect} disabled={detecting}>
+        <Icon name="search" />{detecting ? "Searching…" : "Search again"}
+      </button>
+      <div class="grow"></div>
       <button class="btn ghost" onclick={() => saveConfig({ ...draft, setupComplete: true })}>Skip for now</button>
       <button class="btn primary" onclick={save} disabled={!ready}>Continue<Icon name="chevron" /></button>
-    {:else}
-      <button class="btn" onclick={() => (draft = { ...(app.config ?? emptyConfig) })} disabled={!dirty}>Revert</button>
-      <button class="btn primary" onclick={save} disabled={!dirty}><Icon name="check" />Save</button>
-    {/if}
-  </div>
-
-  {#if !setup}
-    <UpdatesCard bind:autoCheck={draft.autoUpdateCheck} />
-    <ReportCard />
-
-    <div class="about card">
-      <h3>About</h3>
-      <p class="muted">
-        T3SDK Launcher {version}. T3SDK is a fan project, not affiliated with or endorsed by the owners of the Thief
-        series. It changes the game only in memory while it runs; map repacks replace map files only when you install
-        them, after backing up the originals.
-      </p>
-      <div class="row">
-        <button class="btn small" onclick={() => saveConfig({ ...(app.config ?? emptyConfig), setupComplete: false })}
-          >Run setup again</button
-        >
-      </div>
     </div>
   {/if}
 </div>
@@ -200,14 +208,21 @@
 <style>
   .welcome {
     display: flex;
-    gap: 18px;
+    gap: 16px;
     align-items: center;
-    margin: 6px 0 24px;
+    margin-bottom: 16px;
   }
 
   .welcome p {
-    margin-top: 6px;
-    max-width: 70ch;
+    margin-top: 4px;
+    max-width: 80ch;
+  }
+
+  /* The fields scroll here, between the heading and the buttons. */
+  .body {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: auto;
   }
 
   .fields {
@@ -221,14 +236,16 @@
     gap: 8px;
     align-items: center;
     max-width: 900px;
-    margin-top: 18px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
   }
 
   .about {
     max-width: 900px;
-    margin-top: 28px;
-    padding: 16px 18px;
+    margin-top: 16px;
+    padding: 14px 16px;
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
 </style>

@@ -79,84 +79,83 @@
 
 <div class="page">
   <div class="page-head">
-    <div>
-      <h1>Saves</h1>
-      <p>
-        Back up the game's saved games and put them back. Backups are zips in your user profile, not in the game folder.
-        Restoring one backs up the current saves first.
-      </p>
-    </div>
+    <h1>Saves</h1>
     <div class="row">
       <button class="btn" onclick={load}><Icon name="refresh" />Refresh</button>
       <button class="btn" onclick={() => guard(api.openSavesFolder("backups"))}><Icon name="folder" />Backups</button>
     </div>
+    <p>
+      Back up the game's saved games and put them back. Backups are zips in your user profile, not in the game folder;
+      restoring one backs up the current saves first.
+    </p>
   </div>
 
   <section class="card summary">
-    <div class="icon"><Icon name="archive" size={20} /></div>
-    <div class="grow">
-      {#if folder && info?.exists}
-        <h3>{s?.count ?? 0} saves <span class="muted small">· {sizeAndAge}</span></h3>
-        <p class="mono faint path" title={folder.path}>{folder.path}</p>
-      {:else if folder}
-        <h3>No saves folder</h3>
-        <p class="muted small">
-          <span class="mono">{folder.path}</span> (set in Settings) does not exist.
-        </p>
-      {:else}
-        <h3>No saves yet</h3>
-        <p class="muted small">
-          The game creates its SaveGames folder with the first save. If it keeps them somewhere unusual, set the folder
-          in Settings.
-        </p>
-      {/if}
+    <div class="row">
+      <div class="icon"><Icon name="archive" size={17} /></div>
+      <div class="grow">
+        {#if folder && info?.exists}
+          <h3>{s?.count ?? 0} saves <span class="muted small">· {sizeAndAge}</span></h3>
+          <p class="mono faint small clip" title={folder.path}>{folder.path}</p>
+        {:else if folder}
+          <h3>No saves folder</h3>
+          <p class="muted small clip">
+            <span class="mono">{folder.path}</span> (set in Settings) does not exist.
+          </p>
+        {:else}
+          <h3>No saves yet</h3>
+          <p class="muted small">
+            The game creates its SaveGames folder with the first save. If it keeps them somewhere unusual, set the
+            folder in Settings.
+          </p>
+        {/if}
+      </div>
+      {#if folder}<span class="badge" title="Where the folder was found">{folder.source}</span>{/if}
+      <button class="btn small" onclick={() => guard(api.openSavesFolder("saves"))} disabled={!info?.exists}>
+        <Icon name="folder" size={14} />Open
+      </button>
     </div>
-    {#if folder}<span class="badge" title="Where the folder was found">{folder.source}</span>{/if}
-    <button class="btn small" onclick={() => guard(api.openSavesFolder("saves"))} disabled={!info?.exists}>
-      <Icon name="folder" size={14} />Open
-    </button>
+    <div class="row make">
+      <input
+        type="text"
+        placeholder="Label (optional), e.g. before the Cathedral"
+        maxlength="60"
+        bind:value={label}
+        onkeydown={(e) => {
+          if (e.key === "Enter" && info?.exists && !working) void backUp();
+        }}
+      />
+      <button class="btn primary" onclick={backUp} disabled={!info?.exists || working !== ""}>
+        <Icon name="archive" />{working === "backup" ? "Backing up…" : "Back up now"}
+      </button>
+    </div>
+    <label class="row option">
+      <Toggle
+        checked={app.config?.backupBeforeLaunch ?? false}
+        label="Back up before starting the game"
+        onchange={setBeforeLaunch}
+      />
+      <span>Back up when the launcher starts the game (only if the saves changed; the last 10 are kept)</span>
+    </label>
   </section>
-
-  <section class="card make">
-    <input
-      type="text"
-      placeholder="Label (optional), e.g. before the Cathedral"
-      maxlength="60"
-      bind:value={label}
-      onkeydown={(e) => {
-        if (e.key === "Enter" && info?.exists && !working) void backUp();
-      }}
-    />
-    <button class="btn primary" onclick={backUp} disabled={!info?.exists || working !== ""}>
-      <Icon name="archive" />{working === "backup" ? "Backing up…" : "Back up now"}
-    </button>
-  </section>
-
-  <label class="row option">
-    <Toggle
-      checked={app.config?.backupBeforeLaunch ?? false}
-      label="Back up before starting the game"
-      onchange={setBeforeLaunch}
-    />
-    <span>Back up the saves when the launcher starts the game (only if they changed; the last 10 are kept)</span>
-  </label>
 
   {#if running}
     <div class="note card"><Icon name="alert" />Thief is running. Quit the game before restoring a backup.</div>
   {/if}
 
-  <div class="card">
+  <!-- As tall as its backups, and no taller than the window: then it scrolls. -->
+  <div class="list card">
     {#each list?.backups ?? [] as b (b.file)}
       <div class="backup">
         <div class="grow">
-          <h3>
+          <h3 class="clip">
             {dateTime(b.created)}
             {#if b.label}<span class="badge" class:info={automatic.includes(b.label)}>{b.label}</span>{/if}
           </h3>
-          <p class="faint small">{details(b)}</p>
+          <p class="faint small clip">{details(b)}</p>
         </div>
         {#if confirm?.file === b.file}
-          <span class="muted small ask">
+          <span class="muted small">
             {confirm.action === "restore" ? "Replace the current saves with this backup?" : "Delete this backup?"}
           </span>
           {#if confirm.action === "restore"}
@@ -187,33 +186,38 @@
       </div>
     {/each}
   </div>
-  {#if list}<p class="faint small where">Backups are kept in <span class="mono">{list.dir}</span>.</p>{/if}
+  {#if list}<p class="faint small where clip">Backups are kept in <span class="mono">{list.dir}</span>.</p>{/if}
 </div>
 
 <style>
+  /* minmax(0, 1fr): the folder path is clipped rather than widening the card. */
   .summary {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+
+  .summary > .row {
+    gap: 12px;
   }
 
   .icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: 8px;
     display: grid;
     place-items: center;
     background: #2a2416;
     color: var(--accent-2);
-    flex: none;
   }
 
-  .path {
-    margin-top: 2px;
+  .clip {
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .small {
@@ -227,17 +231,10 @@
     margin-left: 4px;
   }
 
-  .make {
-    display: flex;
-    gap: 8px;
-    padding: 12px 14px;
-    margin-top: 12px;
-  }
-
   .option {
     gap: 10px;
-    margin: 14px 2px;
     color: var(--muted);
+    font-size: 13px;
     cursor: pointer;
   }
 
@@ -252,11 +249,18 @@
     background: #1c160d;
   }
 
+  .list {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
   .backup {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 18px;
+    min-width: 0;
+    padding: 10px 16px;
     border-top: 1px solid var(--line);
   }
 
@@ -268,11 +272,7 @@
     margin-top: 2px;
   }
 
-  .ask {
-    margin-right: 4px;
-  }
-
   .where {
-    margin-top: 10px;
+    margin-top: 8px;
   }
 </style>

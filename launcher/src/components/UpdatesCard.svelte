@@ -97,8 +97,8 @@
 <style>
   .updates {
     max-width: 900px;
-    margin-top: 28px;
-    padding: 16px 18px;
+    margin-top: 16px;
+    padding: 14px 16px;
     display: grid;
     gap: 12px;
   }
