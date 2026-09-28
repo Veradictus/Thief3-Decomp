@@ -4,6 +4,10 @@
 [![Download the launcher](https://img.shields.io/github/v/release/Veradictus/Thief3-Decomp?include_prereleases&label=Download&style=for-the-badge)](https://github.com/Veradictus/Thief3-Decomp/releases/latest)
 [![Documentation](https://img.shields.io/badge/Documentation-read%20the%20guides-d6ab52?style=for-the-badge)](https://veradictus.github.io/Thief3-Decomp/)
 
+[![Decompiled](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=matched_code_percent&category=main&label=Decompiled)](https://decomp.dev/Veradictus/Thief3-Decomp)
+[![Functions](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=matched_functions&category=main&label=Functions)](https://decomp.dev/Veradictus/Thief3-Decomp)
+[![Progress report](https://github.com/Veradictus/Thief3-Decomp/actions/workflows/build.yml/badge.svg)](https://github.com/Veradictus/Thief3-Decomp/actions/workflows/build.yml)
+
 **T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
 It fixes the PC version's display problems, loads mods into your installed
 copy of the game, and gives them access to the engine. The goal is mods as
@@ -265,9 +269,15 @@ your own copy of `T3Main.exe` and writes its results into ignored folders.
   [wibo](https://github.com/decompals/wibo) instead.
 - **Matching**: `tools/agent/` is the per-function loop used by people and AI
   agents alike (claim a function, get its context, try a candidate, pass the
-  strict gate); see [docs/matching.md](docs/matching.md). Progress is published
-  on [decomp.dev](https://decomp.dev) by CI
-  ([docs/decomp-dev.md](docs/decomp-dev.md)).
+  strict gate); see [docs/matching.md](docs/matching.md).
+- **Progress**: `tools/progress_report.py write` turns a local build's objdiff
+  report into `progress/PC_20040610/report.json`, which is committed; CI
+  checks that it matches `src/` and publishes it to
+  [decomp.dev](https://decomp.dev/Veradictus/Thief3-Decomp)
+  ([docs/decomp-dev.md](docs/decomp-dev.md)). The code by unit, matched in
+  colour:
+
+  [![decomp.dev progress by unit](https://decomp.dev/Veradictus/Thief3-Decomp.svg?w=512&h=256)](https://decomp.dev/Veradictus/Thief3-Decomp)
 
 ## Contributing
 
