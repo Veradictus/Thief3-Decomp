@@ -1,6 +1,7 @@
 // Three independent display features, each behind its own T3SDK.ini option
 // (see display.hpp): rewriting the resolution table, running the Direct3D 8
-// device windowed and borderless, and rescaling the UI layout for widescreen.
+// device windowed and borderless (and keeping it running in the background),
+// and rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
 
@@ -212,6 +213,42 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
                 T3_LOG("display: device Reset hooked");
             }
         }
+    }
+    return result;
+}
+
+// ---- running in the background ------------------------------------------------------
+// On WM_ACTIVATEAPP(FALSE) the viewport's window procedure releases the mouse
+// and DirectInput, then pauses the game (TimeManager::SetPaused, after saving
+// the pause state it had) and clears the app-active flag, which makes the main
+// loop wait in GetMessage until the game is active again. A borderless game
+// can keep running instead: the releases stay, the pause is undone. On focus
+// the handler then finds the game active and has nothing to restore.
+constexpr uintptr_t kViewportWndProc = 0x10C8B820;          // UWindowsViewport::ViewportWndProc(msg, wParam, lParam)
+constexpr uintptr_t kAppActive = 0x10F01150;                // BYTE GIsAppActive: 0 while the game is in the background
+constexpr uintptr_t kPausedBeforeBackground = 0x10FF71BC;   // BYTE: the pause state saved on focus loss
+constexpr uintptr_t kTimeManagerInstance = 0x10D3EBE0;      // TimeManager* TimeManager::Instance()
+constexpr uintptr_t kTimeManagerSetPaused = 0x10D3ED00;     // void TimeManager::SetPaused(bool), __thiscall
+
+using ViewportWndProcFn = LRESULT(__fastcall*)(void* viewport, void* edx, UINT message, WPARAM wParam,
+                                               LPARAM lParam);
+using TimeManagerInstanceFn = void*(__cdecl*)();
+using SetPausedFn = void(__fastcall*)(void* timeManager, void* edx, bool paused);
+ViewportWndProcFn g_viewportWndProc = nullptr;
+
+LRESULT __fastcall ViewportWndProcDetour(void* viewport, void* edx, UINT message, WPARAM wParam, LPARAM lParam) {
+    auto active = reinterpret_cast<volatile uint8_t*>(kAppActive);
+    const bool losingFocus = message == WM_ACTIVATEAPP && !wParam && *active;
+
+    LRESULT result = g_viewportWndProc(viewport, edx, message, wParam, lParam);
+
+    // The handler paused the game and marked it inactive: undo both.
+    if (losingFocus && !*active) {
+        *active = 1;
+        void* timeManager = reinterpret_cast<TimeManagerInstanceFn>(kTimeManagerInstance)();
+        const bool wasPaused = *reinterpret_cast<const uint8_t*>(kPausedBeforeBackground) != 0;
+        reinterpret_cast<SetPausedFn>(kTimeManagerSetPaused)(timeManager, nullptr, wasPaused);
+        T3_LOG("display: focus lost; the game keeps running");
     }
     return result;
 }
@@ -443,11 +480,16 @@ void Install(const Options& options) {
             GetModuleHandleW(nullptr), "d3d8.dll", "Direct3DCreate8", reinterpret_cast<void*>(&Direct3DCreate8Detour)));
         if (!g_direct3DCreate8) {
             T3_LOG("display: borderless unavailable (no Direct3DCreate8 import)");
+        } else if (!options.pauseInBackground) {
+            // Only a borderless game can keep running: an exclusive fullscreen
+            // device is lost as soon as another window takes the focus.
+            Hook(kViewportWndProc, reinterpret_cast<void*>(&ViewportWndProcDetour),
+                 reinterpret_cast<void**>(&g_viewportWndProc), "running in the background");
         }
     }
-    T3_LOG("display: native resolutions %s, borderless %s, widescreen UI %s (width %.0f)",
+    T3_LOG("display: native resolutions %s, borderless %s, widescreen UI %s (width %.0f), %s in the background",
            options.nativeResolutions ? "on" : "off", options.borderless && g_direct3DCreate8 ? "on" : "off",
-           options.widescreenUI ? "on" : "off", g_uiWidth);
+           options.widescreenUI ? "on" : "off", g_uiWidth, g_viewportWndProc ? "keeps running" : "pauses");
 }
 
 }  // namespace t3sdk::display

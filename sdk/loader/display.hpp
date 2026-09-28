@@ -18,6 +18,9 @@ struct Options {
     // Log where each UI window is placed (first time only), to map out a
     // screen's window tree when modding the UI.
     bool uiLayoutTrace = false;
+    // Pause the game while another window has the focus, as the game does on
+    // its own. Off: a borderless game keeps running in the background.
+    bool pauseInBackground = false;
 };
 
 // Call once at start-up, before the game reads its options, after MinHook is
