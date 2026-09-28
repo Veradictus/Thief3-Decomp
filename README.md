@@ -10,6 +10,8 @@ copy of the game, and gives them access to the engine. The goal is mods as
 large as multiplayer. It comes with a launcher, tools to edit maps in Godot,
 and the workbench for a matching decompilation of the game.
 
+![The T3SDK Launcher's Play page: the game's build check, T3SDK, mods, maps and T3SDK's log](docs/images/launcher-play.png)
+
 **Documentation**: <https://veradictus.github.io/Thief3-Decomp/>, with the
 player guide, the mod author guide, the API reference and the engineering
 notes (the same pages as in [docs/](docs/)).
@@ -65,6 +67,8 @@ does not yet.
 4. Back in Map Studio, click **Repack**, then **Install**, and play the map.
 5. **Restore original** puts the unmodified map back. Every original is backed
    up once, before it is first replaced.
+
+![Map Studio: the game's maps, and the export, edit, repack and install steps for the selected one](docs/images/launcher-map-studio.png)
 
 **View** opens a map in a fly-through viewer instead. How the maps are stored
 and converted is in [docs/assets.md](docs/assets.md). What the tools extract

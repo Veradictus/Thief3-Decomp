@@ -9,6 +9,8 @@ On the launcher's **Play** page, click **Install** in the T3SDK box, then
 **Play**. On a Steam install the game starts through Steam, as Steam's own
 Play button does.
 
+![The launcher's Play page: the game's build check, T3SDK, mods, maps and T3SDK's log](../images/launcher-play.png)
+
 Install copies T3SDK's files into the game's `System` folder:
 
 - `dinput8.dll`, the SDK itself. The game loads it at start-up, and it passes
