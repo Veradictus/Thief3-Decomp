@@ -8,6 +8,7 @@
 
   const job = $derived(jobs.list.find((j) => j.key === jobs.selected) ?? null);
   const count = $derived(job?.lines.length ?? 0);
+  const finished = $derived(jobs.list.some((j) => j.state !== "queued" && j.state !== "running"));
 
   $effect(() => {
     void count;
@@ -38,13 +39,11 @@
   }
 </script>
 
-<div class="page tasks">
+<div class="page">
   <div class="page-head">
-    <div>
-      <h1>Tasks</h1>
-      <p>Tools run one at a time, in order. Their output stays here until you clear it.</p>
-    </div>
-    <button class="btn" onclick={clearFinished}><Icon name="trash" />Clear finished</button>
+    <h1>Tasks</h1>
+    <button class="btn" onclick={clearFinished} disabled={!finished}><Icon name="trash" />Clear finished</button>
+    <p>Tools run one at a time, in order. Their output stays here until you clear it.</p>
   </div>
 
   <div class="split">
@@ -86,24 +85,19 @@
               >{l.line}
 </span>{/each}{#if job.state === "running"}<span class="cursor">▍</span>{/if}</pre>
       {:else}
-        <p class="empty">Select a task to see its output.</p>
+        <p class="empty">{jobs.list.length ? "Select a task to see its output." : "A task's output shows here."}</p>
       {/if}
     </div>
   </div>
 </div>
 
 <style>
-  .tasks {
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 24px;
-  }
-
   .split {
-    flex: 1;
-    min-height: 0;
+    flex: 1 1 0;
+    min-height: 240px;
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: clamp(240px, 30%, 300px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: 12px;
   }
 
@@ -176,7 +170,7 @@
     font: 12px/1.55 var(--mono);
     color: #cfcabe;
     white-space: pre-wrap;
-    word-break: break-all;
+    overflow-wrap: anywhere;
   }
 
   .err {

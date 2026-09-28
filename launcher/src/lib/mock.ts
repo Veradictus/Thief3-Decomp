@@ -30,10 +30,23 @@ let config: Config = {
   setupComplete: !firstRun,
 };
 
-const mods: ModEntry[] = [
-  { name: "hello", enabled: true, size: 14336, modified: 1790000000 },
-  { name: "coop_prototype", enabled: false, size: 188416, modified: 1790100000 },
-];
+// A dozen, so the lists show a realistic density.
+const mods: ModEntry[] = (
+  [
+    ["ai_senses_log", false, 41984, 1789400000],
+    ["coop_prototype", false, 188416, 1790100000],
+    ["debug_camera", true, 30720, 1788600000],
+    ["fov_control", true, 22528, 1789800000],
+    ["hello", true, 14336, 1790000000],
+    ["hud_minimal", true, 57344, 1787900000],
+    ["lockpick_assist", false, 26624, 1788100000],
+    ["loot_tally", true, 35840, 1789100000],
+    ["map_markers", true, 96256, 1790200000],
+    ["quicksave_slots", true, 48128, 1788900000],
+    ["stealth_meter", true, 67584, 1789600000],
+    ["subtitles_plus", true, 118784, 1787200000],
+  ] satisfies [string, boolean, number, number][]
+).map(([name, enabled, size, modified]) => ({ name, enabled, size, modified }));
 
 type SettingRow = [section: string, key: string, value: string, description: string];
 const settings: (Setting & { section: string })[] = (
@@ -53,7 +66,7 @@ const settings: (Setting & { section: string })[] = (
       "Display",
       "NativeResolutions",
       "1",
-      "1 = offer the monitor's own resolutions in Options > Audio/Video; the highest setting is the native resolution.",
+      "1 = offer the monitor's own resolutions in Options > Audio/Video; the highest setting is the native resolution (the game only knows 640x480 to 1600x1200).",
     ],
     [
       "Display",
@@ -65,7 +78,7 @@ const settings: (Setting & { section: string })[] = (
       "Display",
       "WidescreenUI",
       "1",
-      "1 = lay menus and HUD out for the monitor's aspect ratio instead of stretching 4:3.",
+      "1 = lay menus and HUD out for the monitor's aspect ratio instead of stretching 4:3: menus stay centered, the HUD moves out to the screen edges.",
     ],
     [
       "Display",
@@ -73,6 +86,31 @@ const settings: (Setting & { section: string })[] = (
       "0",
       "1 = log where each UI window is placed (for UI modding; T3UI.ini defines them).",
     ],
+    [
+      "Display",
+      "PauseInBackground",
+      "0",
+      "1 = pause while another window has the focus, as the game does on its own. 0 = a borderless game keeps running in the background.",
+    ],
+    [
+      "Display",
+      "SmoothFrames",
+      "1",
+      "1 = move the game world on every frame. The engine moves it only once 10 ms have passed, so above 100 fps the world and the camera move on every second or third frame and the game looks choppy however high the frame rate is.",
+    ],
+    [
+      "Display",
+      "MaxFPS",
+      "0",
+      "Highest frame rate, 0 = no limit. The game's own VSynch option (Options > Audio/Video, on by default) also works in a borderless window: one frame per monitor refresh.",
+    ],
+    [
+      "Display",
+      "CursorScale",
+      "0",
+      "Size of the menu cursor in a borderless window: 0 = grow with the screen height (1x at 768 lines), or a fixed factor such as 1.5.",
+    ],
+    ["Display", "FrameStats", "0", "1 = log frames per second and the time spent presenting frames, every 10 s."],
   ] satisfies SettingRow[]
 ).map(([section, key, value, description]) => ({ section, key, value, default: value, description }));
 
@@ -97,6 +135,17 @@ const mapRows: MapRow[] = [
   ["Manor", "The Manor", 1508, false, null, null, false, null, false],
   ["Lighthouse", "The Lighthouse", 980, false, null, null, false, null, false],
   ["Clocktower", "The Clocktower", 1311, false, null, null, false, null, false],
+  ["Bank", "The Bank", 1655, true, null, null, false, null, false],
+  ["Moira", "Widow Moira's Manor", 1987, false, null, null, false, null, false],
+  ["Cradle", "Shalebridge Cradle", 2318, false, null, null, false, null, false],
+  ["Keeper", "Keeper Compound", 1846, false, null, null, false, null, false],
+  ["Sanctuary", "Pagan Sanctuary", 1422, false, null, null, false, null, false],
+  ["Rutherford", "Castle Rutherford", 2130, false, null, null, false, null, false],
+  ["Stonemarket", "Stonemarket", 1203, true, null, null, false, null, false],
+  ["Auldale", "Auldale", 1108, false, null, null, false, null, false],
+  ["OldQuarter", "Old Quarter", 1274, false, null, null, false, null, false],
+  ["Southquarter", "Southquarter", 1390, false, null, null, false, null, false],
+  ["Training", "Training", 640, false, null, null, false, null, false],
   ["Entry", "Main menu", 212, true, null, null, false, null, false],
 ];
 const maps: MapEntry[] = mapRows.map(
