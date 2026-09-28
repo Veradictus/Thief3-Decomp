@@ -1,4 +1,4 @@
-# Handoff: T3SDK status (2026-09-27)
+# Handoff: T3SDK status (2026-09-28)
 
 ## Goal
 
@@ -33,8 +33,14 @@ decompilation** worked mostly by Claude agents under the strict gate in
   every other object stayed byte-identical). No patched map has been loaded
   in the game yet. The launcher builds and runs on Windows (`yarn tauri
   dev`); it needs Rust's MSVC toolchain, which `yarn tauri` selects on its
-  own (see [launcher.md](launcher.md)). The matching harness has only run on
-  synthetic target objects.
+  own (see [launcher.md](launcher.md)).
+- Matching runs on the real split. Eight functions are matched and accepted
+  (`src/Game/Window.cpp`, `src/Game/Options.cpp`; four `UObject` natives
+  accepted, not yet integrated). The game's native table named 234 `UObject`
+  script natives (`docs/engine.md`, "Script natives"), and
+  `include/Core/Core.h` has what they need. `wave.py --name '^UObject::exec'`
+  works through them. decomp.dev lists the project (hidden below 0.5%
+  matched), but CI still publishes the baseline: see next step 2.
 
 ## What exists
 
@@ -60,7 +66,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
 | Launcher (Tauri): setup, play, SDK install, mods, `T3SDK.ini`, Map Studio, task queue | `launcher/`, [launcher.md](launcher.md) | runs on Windows (`yarn tauri dev`) and under Xvfb on Linux; Windows build green in CI |
 | Mod manager: `.t3mod` install/upgrade/remove, load order, profiles, checks, `files/` overlay, texture-pack tasks, mod index browser | `launcher/src-tauri/src/mods.rs`, `launcher/src/pages/Mods.svelte`, [mods.md](mods.md) | Rust tests on temporary game folders and UI tests pass; not run on Windows or a real install |
 | Release bundle (tools, prebuilt SDK, embeddable Python) | `tools/stage_launcher.py` | builds in CI |
-| Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | 14 synthetic tests pass with the real MSVC 7.1 via wibo; not run on the real exe |
+| Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | synthetic tests pass; runs on the real split (hand-matched functions, a smoke wave and a natives wave) |
 | CI: launcher and SDK builds (artifacts), releases on `v*` tags, decomp.dev report | `.github/workflows/` | launcher/SDK green; decomp.dev job waits for `T3_BUILD_IMAGE` ([decomp-dev.md](decomp-dev.md)) |
 
 Commands are in [sdk.md](sdk.md) (SDK) and [../CLAUDE.md](../CLAUDE.md).
@@ -166,18 +172,19 @@ Later the same day, played by the user:
      original must sit in `System/mods/originals/`, and switching the mod
      off must put it back. With a texture pack on, a `files/` mod that
      places an `.ibt` must queue restore, place the bundle, then apply.
-2. **decomp.dev**: registration works as soon as the baseline report (nothing
-   matched, from `symbols.txt`) is on `main`; the private build image and the
-   `T3_BUILD_IMAGE` variable switch CI to the real report, needed before
-   matched code shows ([decomp-dev.md](decomp-dev.md)). Needs the owner's
-   GitHub account.
-3. **Matching pilot** (about 300 functions, stratified by size; see
-   [matching.md](matching.md) and
-   [research/llm-matching.md](research/llm-matching.md)): first check `try.py`
-   and `accept.py` on real split functions (a plain one, a switch, an EH
-   function), then `wave.py` with a few workers, review every result by hand,
-   and measure matches and cost per size bucket before scaling. Pin the
-   compiler flags first with ~20 varied functions (`/G6` vs `/G7`, `/GS`).
+2. **decomp.dev**: the project is registered and shows the baseline report
+   (0%, hidden below 0.5% matched code, about 27 KB). Matched code shows only
+   once the private build image and the `T3_BUILD_IMAGE` variable switch CI to
+   the real report ([decomp-dev.md](decomp-dev.md), steps 1-3). Needs the
+   owner's GitHub account.
+3. **Matching**: integrate accepted functions (`integrate.py --dry-run`,
+   then without), review their names, rebuild, and commit. Continue the
+   natives (`wave.py --name '^UObject::exec'`); they need `FString`,
+   `FVector` and `FRotator` in `include/Core/` next (workers declare them
+   locally until then). Still unchecked on the real split: a switch table, EH
+   funclets, the data ruler on literals ([matching.md](matching.md)). Pin the
+   compiler flags with varied functions (`/G6` vs `/G7`, `/GS`) before large
+   waves outside the natives.
 4. **SDK generator** (roadmap 2 below): the class layouts it emits are what
    matching agents most need (wrong offsets are the top failure in every
    published agent decomp).

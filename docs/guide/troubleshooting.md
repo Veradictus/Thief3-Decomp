@@ -41,7 +41,7 @@ PC are replaced in it. Look through it anyway before you post it.
 
 **Report a problem** takes you to the project's issue tracker on GitHub. Say
 what you did, what you expected and what happened instead, and attach the
-zip. For questions, the [Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG)
+zip. For questions, the [Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ)
 is quicker.
 
 Without the launcher, attach `System\T3SDK.log`, and `T3SDK.ini` if you

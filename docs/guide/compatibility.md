@@ -82,5 +82,5 @@ information about it. As a general rule (not a guarantee): a tool that only
 adds its own files alongside the game, under a different name, is unlikely
 to clash; a tool that also wants to be `System\dinput8.dll`, or that patches
 `T3Main.exe` itself, will run into T3SDK for the reasons above. When in
-doubt, ask in the [Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG)
+doubt, ask in the [Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ)
 — someone may already have tried the combination you're asking about.

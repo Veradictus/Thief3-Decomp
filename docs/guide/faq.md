@@ -96,7 +96,7 @@ it — the launcher's **Saves** page shows where it found yours, and
 
 ### How do I get help?
 
-The [Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG) for questions,
+The [Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ) for questions,
 or **Report a problem** (Play page or Settings) for the project's GitHub
 issue tracker if you've found a bug. Run **Collect logs** first and attach
 the zip either way.
