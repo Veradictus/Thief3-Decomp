@@ -55,3 +55,7 @@ install it over the old one. Each release lists its changes on the
 - [Installing mods](mods.md): packages, the mod browser, load order and
   profiles.
 - [Save backups](saves.md): do this before you try mods.
+- [Settings explained](settings.md): every setting T3SDK and the launcher
+  have, and when to change it.
+- [Other mods and tools](compatibility.md), the [FAQ](faq.md) and the
+  [glossary](glossary.md).
