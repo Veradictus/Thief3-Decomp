@@ -16,7 +16,7 @@
     "node": ">=22.18"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@types/node": "^26",
     "typescript": "~7.0.2",
     "vitepress": "^1.6.4"
   }
