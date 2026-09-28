@@ -38,6 +38,7 @@ import hashlib
 import json
 import math
 import shutil
+import struct
 import sys
 import time
 import uuid
@@ -212,8 +213,14 @@ def resolve_display_names(actors: List[ActorRecord], strings: Dict[str, str]) ->
 def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[ActorRecord]:
     ids = PropIds(names)
     actors = []
+    # The level's own list, where t3pack.py adds and removes actors; the file
+    # keeps a removed actor's object.
+    try:
+        in_level = set(pkg.level_actors() or [])
+    except (ValueError, EOFError, struct.error):
+        in_level = set()
     for e in pkg.exports:
-        if not (e.flags & RF_HasStack):
+        if not (e.flags & RF_HasStack) or (in_level and e.index + 1 not in in_level):
             continue
         cls = pkg.export_class(e)
         a = pkg.read_actor(e)

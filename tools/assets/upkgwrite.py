@@ -39,7 +39,7 @@ from typing import Any, Callable, Collection, Dict, List, Optional, Sequence, Tu
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from t3common import Reader, write_index  # noqa: E402
-from upkg import GAMESYS_TYPES, RF_HasStack, Export, Package  # noqa: E402
+from upkg import GAMESYS_TYPES, LEVEL_ACTORS_AT, RF_HasStack, Export, Package, level_actor_list  # noqa: E402
 
 
 class LayoutError(ValueError):
@@ -178,7 +178,8 @@ def _encode_lists(lists: List[List[int]]) -> bytes:
 
 class PackageWriter:
     """A package parsed for writing.  write() returns the file; set_object()
-    replaces an object's data and name_index() adds names."""
+    replaces an object's data, name_index() adds names and add_export()
+    adds objects."""
 
     def __init__(self, pkg: Package) -> None:
         self.pkg = pkg
@@ -191,6 +192,7 @@ class PackageWriter:
         self._read_tables()
         self.orig_counts = (len(self.exports), len(self.names))
         self.added_names: List[str] = []
+        self.added_exports: List[int] = []
         self.objects: Dict[int, bytes] = {}
         self._exact: Dict[str, int] = {}
         self._folded: Dict[str, int] = {}
@@ -326,9 +328,59 @@ class PackageWriter:
         return self.data[e.serial_offset:e.serial_offset + e.serial_size]
 
     def set_object(self, index: int, data: bytes) -> None:
-        if self.pkg.exports[index].serial_size == 0 or not data:
+        empty = index not in self.added_exports and self.pkg.exports[index].serial_size == 0
+        if empty or not data:
             raise LayoutError(f"export #{index}: only non-empty objects can be replaced")
         self.objects[index] = bytes(data)
+
+    def export_view(self, index: int) -> Export:
+        """An Export describing entry `index` as it will be written, for code
+        that takes one (ActorEdit); an added object has no file offset yet."""
+        if index < len(self.pkg.exports) and index not in self.added_exports:
+            return self.pkg.exports[index]
+        e = self.exports[index]
+        return Export(index, e.class_ref, e.super_ref, e.package, self.names[e.name].text, e.flags,
+                      len(self.object_data(index)), 0)
+
+    def add_export(self, template: int, name: str, data: bytes) -> int:
+        """Append an object like export `template` (same class, super, outer
+        and flags) named `name`, holding `data`.  Its data goes after the
+        last object, and the extra table's export lists get its index.
+        Returns the new export index."""
+        if not data:
+            raise LayoutError(f"{name}: an added object needs data")
+        if self.find_name(name) is not None:
+            raise LayoutError(f"{name}: the name is taken; an added object needs a new one")
+        t = self.exports[template]
+        index = len(self.exports)
+        self.exports.append(ExportEntry(t.class_ref, t.super_ref, t.package, self.name_index(name), t.flags,
+                                        (b"", b"", b"", b"", b"")))
+        self.objects[index] = bytes(data)
+        self.added_exports.append(index)
+        last = max(i for i, g in enumerate(self.regions) if g.kind == "object")
+        end = self.regions[last].end
+        self.regions.insert(last + 1, Region("object", end, end, index))
+        if self.extra is not None:
+            # Every shipped map's lists run 0..N-1: the new object joins them.
+            for lst in self.extra:
+                lst.append(index)
+        return index
+
+    def set_level_actors(self, refs: Sequence[int]) -> None:
+        """Replace the Level object's actor list with `refs` (export index + 1
+        each).  Refs it had keep their bytes as they were encoded."""
+        lvl = self.pkg.level()
+        if lvl is None:
+            raise LayoutError("the package has no Level object")
+        data = self.object_data(lvl.index)
+        try:
+            old, start, end = level_actor_list(data)
+        except (ValueError, EOFError, struct.error) as ex:
+            raise LayoutError(f"the Level's actor list does not read: {ex}") from ex
+        raw = {ref: b for ref, b in old}
+        body = b"".join(raw[ref] if ref in raw else enc_index(ref) for ref in refs)
+        self.set_object(lvl.index, data[:LEVEL_ACTORS_AT] + struct.pack("<II", len(refs), len(refs)) + body
+                        + data[end:])
 
     # --- writing -----------------------------------------------------------------
 
@@ -427,7 +479,7 @@ class PackageWriter:
 
     def _describe(self, g: Region) -> str:
         if g.kind == "object":
-            e = self.pkg.exports[g.index]
+            e = self.export_view(g.index)
             return f"object #{g.index} {e.name} ({self.pkg.export_class(e)})"
         return {"summary": "summary", "names": "name table", "imports": "import table",
                 "exports": "export table", "extra": "extra table", "heritage": "heritage table",
@@ -815,10 +867,12 @@ class ActorEdit:
 
 # --- checks ------------------------------------------------------------------------------
 
-def compare_packages(old: Package, new: Package, edited: Collection[int] = ()) -> List[str]:
+def compare_packages(old: Package, new: Package, edited: Collection[int] = (), added: int = 0) -> List[str]:
     """Differences between two packages other than the data of the `edited`
-    exports and names appended to the table; empty for a clean patch.  An
-    edited actor must keep its state frame, links and native tail."""
+    exports, names appended to the table and `added` exports appended to
+    the export table (and to the extra table's lists); empty for a clean
+    patch.  An edited actor must keep its state frame, links and native
+    tail."""
     out = []
     head = ("file_version", "licensee_version", "package_flags", "guid", "ion_unknown", "ion_extra")
     for k in head:
@@ -828,8 +882,8 @@ def compare_packages(old: Package, new: Package, edited: Collection[int] = ()) -
         out.append("name table: existing names changed")
     if [vars(i) for i in new.imports] != [vars(i) for i in old.imports]:
         out.append("import table changed")
-    if len(new.exports) != len(old.exports):
-        return out + [f"export count {len(old.exports)} -> {len(new.exports)}"]
+    if len(new.exports) != len(old.exports) + added:
+        return out + [f"export count {len(old.exports)} -> {len(new.exports)}, expected {len(old.exports) + added}"]
     for a, b in zip(old.exports, new.exports):
         if (a.class_ref, a.super_ref, a.package, a.name, a.flags) != (b.class_ref, b.super_ref, b.package,
                                                                        b.name, b.flags):
@@ -843,7 +897,12 @@ def compare_packages(old: Package, new: Package, edited: Collection[int] = ()) -
                 out.append(f"export #{a.index} {a.name}: does not parse: {rb.parse_error}")
             elif (ra.state, ra.links, ra.tail) != (rb.state, rb.links, rb.tail):
                 out.append(f"export #{a.index} {a.name}: state frame, links or tail changed")
-    if PackageWriter(old).extra_bytes() != PackageWriter(new).extra_bytes():
+    was, now = PackageWriter(old), PackageWriter(new)
+    if was.extra is not None and added:
+        appended = list(range(len(old.exports), len(new.exports)))
+        if now.extra != [lst + appended for lst in was.extra]:
+            out.append("extra table: the lists do not just gain the added objects")
+    elif was.extra_bytes() != now.extra_bytes():
         out.append("extra table changed")
     return out
 

@@ -37,7 +37,8 @@ Status at a glance:
     particle emitters, sounds.
   - Zones and portals, and the navigation mesh.
   - The index structure around the BSP render blocks.
-  - Adding and removing actors, and new geometry.
+  - New kinds of actors (a new actor is a copy of one in the map), and new
+    geometry.
 
 ## 1. What is in the install
 
@@ -734,13 +735,21 @@ Only changes are written. The plugin compares each actor with its
   (or yaw + roll) is defined; the exported yaw is kept.
 - Float properties compare as 32-bit floats, enums by name.
 
-Adding and removing actors is not supported yet. The dock warns about
-duplicated actor nodes, nodes without T3 metadata in the actor groups and
-removed actors, and says after each save what it left out. The edits file
-counts them under `not_saved` (not the actors themselves), so Map Studio can
-explain why there is nothing to repack.
+New and removed actors:
+- A duplicate of an actor (Ctrl+D) is a new actor. The node the exporter made
+  is the original: its name ends in " #" and its object name's instance
+  number, which Godot renumbers on a duplicate. The edits file records the
+  copy's placement and property edits under `added`, with the actor it
+  copies, and `t3pack.py` gives it a new object of its own.
+- An exported actor deleted from the scene is `removed`. The LevelInfo
+  cannot be removed (the dock warns and does not save it).
+- A node without T3 metadata (a new Node3D, a scene dragged in) cannot
+  become an actor: the dock warns, and the edits file only counts such nodes
+  under `not_saved`, so Map Studio can say why there is nothing to repack.
+- **Load** makes the copies again and deletes the removed actors, as one
+  undoable action; **Revert** on a new actor deletes it.
 
-The edits file is format `t3-map-edits` version 1, described with
+The edits file is format `t3-map-edits` version 2, described with
 `t3pack.py` in section 8 ("Getting edits back into the game"). The plugin
 writes gamesys values in their property's type: numbers for float, int and
 byte, `true` or `false` for bool, the value's name for an enum byte (its
@@ -868,8 +877,9 @@ From least to most work:
    (see [engine.md](engine.md)).
 2. **In-place `.gmp` patching.** Done for existing actors by `t3pack.py`
    (below): Location, Rotation, DrawScale and scalar gamesys values.
-   Adding and removing exports would also mean updating the Level's actor
-   list and the extra table (identity lists); not done yet.
+   New actors (copies of existing ones) are new exports: they join the
+   Level's actor list and the extra table's identity lists. A removed actor
+   leaves the Level's list; its object stays in the file.
 3. **Through T3Ed.** Export `.t3d` text that T3Ed imports, then build with
    the official pipeline (or with Sneaky Upgrade's `-mkibt`), which produces
    a consistent `.gmp` + `.ibt`. This is the most robust way to get new BSP,
@@ -922,12 +932,13 @@ and native tail are copied verbatim.
   order stay in that order. Structs (including `ObjectMesh`, so skins),
   arrays and object references are refused.
 
-**The edits file** is what the Godot editor plugin writes (version 1):
+**The edits file** is what the Godot editor plugin writes (version 2;
+`apply` also reads version 1, which has no `added` or `removed`):
 
 ```json
 {
   "format": "t3-map-edits",
-  "version": 1,
+  "version": 2,
   "level": "Inn",
   "source": {"file": "Inn.gmp", "size": 1234567, "sha1": "<hex>"},
   "actors": {
@@ -938,7 +949,11 @@ and native tail are copied verbatim.
       "gamesys": {"<property name, as in actors.json>": value}
     }
   },
-  "not_saved": {"added": 9, "removed": 0}
+  "added": [
+    {"copy_of": "StaticMeshActor__1920", "location": [x, y, z], "rotation": [pitch, yaw, roll]}
+  ],
+  "removed": ["StaticMeshActor__2"],
+  "not_saved": {"nodes": 1}
 }
 ```
 
@@ -947,10 +962,21 @@ and native tail are copied verbatim.
   (ints, 65536 = 360°; other numbers are rounded).
 - `gamesys` values take the form `actors.json` shows (enum and bit names, or
   numbers); `prop<N>` names a property by id.
+- `added` lists new actors. Each copies the object data of the actor it
+  names (as in the map, before any edit to it) under a new name, the same
+  stem with the next free instance number (`StaticMeshActor__1922`), then
+  takes the record's placement, `draw_scale` (only when changed) and
+  `gamesys` values. It is appended to the export table, the Level's actor
+  list and the extra table's lists.
+- `removed` lists actors taken out of the Level's actor list. Their objects
+  stay in the file (a real delete would renumber every object reference),
+  and the exporter follows the list, so they are gone from the next export.
+  The LevelInfo and the builder brush, the first two actors of every level,
+  cannot be removed.
 - `source` is optional (older exports lack it). When present, `apply`
   refuses a map whose size or SHA-1 differs.
-- `not_saved` (only when non-zero) counts the actors added or removed in
-  Godot, which this version cannot save; `apply` ignores it.
+- `not_saved` (only when non-zero) counts the nodes added in Godot that are
+  not T3 actors; `apply` ignores it.
 - Other top-level keys are ignored. An unknown key under an actor, an
   unknown actor or an unsupported property type is an error, and nothing is
   written. `t3pack.load_edits()` checks a file and returns a normalised
@@ -1036,8 +1062,8 @@ package identical. Then move one visible prop in a small map, `apply`,
 
 - The DWORD at 0x24 in map summaries, and the purpose of the 32 export-index
   lists.
-- The first 13 bytes of the Level object, and everything after the BSP
-  polygon list.
+- The first 13 bytes of the Level object (the actor list follows them),
+  and everything after the BSP polygon list.
 - What indexes the BSP render blocks (block ids look like node or surface
   indices). What the 92-byte BSP polygons are for, and their flag.
 - The unit of `LightRadius` (assumed feet), and how T3 maps `LightBrightness`

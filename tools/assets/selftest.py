@@ -348,7 +348,29 @@ def test_writer() -> None:
     refused({**base, "actors": {"D_100_0": {"gamesys": {"FleshLightType": "FLT_Nope"}}}}, "not a value of its enum")
     refused({**base, "actors": {"D_100_0": {"gamesys": {"NoSuchProp": 1}}}}, "unknown gamesys property")
     refused({**base, "format": "other", "actors": {}}, '"format" must be')
-    refused({**base, "version": 2, "actors": {}}, "not supported")
+    refused({**base, "version": 3, "actors": {}}, "not supported")
+    refused({**base, "actors": {}, "removed": ["LevelInfo0"]}, "the level needs its LevelInfo")
+    refused({**base, "actors": {}, "removed": ["Nobody"]}, "removed actor 'Nobody'")
+    refused({**base, "actors": {}, "added": [{"copy_of": "AttachmentLinkDataObject0"}]}, "not an actor")
+
+    # new and removed actors: a copy of StaticMeshActor1 moved and turned, Light0
+    # taken out of the level; the copy joins the level's list and the export lists
+    grow = load_edits({**base, "version": 2, "actors": {},
+                       "added": [{"copy_of": "StaticMeshActor1", "location": [40.0, 50.0, 60.0],
+                                  "rotation": [0, 4096, 0]}], "removed": ["Light0"]})
+    patch = apply_edits(pkg, grow, names)
+    write_verified(pkg, patch, OUT / "grown.gmp")
+    grown = Package(OUT / "grown.gmp")
+    copy = grown.exports[len(pkg.exports)]
+    assert len(grown.exports) == len(pkg.exports) + 1 and copy.name == "StaticMeshActor1__0", copy.name
+    assert grown.export_class(copy) == "StaticMeshActor" and copy.flags == pkg.find_export("StaticMeshActor1").flags
+    c = grown.read_actor(copy)
+    assert vec(c, "Location", "X Y Z") == [40.0, 50.0, 60.0] and vec(c, "Rotation", "Pitch Yaw Roll") == [0, 4096, 0]
+    assert c.block(P_DRAWSCALE).value == 1.0 and c.tail == b"\x2A\0\0\0"  # the rest as in the original
+    assert grown.level_actors() == [2, 3, 4, 7, len(grown.exports)], grown.level_actors()
+    assert all(lst == list(range(len(grown.exports))) for lst in PackageWriter(grown).extra)
+    assert grown.export_bytes(grown.find_export("Light0")) == pkg.export_bytes(pkg.find_export("Light0"))
+    assert grown.level_actors() is not None and pkg.level_actors() == [2, 3, 4, 5, 7]
     refused({**base, "actors": {"A": {"location": [1, 2]}}}, "location must be")
     refused({**base, "actors": {"A": {"scale": 2}}}, "unknown key 'scale'")
     refused({**base, "actors": {"A": {"rotation": [0, "x", 0]}}}, "rotation must be")
