@@ -81,4 +81,4 @@ def save(path: Path, symbols: Iterable[Symbol], header: str = "") -> None:
     """Write symbols.txt, sorted by address, with `header` as leading '#' comment lines."""
     lines = [f"# {line}" for line in header.splitlines()]
     lines += [format_symbol(s) for s in sorted(symbols, key=lambda s: s.address)]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
