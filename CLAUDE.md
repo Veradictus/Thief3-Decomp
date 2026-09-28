@@ -29,6 +29,8 @@ python tools/agent/next.py status | context.py <addr> | try.py | accept.py      
 python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
 cd launcher && yarn install && yarn tauri dev                                      # the launcher (docs/launcher.md)
 cd launcher && yarn verify                                                         # launcher UI: types, lint, format, tests
+cd site && yarn install && yarn docs:dev                                           # the docs site from docs/ (docs/site.md)
+cd site && yarn api && yarn docs:build                                             # regenerate docs/reference/api.md; build, fails on dead links
 python tools/assets/selftest.py; python tools/agent/selftest.py                    # tests that need no game files
 ```
 
