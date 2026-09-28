@@ -70,6 +70,7 @@ jobs:
             build/sdk/bin/**/*.dll
             build/sdk/bin/**/*.pdb
             build/sdk/bin/T3SDK.ini
+            build/sdk/bin/include/**
           if-no-files-found: error
 
   launcher:

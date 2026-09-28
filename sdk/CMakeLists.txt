@@ -37,3 +37,12 @@ add_subdirectory(loader)
 add_subdirectory(mods/hello)
 
 configure_file(T3SDK.ini ${T3SDK_BIN_DIR}/T3SDK.ini COPYONLY)
+# The public headers go into bin/include/t3sdk/ too: bin/ is what the release
+# zip holds, and mods (templates/mod) build against its include/. Deploy and
+# the launcher's staging copy only DLL, PDB and INI files, so the headers
+# never reach the game's System/ folder.
+file(GLOB t3sdk_public_headers CONFIGURE_DEPENDS include/t3sdk/*.h include/t3sdk/*.hpp)
+foreach(header IN LISTS t3sdk_public_headers)
+  get_filename_component(header_name ${header} NAME)
+  configure_file(${header} ${T3SDK_BIN_DIR}/include/t3sdk/${header_name} COPYONLY)
+endforeach()

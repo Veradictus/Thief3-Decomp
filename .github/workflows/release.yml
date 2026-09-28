@@ -3,7 +3,8 @@
 #   T3SDK-Launcher_<version>_x64-setup.exe  installer, with the tools, the
 #                                           prebuilt SDK and Python bundled
 #   T3SDK-Launcher_<version>_portable.zip   the same, to unzip and run
-#   T3SDK_<version>_x86.zip                 the SDK alone, for System/ by hand
+#   T3SDK_<version>_x86.zip                 the SDK alone, for System/ by hand,
+#                                           and its headers (include/t3sdk/)
 name: release
 
 on:
