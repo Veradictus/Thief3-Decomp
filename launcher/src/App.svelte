@@ -1,11 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import DropOverlay from "$components/DropOverlay.svelte";
   import Icon from "$components/Icon.svelte";
+  import UpdateBanner from "$components/UpdateBanner.svelte";
   import { api, inTauri } from "$lib/api";
   import { app, jobs, loadConfig, pending, refresh, running, type Page } from "$lib/app.svelte";
+  import { startupUpdateCheck } from "$lib/update.svelte";
   import Maps from "./pages/Maps.svelte";
   import Mods from "./pages/Mods.svelte";
   import Play from "./pages/Play.svelte";
+  import Saves from "./pages/Saves.svelte";
   import Sdk from "./pages/Sdk.svelte";
   import Settings from "./pages/Settings.svelte";
   import Tasks from "./pages/Tasks.svelte";
@@ -14,6 +18,7 @@
     { page: "play", label: "Play", icon: "play" },
     { page: "maps", label: "Map Studio", icon: "map" },
     { page: "mods", label: "Mods", icon: "puzzle" },
+    { page: "saves", label: "Saves", icon: "archive" },
     { page: "sdk", label: "SDK settings", icon: "sliders" },
     { page: "tasks", label: "Tasks", icon: "terminal" },
   ];
@@ -21,7 +26,7 @@
   onMount(() => {
     const start = new URLSearchParams(location.search).get("page") as Page | null;
     if (start) app.page = start;
-    void loadConfig().then(refresh);
+    void loadConfig().then(refresh).then(startupUpdateCheck);
     // Pick up changes made outside the launcher (the game, Godot, a shell).
     const onFocus = () => void refresh();
     const timer = setInterval(() => {
@@ -63,6 +68,7 @@
         {/each}
       </nav>
       <div class="grow"></div>
+      <UpdateBanner />
       <!-- The running job lives here, not over the page, so it never hides content. -->
       {#if current}
         <button
@@ -97,7 +103,7 @@
         <button class="link" onclick={() => api.openLink("https://discord.gg/hdAXH73tEG")}>
           <Icon name="discord" size={16} /><span class="grow">Taffer Tavern</span>
         </button>
-        <button class="link" onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp")}>
+        <button class="link" onclick={() => api.openLink("https://veradictus.github.io/Thief3-Decomp/")}>
           <Icon name="book" size={16} /><span class="grow">Documentation</span>
         </button>
         <button class:active={app.page === "settings"} onclick={() => (app.page = "settings")}>
@@ -110,12 +116,15 @@
       {#if app.page === "play"}<Play />
       {:else if app.page === "maps"}<Maps />
       {:else if app.page === "mods"}<Mods />
+      {:else if app.page === "saves"}<Saves />
       {:else if app.page === "sdk"}<Sdk />
       {:else if app.page === "tasks"}<Tasks />
       {:else}<Settings />{/if}
     </main>
   </div>
 {/if}
+
+<DropOverlay />
 
 <div class="toasts">
   {#each app.toasts as t (t.id)}

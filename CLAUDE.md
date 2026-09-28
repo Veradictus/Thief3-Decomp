@@ -29,7 +29,12 @@ python tools/agent/next.py status | context.py <addr> | try.py | accept.py      
 python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
 cd launcher && yarn install && yarn tauri dev                                      # the launcher (docs/launcher.md)
 cd launcher && yarn verify                                                         # launcher UI: types, lint, format, tests
+python tools/t3mod.py validate|pack|info <mod.json|folder|.t3mod>                  # mod packages (docs/mods.md, templates/mod)
+python tools/modindex.py validate|verify|build -o <file>|add <.t3mod> --url <url>  # the mod index (modindex/)
+cd site && yarn install && yarn docs:dev                                           # the docs site from docs/ (docs/site.md)
+cd site && yarn api && yarn docs:build                                             # regenerate docs/reference/api.md; build, fails on dead links
 python tools/assets/selftest.py; python tools/agent/selftest.py                    # tests that need no game files
+python tools/mods/selftest.py                                                      # mod tools, fixtures, template (no game files)
 ```
 
 ## Facts
@@ -44,7 +49,9 @@ python tools/assets/selftest.py; python tools/agent/selftest.py                 
   window (hooks `Direct3DCreate8` → `CreateDevice`/`Reset`), widescreen UI
   (`Config::GetFloat`, `Window::PlacedPosition`). A vectored handler logs
   crashes to `System/T3SDK.log`.
-- Mods: `System/mods/*.dll` exporting `T3Mod_Init(const T3SdkApi*)`. The API is
+- Mods: DLLs exporting `T3Mod_Init(const T3SdkApi*)`, loaded from
+  `System/mods/load-order.txt` (`.t3mod` packages, docs/mods.md), then
+  `System/mods/*.dll`. The API is
   plain C, `__cdecl`, and only grows (check `api->size`).
 - Engine: Ion Storm's early Unreal Engine 2 fork (script packages version 95 /
   licensee 133). FName carries a 16-bit instance number, printed as

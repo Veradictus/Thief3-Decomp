@@ -38,6 +38,8 @@ PE timestamp, image size, and load base. If any runtime check fails, it logs
 the reason and leaves the game unmodified by SDK hooks. The addresses in
 [`engine.md`](engine.md) are for this exact executable.
 
+The build also copies the public headers into `build/sdk/bin/include/t3sdk/`,
+so `build/sdk/bin/` holds what the release's `T3SDK_<version>_x86.zip` holds.
 Deploy copies DLL, PDB, and INI files from `build/sdk/bin/` into `System/` and
 records the files it installed in `build/sdk/deployed.json` (under
 `$T3SDK_BUILD_DIR/sdk/` when that is set, as the launcher does for its bundled
@@ -95,8 +97,24 @@ as it would without the SDK.
 ## Writing a mod
 
 Build a 32-bit DLL that exports `T3Mod_Init` using the C API in
-[`sdk/include/t3sdk/t3sdk.h`](../sdk/include/t3sdk/t3sdk.h). Put it in
-`System/mods/`; mods are loaded in filename order before the engine starts.
+[`sdk/include/t3sdk/t3sdk.h`](../sdk/include/t3sdk/t3sdk.h). Mods are loaded
+from `System/mods/` before the engine starts, in two groups:
+
+1. **Packages**: a `.t3mod` ([mods.md](mods.md)) that the launcher installed
+   lives in `System/mods/<id>/`, and the launcher lists its DLL as
+   `<id>/<dll>` in `System/mods/load-order.txt`. The SDK loads those lines
+   top to bottom, skipping blank lines and `#` comments, and refuses (with a
+   log line) a line with an absolute path or `..`. Each DLL is loaded with
+   `LoadLibraryExW(..., LOAD_WITH_ALTERED_SEARCH_PATH)`, so helper DLLs next
+   to it are found.
+2. **Loose DLLs**: every `System/mods/*.dll` not loaded yet, in filename
+   order. The launcher switches these off by moving them to
+   `System/mods/disabled/`.
+
+A mod's name in `T3SDK.log` and crash reports is its folder name (a loose
+DLL's: its file name). Without a `load-order.txt` only loose DLLs load, as
+before packages existed. For a quick test, drop the DLL into `System/mods/`;
+to share it, pack it (below).
 `T3Mod_Init` should register callbacks and return zero on success. Use the
 API's `version` and `size` fields when checking optional later API entries.
 For example, initialization should save the API pointer and defer engine
@@ -126,6 +144,15 @@ If initialization fails, the SDK removes callbacks registered by that DLL
 before unloading it. The complete example is
 [`sdk/mods/hello/hello.cpp`](../sdk/mods/hello/hello.cpp); register a mod's
 CMake target in [`sdk/CMakeLists.txt`](../sdk/CMakeLists.txt).
+
+A mod of its own, outside this repository, starts from
+[`templates/mod/`](../templates/mod/): a CMake project (with presets for MSVC
+x86) that builds against the SDK headers, from a checkout's `sdk/include` or
+downloaded with the SDK release, whose zip has them under `include/t3sdk/`.
+It writes `mod.json` from the project's version and packs
+`<id>-<version>.t3mod` ([mods.md](mods.md)), and its GitHub workflow attaches
+that package to a release for a version tag. CI builds the template against
+`sdk/include` on every SDK change.
 
 The public API is plain C and uses caller-owned buffers for returned text.
 The optional C++ [`unreal.hpp`](../sdk/include/t3sdk/unreal.hpp) exposes engine

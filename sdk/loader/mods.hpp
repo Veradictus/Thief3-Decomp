@@ -11,16 +11,19 @@
 
 namespace t3sdk::mods {
 
-// Loads every *.dll in `dir` and calls its T3Mod_Init. A mod whose init fails
-// is unloaded; `onUnload` is told first so its callbacks can be dropped.
+// Loads the DLLs that `dir`/load-order.txt lists, in order (packaged mods,
+// `<folder>/<dll>`; docs/mods.md), then every *.dll in `dir` not loaded yet,
+// in name order, and calls each one's T3Mod_Init. A mod whose init fails is
+// unloaded; `onUnload` is told first so its callbacks can be dropped.
 void LoadAll(const std::filesystem::path& dir, const T3SdkApi* api, void (*onUnload)(HMODULE mod));
 
 // Calls T3Mod_Shutdown of every loaded mod, newest first.
 void ShutdownAll();
 
-// The loaded mod whose image contains `address` (its module handle and file
-// name without extension), or nullptr. Uses the SDK's own table rather than
-// loader APIs, so it is safe while the process is exiting.
+// The loaded mod whose image contains `address` (its module handle, and its
+// name: the folder of a packaged mod, the file name without extension of a
+// loose DLL), or nullptr. Uses the SDK's own table rather than loader APIs,
+// so it is safe while the process is exiting.
 HMODULE ModuleAt(const void* address);
 const char* NameAt(const void* address);
 

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The launcher window: its own commands and the folder and file pickers. Folders and links are opened by the Rust side.",
+  "description": "The launcher window: its own commands, the folder and file pickers, and the save dialog (the logs zip). Folders and links are opened, and updates installed, by the Rust side, so no opener or updater permission is needed.",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-save"]
 }

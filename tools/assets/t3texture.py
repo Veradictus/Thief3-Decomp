@@ -15,6 +15,9 @@ Texture resource (type 0x08), one serialiser part per field:
   u8, u8 (unknown; the second is 1 for render targets)
   per mip: u32 level, u32 width, u32 height, u32 size, <padding part>, <data part>
 
+texture_parts() is the exact inverse of parse_texture(); parse_dds() reads the
+DDS files that to_dds() writes (and those of common tools), for t3texpack.py.
+
 Material resource (type 0x0A, from the MatLib .mlb files authored with the
 "IonShader" 3ds Max rollout): colours, a stage mask, the source .mlb path, a
 surface category (index into the install's MatLib/categories.txt) and eight
@@ -57,6 +60,8 @@ class Mip:
     width: int
     height: int
     data: bytes
+    level: int = 0
+    pad: bytes = b""  # the alignment-padding part before the data
 
 
 @dataclass
@@ -68,10 +73,27 @@ class Texture:
     usage: int
     usage_detail: int
     mips: List[Mip] = field(default_factory=list)
+    version: int = 1
+    size2: Tuple[int, int] = (0, 0)  # the second width and height
+    total: int = 0  # the "total mip bytes" field
+    flag_bytes: bytes = b"\0\0"  # the two unknown bytes
 
     @property
     def is_dxt(self) -> bool:
         return self.format.startswith("DXT")
+
+
+TEXTURE_HEAD_PARTS = (1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1)  # part sizes up to the first mip
+TEXTURE_HEAD_SIZE = sum(TEXTURE_HEAD_PARTS)  # 39
+MIP_HEAD_SIZE = 16  # level, width, height, size
+
+
+def format_name(fourcc: bytes) -> str:
+    """The format field as a name: a FourCC ('DXT1') or a D3DFORMAT name."""
+    if all(0x20 <= c < 0x7F for c in fourcc):
+        return fourcc.decode("ascii")
+    code = struct.unpack("<I", fourcc)[0]
+    return D3DFMT.get(code, f"D3DFMT_{code}")
 
 
 def parse_texture(res: Resource, parts: List[bytes]) -> Texture:
@@ -79,27 +101,58 @@ def parse_texture(res: Resource, parts: List[bytes]) -> Texture:
     version = pr.u8()
     if version != 1:
         raise ValueError(f"{res.name}: texture version {version}")
-    fourcc = pr.raw(4)
-    if all(0x20 <= c < 0x7F for c in fourcc):
-        fmt = fourcc.decode("ascii")
-    else:
-        code = struct.unpack("<I", fourcc)[0]
-        fmt = D3DFMT.get(code, f"D3DFMT_{code}")
+    fmt = format_name(pr.raw(4))
     mip_count = pr.u32()
     usage, detail = pr.u32(), pr.u32()
     width, height = pr.u32(), pr.u32()
-    pr.u32(), pr.u32()  # second width/height (0 for some environment maps)
-    pr.u32()  # total mip bytes
-    pr.u8(), pr.u8()
-    tex = Texture(res.name, fmt, width, height, usage, detail)
+    size2 = (pr.u32(), pr.u32())  # second width/height (0 for some environment maps)
+    total = pr.u32()  # total mip bytes
+    flag_bytes = pr.raw(1) + pr.raw(1)
+    tex = Texture(res.name, fmt, width, height, usage, detail, version=version, size2=size2, total=total,
+                  flag_bytes=flag_bytes)
     for _ in range(mip_count):
         level, w, h, size = pr.u32(), pr.u32(), pr.u32(), pr.u32()
-        pr.raw()  # alignment padding (may be an empty part)
+        pad = pr.raw()  # alignment padding (may be an empty part)
         data = pr.raw(size)
-        tex.mips.append(Mip(w, h, data))
+        tex.mips.append(Mip(w, h, data, level, pad))
     if not pr.done():
         raise ValueError(f"{res.name}: {len(parts) - pr.i} unread parts")
     return tex
+
+
+def format_code(fmt: str) -> bytes:
+    """The format field for a format name (the inverse of parse_texture's)."""
+    if fmt.startswith("D3DFMT_"):
+        return struct.pack("<I", int(fmt[7:]))
+    for code, name in D3DFMT.items():
+        if name == fmt:
+            return struct.pack("<I", code)
+    if len(fmt) == 4 and fmt.isascii():
+        return fmt.encode("ascii")
+    raise ValueError(f"unknown texture format {fmt!r}")
+
+
+def texture_parts(tex: Texture) -> List[bytes]:
+    """A texture resource's parts: the exact inverse of parse_texture().
+    Every field is written as the Texture holds it (mip levels, padding parts,
+    the second size, the total); nothing is derived here."""
+    u32 = lambda v: struct.pack("<I", v)  # noqa: E731
+    parts = [bytes([tex.version]), format_code(tex.format), u32(len(tex.mips)), u32(tex.usage),
+             u32(tex.usage_detail), u32(tex.width), u32(tex.height), u32(tex.size2[0]), u32(tex.size2[1]),
+             u32(tex.total), tex.flag_bytes[:1], tex.flag_bytes[1:2]]
+    for m in tex.mips:
+        parts += [u32(m.level), u32(m.width), u32(m.height), u32(len(m.data)), m.pad, m.data]
+    return parts
+
+
+def mip_size(fmt: str, w: int, h: int) -> int:
+    """Bytes of one mip level: 4x4 blocks for DXT, 4 bytes a pixel for the
+    32-bit formats."""
+    if fmt in ("DXT1", "DXT3", "DXT5"):
+        return max(1, (w + 3) // 4) * max(1, (h + 3) // 4) * (8 if fmt == "DXT1" else 16)
+    if fmt in ("A8R8G8B8", "X8R8G8B8"):
+        return w * h * 4
+    raise ValueError(f"no mip size rule for {fmt}")
 
 
 # --- DDS ------------------------------------------------------------------------
@@ -133,6 +186,69 @@ def to_dds(tex: Texture) -> bytes:
     header += pf + struct.pack("<IIIII", caps, 0, 0, 0, 0)
     assert len(header) == 128
     return header + b"".join(m.data for m in tex.mips)
+
+
+DDSCAPS2_CUBEMAP, DDSCAPS2_VOLUME = 0x200, 0x200000
+DDS_FORMATS = ("DXT1", "DXT3", "DXT5", "A8R8G8B8", "X8R8G8B8")
+
+
+class DDSError(ValueError):
+    """A DDS file that cannot become a texture resource."""
+
+
+def parse_dds(data: bytes, name: str = "") -> Texture:
+    """Read a DDS file into a Texture (name, format, size and mips; usage 0).
+
+    Accepts DXT1/DXT3/DXT5 (FourCC) and 32-bit A8R8G8B8/X8R8G8B8 (by the
+    pixel-format masks: BGRA bytes in the file), 2D textures with power-of-two
+    sides and a full or partial mip chain starting at the top level.  Raises
+    DDSError with the reason for anything else."""
+    if len(data) < 128 or data[:4] != b"DDS ":
+        raise DDSError("not a DDS file (no 'DDS ' header)")
+    (size, flags, height, width, pitch, depth, mips) = struct.unpack_from("<7I", data, 4)
+    pf_size, pf_flags, fourcc, bits, rmask, gmask, bmask, amask = struct.unpack_from("<II4s5I", data, 76)
+    caps, caps2 = struct.unpack_from("<II", data, 108)
+    if size != 124 or pf_size != 32:
+        raise DDSError(f"bad DDS header sizes ({size}, {pf_size}; expected 124, 32)")
+    if pf_flags & DDPF_FOURCC:
+        if fourcc == b"DX10":
+            raise DDSError("DX10 extended header: save the file as a legacy DDS (DXT1, DXT3, DXT5 or A8R8G8B8)")
+        fmt = fourcc.decode("latin-1")
+        if fmt not in ("DXT1", "DXT3", "DXT5"):
+            raise DDSError(f"compression {fmt!r} is not supported: use DXT1, DXT3 or DXT5"
+                           + (" (not premultiplied DXT2/DXT4)" if fmt in ("DXT2", "DXT4") else ""))
+    elif pf_flags & DDPF_RGB:
+        if (bits, rmask, gmask, bmask) != (32, 0x00FF0000, 0x0000FF00, 0x000000FF) or amask not in (0, 0xFF000000):
+            raise DDSError(f"{bits}-bit RGB with masks R {rmask:#010x} G {gmask:#010x} B {bmask:#010x} "
+                           f"A {amask:#010x} is not supported: use A8R8G8B8 or X8R8G8B8")
+        fmt = "A8R8G8B8" if pf_flags & DDPF_ALPHAPIXELS and amask == 0xFF000000 else "X8R8G8B8"
+    else:
+        raise DDSError(f"pixel format flags {pf_flags:#x} are not supported (luminance, alpha-only or "
+                       "palette formats): use DXT1, DXT3, DXT5, A8R8G8B8 or X8R8G8B8")
+    if caps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_VOLUME) or (flags & 0x800000 and depth > 1):
+        raise DDSError("cube maps and volume textures are not supported")
+    for side, v in (("width", width), ("height", height)):
+        if v < 1 or v & (v - 1):
+            raise DDSError(f"{side} {v} is not a power of two")
+    if not pf_flags & DDPF_FOURCC and flags & DDSD_PITCH and pitch != width * 4:
+        raise DDSError(f"row pitch {pitch} is not width x 4 ({width * 4}): rows must be packed")
+    full = max(width, height).bit_length()
+    count = mips if mips else 1
+    if count > full:
+        raise DDSError(f"{count} mip levels, but a {width}x{height} texture has at most {full}")
+    tex = Texture(name, fmt, width, height, 0, 0)
+    pos = 128
+    for i in range(count):
+        w, h = max(1, width >> i), max(1, height >> i)
+        n = mip_size(fmt, w, h)
+        if pos + n > len(data):
+            raise DDSError(f"the file ends inside mip {i} ({w}x{h}): {len(data)} bytes, {pos + n} needed")
+        tex.mips.append(Mip(w, h, data[pos:pos + n], i))
+        pos += n
+    if pos != len(data):
+        raise DDSError(f"{len(data) - pos} bytes after the last mip level ({count} levels): "
+                       "set the mip count in the header, or save without extra data")
+    return tex
 
 
 # --- DXT decoding -------------------------------------------------------------------

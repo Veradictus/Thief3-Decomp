@@ -4,10 +4,14 @@
 // operation and exposes them as commands.
 mod config;
 mod detect;
+mod diag;
 mod game;
 mod ini;
+mod mods;
 mod proc;
+mod saves;
 mod tasks;
+mod update;
 
 use std::sync::Mutex;
 
@@ -25,6 +29,7 @@ pub fn run() {
         .setup(|app| {
             let config = config::load(app.handle());
             app.manage(AppState { config: Mutex::new(config), tasks: tasks::Tasks::default() });
+            update::setup(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -37,8 +42,16 @@ pub fn run() {
             detect::check_sdk_root,
             game::overview,
             game::list_maps,
-            game::list_mods,
-            game::set_mod_enabled,
+            mods::list_mods,
+            mods::set_mod_enabled,
+            mods::set_package_enabled,
+            mods::set_mod_order,
+            mods::install_mod,
+            mods::remove_mod,
+            mods::sync_mods,
+            mods::mod_profile,
+            mods::mod_index,
+            mods::install_from_index,
             game::read_sdk_settings,
             game::write_sdk_settings,
             game::create_sdk_settings,
@@ -49,6 +62,16 @@ pub fn run() {
             game::open_link,
             tasks::start_task,
             tasks::cancel_task,
+            saves::saves_info,
+            saves::list_save_backups,
+            saves::create_save_backup,
+            saves::restore_save_backup,
+            saves::delete_save_backup,
+            saves::open_saves_folder,
+            diag::collect_logs,
+            update::updater_status,
+            update::check_update,
+            update::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("the launcher failed to start");

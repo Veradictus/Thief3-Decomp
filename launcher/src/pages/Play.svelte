@@ -1,13 +1,16 @@
 <script lang="ts">
   // Home: start the game, and the state of the SDK, mods and maps at a glance.
   import Icon from "$components/Icon.svelte";
-  import { api } from "$lib/api";
+  import { api, type Backup } from "$lib/api";
   import { app, enqueue, guard, refresh, running, toast } from "$lib/app.svelte";
+  import { collectLogs, reportProblem } from "$lib/diag";
+  import { ago } from "$lib/format";
 
   let log = $state<string[]>([]);
   let logView = $state<HTMLPreElement>();
   let follow = $state(true);
   let launching = $state(false);
+  let lastBackup = $state<Backup | null | undefined>(undefined);
 
   const o = $derived(app.overview);
   const game = $derived(o?.game ?? null);
@@ -20,6 +23,10 @@
   $effect(() => {
     void app.revision;
     if (app.config?.gameDir) void loadLog();
+    void api.listSaveBackups().then(
+      (l) => (lastBackup = l.backups[0] ?? null),
+      () => (lastBackup = undefined),
+    );
   });
 
   // The log panel takes the height that is left; keep its newest lines in view,
@@ -87,6 +94,11 @@
         <p class="muted small">{game.steam ? "Steam install" : "Not a Steam install"}</p>
       {:else}
         <span class="badge err"><span class="dot"></span>Not set</span>
+      {/if}
+      {#if lastBackup !== undefined}
+        <p class="muted small">
+          {lastBackup ? `Saves backed up ${ago(lastBackup.created)}` : "Saves not backed up yet"}
+        </p>
       {/if}
       <div class="row tile-actions">
         <button class="btn small" onclick={() => guard(api.openLocation("game"))} disabled={!game}
@@ -163,6 +175,13 @@
   <section class="log card">
     <div class="row log-head">
       <h3 class="grow">T3SDK.log</h3>
+      <button
+        class="btn small ghost"
+        onclick={collectLogs}
+        title="Save the logs and settings a bug report needs as a zip"
+        ><Icon name="download" size={14} />Collect logs</button
+      >
+      <button class="btn small ghost" onclick={reportProblem}><Icon name="bug" size={14} />Report a problem</button>
       <button class="btn small ghost" onclick={loadLog}><Icon name="refresh" size={14} />Refresh</button>
       <button class="btn small ghost" onclick={() => guard(api.openLocation("log"))}
         ><Icon name="folder" size={14} />Open</button

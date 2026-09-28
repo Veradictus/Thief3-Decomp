@@ -1,0 +1,11 @@
+# Build output (CMake presets build into build/<preset>/)
+/build/
+/out/
+*.t3mod
+
+# Editors and personal settings
+/.vs/
+/.vscode/
+/CMakeUserPresets.json
+.DS_Store
+Thumbs.db

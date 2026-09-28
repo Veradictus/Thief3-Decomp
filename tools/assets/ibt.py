@@ -33,6 +33,10 @@ Layout (all little-endian):
   its parts; each part is one field or array written by the engine's
   serialiser (the table probably exists for byte-swapping on console builds).
 
+Offsets are absolute file offsets.  The reader never looks at the bytes
+between the part table and the data start, or at a resource's padding.  The
+writer is ibtwrite.py.
+
 Usage:
   ibt.py list    <file.ibt|MapName> [--type texture|staticmesh|matlib|...]
   ibt.py stats   <file.ibt|MapName>
@@ -44,6 +48,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import struct
 import sys
@@ -95,9 +100,12 @@ class Resource:
 
 
 class IBT:
-    def __init__(self, path: Path | str) -> None:
+    """A block file read from `path`, or from `data` when given (`path` then
+    only names it)."""
+
+    def __init__(self, path: Path | str, data: Optional[bytes] = None) -> None:
         self.path = Path(path)
-        self._f = open(self.path, "rb")
+        self._f = io.BytesIO(data) if data is not None else open(self.path, "rb")
         head = self._f.read(HEADER_SIZE)
         (self.magic, self.alignment, self.data_start, self.data_size, self.max_resource_size,
          self.max_part_size, count, part_count) = struct.unpack_from("<8I", head, 0)
@@ -146,6 +154,11 @@ class IBT:
         if len(data) != res.size:
             raise EOFError(f"{res.name}: short read")
         return data
+
+    def read_prefix(self, res: Resource, n: int) -> bytes:
+        """The first `n` bytes of a resource (all of it when it is shorter)."""
+        self._f.seek(res.offset)
+        return self._f.read(min(n, res.size))
 
     def parts(self, res: Resource) -> List[int]:
         return list(self.part_sizes[res.first_part:res.first_part + res.part_count])

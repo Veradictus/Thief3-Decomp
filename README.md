@@ -2,12 +2,17 @@
 
 [![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hdAXH73tEG)
 [![Download the launcher](https://img.shields.io/github/v/release/Veradictus/Thief3-Decomp?include_prereleases&label=Download&style=for-the-badge)](https://github.com/Veradictus/Thief3-Decomp/releases/latest)
+[![Documentation](https://img.shields.io/badge/Documentation-read%20the%20guides-d6ab52?style=for-the-badge)](https://veradictus.github.io/Thief3-Decomp/)
 
 **T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
 It fixes the PC version's display problems, loads mods into your installed
 copy of the game, and gives them access to the engine. The goal is mods as
 large as multiplayer. It comes with a launcher, tools to edit maps in Godot,
 and the workbench for a matching decompilation of the game.
+
+**Documentation**: <https://veradictus.github.io/Thief3-Decomp/>, with the
+player guide, the mod author guide, the API reference and the engineering
+notes (the same pages as in [docs/](docs/)).
 
 **What do you want to do?**
 
@@ -120,8 +125,23 @@ left untouched.
   its own files to the game's `System/` folder, and removing it deletes
   exactly those. Installing an edited map replaces that one map, after the
   original is backed up.
+- Content mods (texture packs and other file replacements) are applied the
+  same way: the original files are kept in `System/mods/originals/` and put
+  back when the mod is switched off.
 - The software is provided as is, without warranty of any kind. Back up your
   saves before modding.
+
+### License
+
+Everything in this repository is under the [MIT license](LICENSE), including
+the matching decompilation. The MIT license covers the contributors' own
+work: the matching source is new code written to compile to the same machine
+code, and it grants no rights to the game itself, its executable, its content
+or its names, which stay with their owners. Building or using any of it needs
+your own copy of the game. Third-party code we ship (MinHook in the SDK,
+Python in the launcher) keeps its own license; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Security reports:
+[SECURITY.md](SECURITY.md).
 
 ## Write a mod
 
@@ -153,7 +173,17 @@ complete example, and [sdk/include/t3sdk/unreal.hpp](sdk/include/t3sdk/unreal.hp
 has the engine's memory layouts for direct access. Build it as a 32-bit DLL
 with any compiler, or along with the SDK (see [Build from source](#build-from-source)).
 The settings, the fixes, the API's lifecycle and threading rules are in
-[docs/sdk.md](docs/sdk.md).
+[docs/sdk.md](docs/sdk.md). The site's
+[mod author guide](https://veradictus.github.io/Thief3-Decomp/modding/first-mod)
+goes from the mod template to a published `.t3mod` package.
+
+The quickest start is [templates/mod](templates/mod/): copy it into a new
+repository, set your mod's id and version, and CMake builds the DLL against
+the SDK headers and packs a `.t3mod` that the launcher installs by drag and
+drop. Its GitHub workflow attaches the package to a release when you push a
+version tag, and the [mod index](modindex/) lists released mods in the
+launcher's mod browser. The package format is [docs/mods.md](docs/mods.md);
+`tools/t3mod.py` checks and packs packages by hand.
 
 ## Build from source
 
@@ -166,6 +196,7 @@ publishes them as a release. To build locally:
 | SDK (`dinput8.dll`, example mod) | Windows, Python 3.10+, Visual Studio 2022+ with "Desktop development with C++" | see below |
 | Launcher | Node 20+ (with `corepack enable`, for Yarn 4), Rust (stable); Linux also [Tauri's prerequisites](https://tauri.app/start/prerequisites/) | `cd launcher`, `yarn install`, `yarn tauri dev` |
 | Map tools | Python 3.10+, Godot 4.7+ | `python tools/assets/t3map.py --all`, then `godot --path build/assets/godot` |
+| Documentation site | Node 22.18+ (with `corepack enable`) | `cd site`, `yarn install`, `yarn docs:dev` ([docs/site.md](docs/site.md)) |
 
 The SDK, from the repository's folder:
 
@@ -238,6 +269,10 @@ sdk/                     the SDK: loader (dinput8.dll), public headers, example 
 launcher/                the desktop launcher (Tauri: Rust backend, Svelte UI)
 tools/sdk.py             build / deploy / run / drive the SDK
 tools/stage_launcher.py  what the release launcher ships with (tools, SDK, Python)
+tools/t3mod.py           check, pack and inspect .t3mod mod packages (tools/mods/: shared rules, fixtures)
+tools/modindex.py        the mod index: validate, verify, build, add
+templates/mod/           starter project for a mod: CMake, presets, packaging, release workflow
+modindex/                the mod index: one file per published mod
 tools/assets/            map and asset export to Godot, the viewer, the editor plugin, repacking
 tools/ghidra/            Ghidra scripts (export, names, decompile, disassemble)
 tools/agent/             the matching loop: work queue, context, try, accept, integrate
@@ -245,6 +280,7 @@ tools/                   split/diff pipeline and binary tools
 src/, include/           the matching decompilation
 config/PC_20040610/      symbols.txt, splits.txt
 docs/                    engine notes, SDK and launcher guides, formats, matching, current status
+site/                    the documentation site (VitePress) built from docs/
 orig/PC_20040610/        your copy of T3Main.exe for the workbench (never committed)
-.github/workflows/       CI: launcher and SDK builds, releases, the decomp.dev report
+.github/workflows/       CI: launcher and SDK builds, releases, the decomp.dev report, the docs site
 ```

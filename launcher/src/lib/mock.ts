@@ -2,17 +2,19 @@
 // made-up data, no files touched. Lets the UI be developed, tested and
 // screenshotted without Tauri, the game or Godot.
 import type {
+  Backup,
   Config,
   Detected,
   GameCheck,
   MapEntry,
-  ModEntry,
   Overview,
+  SavesInfo,
   SdkSettings,
   Setting,
   TaskSpec,
   TaskStarted,
 } from "./api";
+import { mockMods } from "./mock-mods";
 
 type Handler = (payload: unknown) => void;
 type Args = Record<string, unknown>;
@@ -28,25 +30,12 @@ let config: Config = {
   sdkRoot: firstRun ? null : "C:\\Dev\\Thief3-Decomp",
   projectDir: null,
   setupComplete: !firstRun,
+  savesDir: null,
+  backupBeforeLaunch: false,
+  autoUpdateCheck: null,
+  lastUpdateCheck: null,
+  modIndexUrl: null,
 };
-
-// A dozen, so the lists show a realistic density.
-const mods: ModEntry[] = (
-  [
-    ["ai_senses_log", false, 41984, 1789400000],
-    ["coop_prototype", false, 188416, 1790100000],
-    ["debug_camera", true, 30720, 1788600000],
-    ["fov_control", true, 22528, 1789800000],
-    ["hello", true, 14336, 1790000000],
-    ["hud_minimal", true, 57344, 1787900000],
-    ["lockpick_assist", false, 26624, 1788100000],
-    ["loot_tally", true, 35840, 1789100000],
-    ["map_markers", true, 96256, 1790200000],
-    ["quicksave_slots", true, 48128, 1788900000],
-    ["stealth_meter", true, 67584, 1789600000],
-    ["subtitles_plus", true, 118784, 1787200000],
-  ] satisfies [string, boolean, number, number][]
-).map(([name, enabled, size, modified]) => ({ name, enabled, size, modified }));
 
 type SettingRow = [section: string, key: string, value: string, description: string];
 const settings: (Setting & { section: string })[] = (
@@ -188,11 +177,67 @@ const log = [
   "[12:01:11.377] display: borderless 2560x1440 on monitor 1",
 ];
 
+// Saves and their backups.
+const savesPath = "C:\\Users\\Public\\Documents\\Thief - Deadly Shadows\\SaveGames";
+const savesInfo = (): SavesInfo => ({
+  folder: {
+    path: config.savesDir ?? savesPath,
+    source: config.savesDir ? "Settings" : "Public Documents",
+    exists: true,
+  },
+  exists: true,
+  summary: { count: 7, files: 96, size: 48_600_000, newest: now - 5400 },
+  candidates: [
+    { path: savesPath, source: "Public Documents", exists: true },
+    { path: "D:\\Documents\\Thief - Deadly Shadows\\SaveGames", source: "Documents", exists: false },
+  ],
+});
+type BackupRow = [created: number, label: string | null, saves: number];
+const backups: Backup[] = (
+  [
+    [now - 86400, "before the Cathedral", 6],
+    [now - 3 * 86400, "before launch", 5],
+    [now - 9 * 86400, null, 3],
+  ] satisfies BackupRow[]
+).map(([created, label, saves]) => backup(created, label, saves));
+
+function backup(created: number, label: string | null, saves: number): Backup {
+  const d = new Date(created * 1000);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const stamp = `${d.getFullYear().toString()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const size = saves * 6_900_000;
+  return {
+    file: `${stamp}${label ? ` ${label}` : ""}.zip`,
+    label,
+    created,
+    saves,
+    size,
+    bytes: Math.round(size * 0.62),
+  };
+}
+
+function fakeInstall() {
+  const total = 9_400_000;
+  for (let i = 1; i <= 10; i++) {
+    setTimeout(() => {
+      emit("update-progress", { downloaded: (total * i) / 10, total, finished: false });
+    }, 150 * i);
+  }
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      emit("update-progress", { downloaded: 0, total: null, finished: true });
+      resolve(null);
+    }, 1700),
+  );
+}
+
 function emit(name: string, payload: unknown) {
   handlers.get(name)?.forEach((h) => {
     h(payload);
   });
 }
+
+const mods = mockMods(emit);
 
 let nextTask = 1;
 function fakeTask(title: string): TaskStarted {
@@ -245,6 +290,10 @@ export function taskTitle(spec: TaskSpec): string {
       return `Install ${level}`;
     case "restore":
       return `Restore ${level}`;
+    case "texturePacks":
+      return spec.mods.length ? `Apply texture packs: ${spec.mods.join(", ")}` : "Restore the original textures";
+    case "textureRestore":
+      return "Restore the game's bundles, then place the mods' bundles";
   }
 }
 
@@ -293,8 +342,8 @@ const commands: Record<string, (args: Args) => unknown> = {
   overview: (): Overview => ({
     game: config.gameDir ? game() : null,
     sdk: { installed: true, managed: true, built: true, buildable: true, settings: true },
-    modsEnabled: mods.filter((m) => m.enabled).length,
-    modsDisabled: mods.filter((m) => !m.enabled).length,
+    modsEnabled: mods.counts().on,
+    modsDisabled: mods.counts().off,
     maps: {
       total: maps.length,
       exported: maps.filter((m) => m.exported).length,
@@ -305,13 +354,7 @@ const commands: Record<string, (args: Args) => unknown> = {
     running: false,
   }),
   list_maps: () => maps.map((m) => ({ ...m })),
-  list_mods: () => mods.map((m) => ({ ...m })),
-  set_mod_enabled: (args) => {
-    const mod = mods.find((m) => m.name === text(args, "name"));
-    if (!mod) throw new Error("mock: no such mod");
-    mod.enabled = args.enabled === true;
-    return null;
-  },
+  ...mods.commands,
   read_sdk_settings: sdkSettings,
   write_sdk_settings: (args) => {
     for (const change of args.changes as { section: string; key: string; value: string }[]) {
@@ -327,7 +370,49 @@ const commands: Record<string, (args: Args) => unknown> = {
   open_location: () => null,
   open_link: () => null,
   cancel_task: () => null,
-  start_task: (args) => fakeTask(taskTitle(args.spec as TaskSpec)),
+  start_task: (args) => {
+    const spec = args.spec as TaskSpec;
+    if (spec.kind === "texturePacks") mods.texturesApplied(spec.mods);
+    return fakeTask(taskTitle(spec));
+  },
+  saves_info: (args) =>
+    typeof args.path === "string"
+      ? { ...savesInfo(), folder: { path: args.path, source: "Settings", exists: true } }
+      : savesInfo(),
+  list_save_backups: () => ({ dir: "...\\org.t3sdk.launcher\\saves", backups: backups.map((b) => ({ ...b })) }),
+  create_save_backup: (args) => {
+    const made = backup(Math.floor(Date.now() / 1000), typeof args.label === "string" ? args.label : null, 7);
+    backups.unshift(made);
+    return { ...made };
+  },
+  restore_save_backup: () => {
+    const before = backup(Math.floor(Date.now() / 1000), "before restore", 7);
+    backups.unshift(before);
+    return { before: { ...before }, summary: savesInfo().summary };
+  },
+  delete_save_backup: (args) => {
+    const i = backups.findIndex((b) => b.file === text(args, "file"));
+    if (i < 0) throw new Error("mock: no such backup");
+    backups.splice(i, 1);
+    return null;
+  },
+  open_saves_folder: () => null,
+  collect_logs: (args) => ({ path: text(args, "path"), files: 11, bytes: 182_000 }),
+  updater_status: () => ({ enabled: true, portable: false, version: "0.1.0", lastCheck: config.lastUpdateCheck }),
+  // `?update` makes the check find a new version.
+  check_update: () => {
+    config.lastUpdateCheck = Math.floor(Date.now() / 1000);
+    const update = params.has("update")
+      ? {
+          version: "0.2.0",
+          currentVersion: "0.1.0",
+          notes: "T3SDK Launcher 0.2.0: https://github.com/Veradictus/Thief3-Decomp/releases/tag/v0.2.0",
+          date: now - 7200,
+        }
+      : null;
+    return { checked: true, update };
+  },
+  install_update: fakeInstall,
 };
 
 export async function mockCall(cmd: string, args: Args = {}): Promise<unknown> {
@@ -348,4 +433,13 @@ export function mockListen(name: string, handler: Handler): Promise<() => void> 
 
 export function mockPick(directory: boolean, title: string): Promise<string | null> {
   return Promise.resolve(window.prompt(`${title} (${directory ? "folder" : "file"} path)`));
+}
+
+export function mockPickMods(): Promise<string[]> {
+  const path = window.prompt("Install mods (.t3mod path)", "C:\\Downloads\\night-vision-1.0.0.t3mod");
+  return Promise.resolve(path ? [path] : []);
+}
+
+export function mockPickSave(title: string, defaultPath: string): Promise<string | null> {
+  return Promise.resolve(window.prompt(`${title} (file path)`, defaultPath));
 }
