@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "id": "@MOD_ID@",
+  "name": "My Mod",
+  "version": "@PROJECT_VERSION@",
+  "authors": ["Your Name"],
+  "description": "What the mod does, in a sentence or two.",
+  "api": 1,
+  "entry": "@MOD_ID@.dll",
+  "tags": ["gameplay"]
+}

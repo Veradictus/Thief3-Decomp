@@ -1,0 +1,62 @@
+# Builds and packs the mod on every push and pull request (the .t3mod is the
+# run's artifact). For a tag v<version>, where <version> is the one in
+# CMakeLists.txt, it also publishes a GitHub release with <id>-<version>.t3mod.
+name: build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: MSVC for x86 (with Visual Studio's CMake and Ninja)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Build and pack
+        run: |
+          cmake --preset release
+          cmake --build --preset package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t3mod
+          path: build/release/*.t3mod
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: t3mod
+          path: dist
+      - name: Check the version, print the SHA-256
+        id: package
+        run: |
+          package=$(ls dist/*.t3mod)
+          case "$package" in
+            *-"${GITHUB_REF_NAME#v}".t3mod) ;;
+            *) echo "::error::$package does not match the tag $GITHUB_REF_NAME: set that version in CMakeLists.txt"
+               exit 1 ;;
+          esac
+          sha256=$(sha256sum "$package" | cut -d' ' -f1)
+          echo "$sha256  $(basename "$package")  $(stat -c %s "$package") bytes"
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.t3mod
+          body: "SHA-256: `${{ steps.package.outputs.sha256 }}`"
+          generate_release_notes: true

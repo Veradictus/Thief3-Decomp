@@ -1,0 +1,10 @@
+Choose a license for your mod and replace this file with its full text.
+
+Common choices:
+  MIT           short and permissive: anyone may reuse the code, with credit
+  GPL-3.0-only  anyone may reuse it, but changes they publish stay open
+  CC-BY-4.0     for art and other content rather than code
+
+https://choosealicense.com helps you decide. Then put its SPDX identifier in
+mod.json.in, for example "license": "MIT", so the launcher and the mod index
+show it.
