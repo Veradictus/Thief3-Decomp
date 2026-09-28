@@ -18,7 +18,7 @@ Python, and shows their output live.
 |---|---|
 | Setup | First run: finds the game (installer registry entry, Steam libraries, `T3_GAME_DIR`), Godot (`GODOT`, `PATH`, common folders), Python (the bundled one, the T3SDK `.venv`, the `py` launcher, `PATH`) and the T3SDK folder (the bundled one, or a checkout found by walking up from the launcher). Each path is checked: the game's `T3Main.exe` SHA-1, `godot --version` (4.7+), Python 3.10+, the tools. |
 | Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it from a checkout (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log` with **Collect logs** and **Report a problem** next to it. The Game box says when the saves were last backed up. |
-| Map Studio | Per map: export to Godot (then a headless Godot import), open it in the Godot editor or the viewer, repack the saved edits into a patched `.gmp`, install it into the game, restore the original. Also a byte-exact round-trip check of the unchanged map. |
+| Map Studio | Per map: export to Godot (then a headless Godot import), open it in the Godot editor or the viewer, repack the saved edits into a patched `.gmp`, install it into the game, restore the original. Also a byte-exact round-trip check of the unchanged map. Keeps exports current: see [Map files the launcher reads](#map-files-the-launcher-reads). |
 | Mods | The mod manager ([below](#mods)): installed `.t3mod` packages in load order (drag or arrows to reorder), switches, what each one holds (code, content, textures), the checks' issues with their fixes, remove, profiles, and loose DLLs. **Install mod…** or dropping `.t3mod` files onto the window installs them; the Browse tab reads the mod index, with search, tags, compatibility and updates. |
 | Saves | The game's saves folder (how many saves, their size, the newest), **Back up now** with an optional label, and the backups: restore (after a confirmation, and not while the game runs), delete, open the folder. A switch backs the saves up whenever the launcher starts the game. See Saves below. |
 | SDK settings | `System/T3SDK.ini` as switches. The list, order and descriptions come from the comments in the SDK's own `sdk/T3SDK.ini`, so new settings appear without launcher changes. Values are edited in place; the file's comments and line endings are kept. |
@@ -175,12 +175,27 @@ tools are run by hand:
 |---|---|
 | in the game | `<game>/Content/T3/Maps/<id>.gmp` |
 | exported, title, actor count | `<project>/<id>/<id>.tscn`, `<project>/t3_maps.json` |
+| outdated | its `t3_maps.json` entry's `export_version` (none: 0) is below `map_export` in the T3SDK folder's `tools/assets/formats.json` |
 | edited | `<project>/<id>/<id>.edits.json` (actors changed = keys of `actors`) |
 | repacked | `<build>/assets/patched/<id>.gmp`; "repack needed" when the edits are newer |
 | installed | a backup exists in `<build>/assets/backup/` and the game's map differs from it |
 
 `<build>` is the T3SDK folder's `build/`, or the per-user folder for the
 bundled tools (see Releases).
+
+Map Studio keeps the Godot side in step with the tools, which change when
+the launcher or the T3SDK folder is updated:
+
+- Before Godot opens (**Edit in Godot**, **View**, **Open project in
+  Godot**), the launcher runs `t3map.py --project-only`, which brings the
+  project's viewer and map editor plugin up to date (only changed files are
+  written).
+- **Edit in Godot** or **View** on an outdated map first queues its export
+  and a Godot import, then opens it when they succeed. The export applies
+  the map's saved edits, so nothing is lost. A notice lists the outdated
+  maps, with **Update all now**.
+- **Install** repacks first when there is no patched map yet or the edits
+  changed after the last repack.
 
 ## Releases
 

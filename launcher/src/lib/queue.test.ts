@@ -48,6 +48,19 @@ describe("job queue", () => {
     expect(importJob.lines.at(-1)?.line).toContain("did not succeed");
   });
 
+  it("runs a job's follow-up only when it succeeds", async () => {
+    const opened: string[] = [];
+    const ok = enqueue({ kind: "export", level: "Inn" }, "Update Inn", null, () => opened.push("Inn"));
+    await vi.advanceTimersByTimeAsync(RUN_MS);
+    expect(ok.state).toBe("done");
+    expect(opened).toEqual(["Inn"]);
+
+    vi.spyOn(api, "startTask").mockRejectedValueOnce("python not found");
+    enqueue({ kind: "export", level: "Docks" }, "Update Docks", null, () => opened.push("Docks"));
+    await vi.advanceTimersByTimeAsync(RUN_MS);
+    expect(opened).toEqual(["Inn"]);
+  });
+
   it("drops a queued job that is cancelled before it starts", async () => {
     const first = enqueue({ kind: "sdkDeploy" }, "Install T3SDK");
     const second = enqueue({ kind: "restore", level: null }, "Restore all maps");

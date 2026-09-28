@@ -88,6 +88,8 @@ export interface MapEntry {
   size: number | null;
   inGame: boolean;
   exported: boolean;
+  /** Exported by older tools: Map Studio exports it again, with its saved edits, before opening it. */
+  outdated: boolean;
   actors: number | null;
   /** Actors changed, added or removed in the edits file. */
   editedActors: number | null;

@@ -151,6 +151,8 @@ const mapRows: MapRow[] = [
   ["Inn", "The Blue Heron Inn", 2526, true, 2, now - 7200, false, null, false],
   ["Clocktower1", "Upper Clocktower", 2299, true, null, null, false, null, false],
 ];
+// Exported by older tools: Map Studio updates them before opening them.
+const olderExports = new Set(["Castle1", "Inn", "docks3"]);
 const maps: MapEntry[] = mapRows.map(
   ([id, title, actors, exported, edited, editsTime, patched, patchedTime, installed]) => ({
     id,
@@ -158,6 +160,7 @@ const maps: MapEntry[] = mapRows.map(
     size: actors * 9100,
     inGame: true,
     exported,
+    outdated: exported && olderExports.has(id),
     actors: exported ? actors : null,
     editedActors: edited,
     notSaved: 0,
@@ -396,6 +399,9 @@ const commands: Record<string, (args: Args) => unknown> = {
   start_task: (args) => {
     const spec = args.spec as TaskSpec;
     if (spec.kind === "texturePacks") mods.texturesApplied(spec.mods);
+    if (spec.kind === "export") {
+      for (const m of maps) if (spec.level === null || m.id === spec.level) m.outdated = false;
+    }
     return fakeTask(taskTitle(spec));
   },
   saves_info: (args) =>

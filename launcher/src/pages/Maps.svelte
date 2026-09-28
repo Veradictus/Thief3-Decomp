@@ -3,7 +3,7 @@
   // install it into the game (and put the original back).
   import Icon from "$components/Icon.svelte";
   import { api, type MapEntry } from "$lib/api";
-  import { app, enqueue, guard, running } from "$lib/app.svelte";
+  import { app, enqueue, guard, jobs, running, toast, type Job } from "$lib/app.svelte";
   import { ago, bytes } from "$lib/format";
 
   let maps = $state<MapEntry[]>([]);
@@ -26,10 +26,47 @@
   const sel = $derived(maps.find((m) => m.id === selectedId) ?? null);
   const hasGodot = $derived(!!app.config?.godot);
   const busy = $derived(running() !== null);
+  const outdated = $derived(maps.filter((m) => m.outdated));
 
   function exportMap(level: string | null) {
     const job = enqueue({ kind: "export", level }, `Export ${level ?? "all maps"}`);
     if (hasGodot) enqueue({ kind: "import" }, "Import into Godot", job);
+  }
+
+  // Opens a map in the Godot editor or the viewer. A map exported by older
+  // tools is exported again first (its saved edits are applied to the new
+  // export), so Godot opens what the current plugin and repack tools expect.
+  function openMap(m: MapEntry, editor: boolean) {
+    if (!m.outdated) {
+      void guard(api.openGodot(m.id, editor));
+      return;
+    }
+
+    const updating = jobs.list.some(
+      (j) => (j.state === "queued" || j.state === "running") && j.spec.kind === "export" && j.spec.level === m.id,
+    );
+    if (updating) {
+      toast(`${m.title ?? m.id} is already being updated.`);
+      return;
+    }
+
+    toast(`${m.title ?? m.id} was exported by older tools: updating it first. Your saved edits are kept.`);
+    const job = enqueue({ kind: "export", level: m.id }, `Update ${m.id}`);
+    enqueue({ kind: "import" }, "Import into Godot", job, () => void guard(api.openGodot(m.id, editor)));
+  }
+
+  // Exports every map made by older tools again, then imports them once.
+  function updateAll() {
+    let last: Job | null = null;
+    for (const m of outdated) last = enqueue({ kind: "export", level: m.id }, `Update ${m.id}`);
+    if (hasGodot && last) enqueue({ kind: "import" }, "Import into Godot", last);
+  }
+
+  // Installs the patched map, repacking first when there is none yet or the
+  // edits changed after it was made, so the game never gets older edits.
+  function install(m: MapEntry) {
+    const repack = m.stale || !m.patched ? enqueue({ kind: "repack", level: m.id }, `Repack ${m.id}`) : null;
+    enqueue({ kind: "install", level: m.id }, `Install ${m.id}`, repack);
   }
 
   // Nodes added in Godot that are not T3 actors, which the edits file cannot
@@ -43,6 +80,7 @@
     if (m.stale) return { label: "Repack needed", kind: "warn" };
     if (m.patched) return { label: "Repacked", kind: "info" };
     if (m.editedActors) return { label: `${m.editedActors} edited`, kind: "warn" };
+    if (m.outdated) return { label: "Outdated", kind: "" };
     if (m.exported) return { label: "Exported", kind: "" };
     return { label: "", kind: "" };
   }
@@ -68,6 +106,19 @@
       anything is replaced.
     </p>
   </div>
+
+  {#if outdated.length}
+    <div class="note info card">
+      <Icon name="refresh" />
+      <span class="grow">
+        {outdated.length === 1 ? "1 map was" : `${outdated.length} maps were`} exported by older tools. Each is exported again,
+        with its saved edits, when you open it in Godot.
+      </span>
+      <button class="btn small" onclick={updateAll} disabled={busy}>
+        <Icon name="refresh" size={14} />{outdated.length === 1 ? "Update it now" : "Update all now"}
+      </button>
+    </div>
+  {/if}
 
   <div class="split">
     <div class="list card">
@@ -131,7 +182,14 @@
             </button>
           </div>
           <p class="muted">
-            {sel.exported ? "Exported: scene, meshes, textures, lights and every actor's data." : "Not exported yet."}
+            {#if sel.outdated}
+              <span class="warn-text">Exported by older tools:</span> it is exported again, with your saved edits, when you
+              open it.
+            {:else if sel.exported}
+              Exported: scene, meshes, textures, lights and every actor's data. Exporting again keeps your saved edits.
+            {:else}
+              Not exported yet.
+            {/if}
           </p>
         </div>
 
@@ -142,12 +200,16 @@
             <button
               class="btn"
               class:primary={sel.exported && !sel.editedActors}
-              onclick={() => guard(api.openGodot(sel.id, true))}
+              onclick={() => {
+                openMap(sel, true);
+              }}
               disabled={!sel.exported || !hasGodot}><Icon name="edit" />Edit in Godot</button
             >
             <button
               class="btn"
-              onclick={() => guard(api.openGodot(sel.id, false))}
+              onclick={() => {
+                openMap(sel, false);
+              }}
               disabled={!sel.exported || !hasGodot}
             >
               <Icon name="eye" />View
@@ -210,15 +272,22 @@
             <button
               class="btn"
               class:primary={sel.patched && !sel.installed && !sel.stale}
-              onclick={() => enqueue({ kind: "install", level: sel.id }, `Install ${sel.id}`)}
-              disabled={busy || !sel.patched}
+              onclick={() => {
+                install(sel);
+              }}
+              disabled={busy || (!sel.patched && !sel.editedActors)}
             >
               <Icon name="upload" />{sel.installed ? "Reinstall" : "Install"}
             </button>
           </div>
           <p class="muted">
-            {#if sel.installed}
+            {#if sel.stale}
+              <span class="warn-text">The edits changed after the last repack:</span>
+              {sel.installed ? "Reinstall" : "Install"} repacks the map first.
+            {:else if sel.installed}
               The game uses the patched map. The original is backed up.
+            {:else if !sel.patched && sel.editedActors}
+              Repacks the map, then copies it into the game, after backing up the original once.
             {:else}
               Copies the patched map into the game, after backing up the original once.
             {/if}
@@ -407,6 +476,24 @@
 
   .warn-text {
     color: var(--warn);
+  }
+
+  .note {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+  }
+
+  .note :global(svg) {
+    flex: none;
+  }
+
+  .note.info {
+    color: var(--info);
+    border-color: #2f4560;
+    background: #111821;
   }
 
   .foot {

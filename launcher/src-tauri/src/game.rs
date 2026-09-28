@@ -129,6 +129,10 @@ pub struct MapEntry {
     pub in_game: bool,
     /// <project>/<id>/<id>.tscn exists.
     pub exported: bool,
+    /// Exported by older tools than the T3SDK folder's (its export format is
+    /// older than tools/assets/formats.json's map_export): Map Studio exports
+    /// it again, with its saved edits, before opening it.
+    pub outdated: bool,
     pub actors: Option<u64>,
     /// Actors changed, added or removed in <id>.edits.json, if it exists.
     pub edited_actors: Option<usize>,
@@ -155,6 +159,15 @@ fn export_index(project: &Path) -> serde_json::Map<String, serde_json::Value> {
         }
     }
     index
+}
+
+/// The export format the tools write (tools/assets/formats.json's
+/// map_export), or 0 when the T3SDK folder has no such file.
+fn export_format(cfg: &Config) -> u64 {
+    let Ok(root) = cfg.root() else { return 0 };
+    let text = std::fs::read_to_string(root.join("tools").join("assets").join("formats.json")).unwrap_or_default();
+    let doc: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
+    doc.get("map_export").and_then(|v| v.as_u64()).unwrap_or(0)
 }
 
 /// The counts in <id>.edits.json: actors changed, added and removed, and the
@@ -199,6 +212,7 @@ fn maps(cfg: &Config) -> Vec<MapEntry> {
         }
     }
     let build = cfg.assets_build();
+    let current = export_format(cfg);
     let mut list: Vec<MapEntry> = ids
         .into_iter()
         .map(|(id, gmp)| {
@@ -215,11 +229,15 @@ fn maps(cfg: &Config) -> Vec<MapEntry> {
                 (Some(g), Some(b)) if backed_up => !same_file_stamp(g, b),
                 _ => false,
             };
+            let exported = scene.is_some_and(|s| s.is_file());
+            // Exports from before the stamp have none: version 0.
+            let version = info.and_then(|m| m.get("export_version")).and_then(|v| v.as_u64()).unwrap_or(0);
             MapEntry {
                 title: info.and_then(|m| m.get("title")).and_then(|v| v.as_str()).map(str::to_string),
                 size: gmp.as_deref().and_then(|g| std::fs::metadata(g).ok()).map(|m| m.len()),
                 in_game: gmp.is_some(),
-                exported: scene.is_some_and(|s| s.is_file()),
+                exported,
+                outdated: exported && version < current,
                 actors: info.and_then(|m| m.get("actors")).and_then(|v| v.as_u64()),
                 edited_actors: counts.as_ref().map(|c| c.actors),
                 not_saved: counts.as_ref().map_or(0, |c| c.not_saved),
@@ -376,8 +394,28 @@ pub async fn launch_game(app: AppHandle, state: State<'_, AppState>) -> Result<S
     Ok(format!("Started T3Main.exe.{saved}"))
 }
 
+/// Brings the project's copy of the map viewer and the map editor plugin up to
+/// date with the T3SDK folder's tools (t3map.py --project-only), so Godot
+/// never runs an older plugin than the tools that export and repack the maps.
+/// Only changed files are written. Without the tools or Python, which also
+/// export the maps, there is nothing to do.
+fn update_project_tools(cfg: &Config, project: &Path) -> Result<(), String> {
+    let (Ok(root), Ok(python)) = (cfg.root(), cfg.python()) else { return Ok(()) };
+    let tool = root.join("tools").join("assets").join("t3map.py");
+    if !tool.is_file() {
+        return Ok(());
+    }
+    let mut cmd = proc::quiet(&python);
+    cmd.arg(&tool).arg("--project-only").arg("-o").arg(project).current_dir(&root);
+    cmd.env("PYTHONIOENCODING", "utf-8");
+    proc::run(cmd, Duration::from_secs(60))
+        .map(|_| ())
+        .map_err(|e| format!("cannot update the map editor plugin in the Godot project: {e}"))
+}
+
 /// Opens the exported project in the Godot editor (optionally on one map's
-/// scene), or runs the map viewer on a map.
+/// scene), or runs the map viewer on a map, after bringing the project's
+/// viewer and map editor plugin up to date.
 #[tauri::command]
 pub async fn open_godot(state: State<'_, AppState>, level: Option<String>, editor: bool) -> Result<(), String> {
     let cfg = config(&state);
@@ -391,6 +429,10 @@ pub async fn open_godot(state: State<'_, AppState>, level: Option<String>, edito
             return Err(format!("invalid map id {l:?}"));
         }
     }
+    let (tools_cfg, tools_project) = (cfg.clone(), project.clone());
+    tauri::async_runtime::spawn_blocking(move || update_project_tools(&tools_cfg, &tools_project))
+        .await
+        .map_err(|e| e.to_string())??;
     let mut cmd = std::process::Command::new(&godot);
     cmd.arg("--path").arg(&project);
     match (&level, editor) {
@@ -433,4 +475,38 @@ pub async fn open_link(app: AppHandle, url: String) -> Result<(), String> {
         return Err("only https links can be opened".into());
     }
     app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn maps_exported_by_older_tools_are_outdated() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("T3SDK");
+        let project = tmp.path().join("godot");
+        fs::create_dir_all(root.join("tools").join("assets")).unwrap();
+        fs::write(root.join("tools").join("assets").join("formats.json"), r#"{"map_export": 2, "map_edits": 2}"#)
+            .unwrap();
+        for id in ["Current", "Older", "Unstamped"] {
+            fs::create_dir_all(project.join(id)).unwrap();
+            fs::write(project.join(id).join(format!("{id}.tscn")), "[gd_scene format=3]\n").unwrap();
+        }
+        let index = r#"{"maps": [{"id": "Current", "export_version": 2}, {"id": "Older", "export_version": 1},
+            {"id": "Unstamped"}, {"id": "Gone", "export_version": 1}]}"#;
+        fs::write(project.join("t3_maps.json"), index).unwrap();
+        let cfg = Config { sdk_root: Some(root.clone()), project_dir: Some(project), ..Config::default() };
+
+        let outdated =
+            |cfg: &Config| -> Vec<(String, bool)> { maps(cfg).into_iter().map(|m| (m.id, m.outdated)).collect() };
+        // Sorted by title, else id; a map whose scene is gone is not exported, so not outdated.
+        let expected = [("Current", false), ("Gone", false), ("Older", true), ("Unstamped", true)];
+        assert_eq!(outdated(&cfg), expected.map(|(id, o)| (id.to_string(), o)));
+
+        // Tools without formats.json: nothing is outdated.
+        fs::remove_file(root.join("tools").join("assets").join("formats.json")).unwrap();
+        assert!(outdated(&cfg).iter().all(|(_, o)| !o));
+    }
 }
