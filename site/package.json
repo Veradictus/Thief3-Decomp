@@ -1,0 +1,23 @@
+{
+  "name": "t3sdk-docs",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "api": "node scripts/api-reference.ts",
+    "api:check": "node scripts/api-reference.ts --check",
+    "docs:dev": "yarn api && vitepress dev",
+    "docs:build": "yarn api:check && vitepress build",
+    "docs:preview": "vitepress preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "packageManager": "yarn@4.18.1+sha512.b2e1e7524f654f2749d32b4ebcb4622473cb5bcbc485df2007e12a154e50162a4d795526768bc5f5b8f81717bfd79deb2472813d86fb5ae2eb551fa9c872b08f",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "~6.0.3",
+    "vitepress": "^1.6.4"
+  }
+}

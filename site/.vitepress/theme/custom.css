@@ -1,0 +1,64 @@
+/* The launcher's look (launcher/src/app.css): near-black panels, warm text,
+ * a gold accent and serif headings. Dark is the default; the light theme
+ * keeps the gold, darkened for contrast on white. */
+
+:root {
+  --t3-serif: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+
+  --vp-c-brand-1: #85601a;
+  --vp-c-brand-2: #9c7124;
+  --vp-c-brand-3: #b8862f;
+  --vp-c-brand-soft: rgba(184, 134, 47, 0.14);
+
+  --vp-button-brand-text: #1a1408;
+  --vp-button-brand-hover-text: #1a1408;
+  --vp-button-brand-active-text: #1a1408;
+  --vp-button-brand-bg: #d6ab52;
+  --vp-button-brand-hover-bg: #e2bd6b;
+  --vp-button-brand-active-bg: #c79a42;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(180deg, #d9b25c 10%, #9c7124 90%);
+  --vp-home-hero-image-background-image: radial-gradient(circle, rgba(214, 171, 82, 0.35) 0%, rgba(214, 171, 82, 0) 65%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-c-bg: #0d0e11;
+  --vp-c-bg-alt: #111316;
+  --vp-c-bg-elv: #1b1e23;
+  --vp-c-bg-soft: #15171b;
+
+  --vp-c-divider: #2a2e35;
+  --vp-c-border: #363b43;
+  --vp-c-gutter: #0a0b0d;
+
+  --vp-c-text-1: #ebe6da;
+  --vp-c-text-2: #b3ada1;
+  --vp-c-text-3: #7d786e;
+
+  --vp-c-brand-1: #f0cf85;
+  --vp-c-brand-2: #d6ab52;
+  --vp-c-brand-3: #b8862f;
+  --vp-c-brand-soft: rgba(214, 171, 82, 0.16);
+
+  --vp-home-hero-name-background: linear-gradient(180deg, #f0d38a 10%, #b8862f 90%);
+
+  --vp-code-block-bg: #15171b;
+  --vp-code-bg: rgba(214, 171, 82, 0.1);
+  --vp-code-color: #f0cf85;
+}
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.VPHero .name,
+.VPHero .text,
+.VPFeature .title {
+  font-family: var(--t3-serif);
+  letter-spacing: 0.01em;
+}
+
+.vp-doc h1 {
+  font-weight: 600;
+}
