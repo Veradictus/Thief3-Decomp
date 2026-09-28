@@ -151,8 +151,8 @@
             {#if sel.editedActors}
               {sel.editedActors} actor{sel.editedActors > 1 ? "s" : ""} changed · saved {ago(sel.editsTime)}
             {:else}
-              Move, rotate and scale actors, or change their properties, then save (Ctrl+S). Adding and deleting
-              actors is not supported yet.
+              Move, rotate and scale actors, or change their properties, then save (Ctrl+S). Adding and deleting actors
+              is not supported yet.
             {/if}
           </p>
         </div>

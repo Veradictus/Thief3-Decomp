@@ -265,11 +265,6 @@
     box-shadow: 0 6px 24px #d6ab5230;
   }
 
-  .hero-play .small {
-    position: relative;
-    text-wrap: balance;
-  }
-
   .small {
     font-size: 12.5px;
   }
