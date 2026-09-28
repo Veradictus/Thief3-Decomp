@@ -29,8 +29,8 @@
 <style>
   .report {
     max-width: 900px;
-    margin-top: 12px;
-    padding: 16px 18px;
+    margin-top: 16px;
+    padding: 14px 16px;
     display: grid;
     gap: 10px;
   }

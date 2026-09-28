@@ -8,3 +8,5 @@ EXPORTS
     DllGetClassObject = Proxy_DllGetClassObject PRIVATE
     DllRegisterServer = Proxy_DllRegisterServer PRIVATE
     DllUnregisterServer = Proxy_DllUnregisterServer PRIVATE
+    ; Run by rundll32 as the level-change curtain helper (see curtain.hpp).
+    T3SDK_Curtain

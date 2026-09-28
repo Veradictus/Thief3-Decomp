@@ -7,6 +7,8 @@
   import { ago } from "$lib/format";
 
   let log = $state<string[]>([]);
+  let logView = $state<HTMLPreElement>();
+  let follow = $state(true);
   let launching = $state(false);
   let lastBackup = $state<Backup | null | undefined>(undefined);
 
@@ -15,7 +17,7 @@
   const busy = $derived(running() !== null);
 
   async function loadLog() {
-    log = (await guard(api.readSdkLog(14))) ?? [];
+    log = (await guard(api.readSdkLog(200))) ?? [];
   }
 
   $effect(() => {
@@ -26,6 +28,17 @@
       () => (lastBackup = undefined),
     );
   });
+
+  // The log panel takes the height that is left; keep its newest lines in view,
+  // unless the reader has scrolled up (the log reloads with every refresh).
+  $effect(() => {
+    void log;
+    if (follow && logView) logView.scrollTop = logView.scrollHeight;
+  });
+
+  function onLogScroll() {
+    if (logView) follow = logView.scrollTop + logView.clientHeight >= logView.scrollHeight - 8;
+  }
 
   async function play() {
     launching = true;
@@ -46,8 +59,7 @@
 
 <div class="page">
   <section class="hero card">
-    <div class="glow"></div>
-    <div class="hero-body">
+    <div class="hero-text">
       <p class="eyebrow">Ion Storm · 2004</p>
       <h1 class="title">Thief: Deadly Shadows</h1>
       <p class="sub">
@@ -59,12 +71,13 @@
           Unsupported T3Main.exe: the game runs without T3SDK. Map tools still work.
         {/if}
       </p>
-      <div class="row hero-actions">
-        <button class="btn primary play" onclick={play} disabled={!game?.ok || launching || o?.running}>
-          <Icon name="play" size={18} />{o?.running ? "Running" : launching ? "Starting…" : "Play"}
-        </button>
-        {#if game?.steam}<span class="faint small">Starts through Steam, like its Play button.</span>{/if}
-      </div>
+    </div>
+    <div class="hero-play">
+      <div class="glow"></div>
+      <button class="btn primary play" onclick={play} disabled={!game?.ok || launching || o?.running}>
+        <Icon name="play" size={18} />{o?.running ? "Running" : launching ? "Starting…" : "Play"}
+      </button>
+      {#if game?.steam}<span class="faint small">Starts through Steam, like its Play button.</span>{/if}
     </div>
   </section>
 
@@ -90,9 +103,6 @@
       <div class="row tile-actions">
         <button class="btn small" onclick={() => guard(api.openLocation("game"))} disabled={!game}
           ><Icon name="folder" size={14} />Folder</button
-        >
-        <button class="btn small ghost" onclick={() => (app.page = "saves")}
-          ><Icon name="archive" size={14} />Saves</button
         >
       </div>
     </div>
@@ -178,48 +188,54 @@
       >
     </div>
     {#if log.length}
-      <pre>{log.join("\n")}</pre>
+      <pre bind:this={logView} onscroll={onLogScroll}>{log.join("\n")}</pre>
     {:else}
       <p class="empty small">No log yet: it appears after the first run with T3SDK installed.</p>
     {/if}
   </section>
-
-  <div class="links row">
-    <button class="btn ghost small" onclick={() => api.openLink("https://discord.gg/hdAXH73tEG")}
-      ><Icon name="discord" size={14} />Taffer Tavern</button
-    >
-    <button class="btn ghost small" onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp")}
-      ><Icon name="book" size={14} />Documentation</button
-    >
-  </div>
 </div>
 
 <style>
+  /* Title on the left, Play on the right in the light: one short band instead of
+     a tall banner, so the tiles and the log fit under it. */
   .hero {
     position: relative;
     overflow: hidden;
-    min-height: 236px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    gap: 24px;
+    padding: 22px 28px;
     background:
       radial-gradient(120% 140% at 85% 0%, #3b2e17 0%, transparent 55%),
       radial-gradient(80% 120% at 10% 120%, #13202a 0%, transparent 60%), linear-gradient(180deg, #16181c, #101114);
   }
 
+  .hero-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .hero-play {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    max-width: 210px;
+    text-align: center;
+  }
+
   .glow {
     position: absolute;
-    right: 70px;
-    top: 34px;
-    width: 180px;
-    height: 180px;
+    left: 50%;
+    top: 50%;
+    width: 220px;
+    height: 220px;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
     background: radial-gradient(circle, #f6c86a55 0%, #d6ab5222 35%, transparent 70%);
     filter: blur(2px);
-  }
-
-  .hero-body {
-    position: relative;
-    padding: 28px 30px;
+    pointer-events: none;
   }
 
   .eyebrow {
@@ -230,27 +246,29 @@
   }
 
   .title {
-    font-size: 40px;
-    margin-top: 4px;
+    font-size: 34px;
+    line-height: 1.2;
+    margin-top: 2px;
     text-shadow: 0 2px 18px #000a;
   }
 
   .sub {
     color: var(--muted);
-    margin-top: 6px;
-  }
-
-  .hero-actions {
-    margin-top: 20px;
-    gap: 14px;
+    margin-top: 4px;
   }
 
   .play {
+    position: relative;
     height: 46px;
     padding: 0 30px;
     font-size: 16px;
     letter-spacing: 0.04em;
     box-shadow: 0 6px 24px #d6ab5230;
+  }
+
+  .hero-play .small {
+    position: relative;
+    text-wrap: balance;
   }
 
   .small {
@@ -261,14 +279,14 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    margin-top: 14px;
+    margin-top: 12px;
   }
 
   .tile {
-    padding: 14px 16px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     align-items: flex-start;
   }
 
@@ -286,6 +304,7 @@
   .tile-actions {
     margin-top: auto;
     padding-top: 4px;
+    flex-wrap: wrap;
   }
 
   .big {
@@ -299,9 +318,14 @@
     margin-left: 4px;
   }
 
+  /* Whatever height is left; the log scrolls inside. */
   .log {
-    margin-top: 14px;
-    padding: 12px 16px 14px;
+    flex: 1 1 0;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    margin-top: 12px;
+    padding: 10px 14px 14px;
   }
 
   .log-head {
@@ -309,6 +333,8 @@
   }
 
   pre {
+    flex: 1;
+    min-height: 0;
     margin: 0;
     padding: 10px 12px;
     background: #0b0c0e;
@@ -316,17 +342,8 @@
     border-radius: var(--radius-sm);
     font: 12px/1.55 var(--mono);
     color: #c9c4b8;
-    overflow-x: auto;
-    white-space: pre;
-  }
-
-  .links {
-    margin-top: 12px;
-  }
-
-  @media (max-width: 1100px) {
-    .tiles {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 </style>

@@ -170,8 +170,10 @@ in the checkout's `build/`.
 ## Building
 
 Needs Node 20+ (its Corepack supplies the Yarn version pinned in
-`package.json`) and Rust (stable). On Windows, WebView2 (part of Windows 10
-and 11); on Linux, WebKitGTK 4.1 (`libwebkit2gtk-4.1-dev` and Tauri's other
+`package.json`) and Rust (stable). On Windows, Rust's MSVC toolchain with
+Visual Studio's C++ build tools (see [Windows toolchain](#windows-toolchain))
+and WebView2 (part of Windows 10 and 11); on Linux, WebKitGTK 4.1
+(`libwebkit2gtk-4.1-dev` and Tauri's other
 [prerequisites](https://tauri.app/start/prerequisites/)).
 
 ```sh
@@ -198,6 +200,36 @@ key in `TAURI_SIGNING_PRIVATE_KEY` ([releasing.md](releasing.md)).
 answers the commands with made-up data, so the UI can be worked on, tested and
 screenshotted without the game (`?page=maps` opens a page, `?setup` the setup
 screen).
+
+### Windows toolchain
+
+On Windows the launcher builds with Rust's MSVC toolchain
+(`x86_64-pc-windows-msvc`): the default of rustup's installer, the one Tauri
+recommends and the one CI uses. With a GNU toolchain (`x86_64-pc-windows-gnu`)
+the `windows` crates fail with `error calling dlltool 'dlltool.exe': program
+not found`, as they need MinGW's `dlltool.exe` on `PATH` and neither Git for
+Windows nor rustup puts one there. `rustc -vV` shows the active toolchain
+(`host:`).
+
+`yarn tauri` (`launcher/scripts/tauri.js`) takes care of this. On Windows, when
+rustup's toolchain for `src-tauri/` is a GNU one and no `dlltool.exe` is on
+`PATH`, it prints a note and runs the Tauri CLI with the MSVC toolchain of the
+same channel, through `RUSTUP_TOOLCHAIN` (rustup installs it on first use). A
+`RUSTUP_TOOLCHAIN` that is already set is left alone. A `rust-toolchain.toml`
+cannot do this, since its toolchain would apply to Linux and macOS too.
+
+Plain `cargo` commands in `src-tauri/` and rust-analyzer do not go through
+`yarn tauri`. For those, choose MSVC once:
+
+```sh
+rustup toolchain install stable-msvc
+rustup override set stable-msvc     # in launcher/: for the launcher only
+rustup default stable-msvc          # or: for every project
+```
+
+Set the override in `launcher/`, not `src-tauri/`: the Tauri CLI runs its own
+`rustc -vV` from `launcher/` to learn the target, and cargo runs in
+`src-tauri/`, so both folders need the same toolchain.
 
 ### The UI stack
 
