@@ -19,7 +19,7 @@ hero:
       link: /modding/first-mod
     - theme: alt
       text: Contribute to the decomp
-      link: /matching
+      link: /decomp/
 
 features:
   - title: Play
@@ -30,10 +30,14 @@ features:
     details: Write a mod DLL against a small C API, pack it as a .t3mod file and publish it in the mod index.
     link: /modding/first-mod
     linkText: Your first mod
+  - title: Learn how the game works
+    details: Levels, objects, the gamesys property system, the game loop, INI files and console commands, as far as they are known.
+    link: /game/
+    linkText: How the game works
   - title: Contribute to the decomp
     details: Rewrite the game's functions as C++ that its original compiler turns into the same bytes, and document the engine on the way.
-    link: /matching
-    linkText: How matching works
+    link: /decomp/
+    linkText: The decomp handbook
 ---
 
 T3SDK works with the Steam release of Thief: Deadly Shadows (patch 1.1). It
