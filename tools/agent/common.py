@@ -580,6 +580,10 @@ def qualified_name(name: str, demangled: str = "") -> str:
             if depth == 0:
                 text = text[:i].rstrip()
                 break
+    # A function-pointer variable, "void (__thiscall UObject::** GNatives)(...)":
+    # its name closes the parenthesised declarator.
+    if text.endswith(")"):
+        text = text[:-1].rstrip()
     # The name is the last space-separated token outside template brackets.
     depth = 0
     for i in range(len(text) - 1, -1, -1):
