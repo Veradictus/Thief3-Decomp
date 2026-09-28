@@ -26,7 +26,7 @@ sha1 = "0.11"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 dirs = "7"
 semver = { version = "1", features = ["serde"] }
-sha2 = "0.10"
+sha2 = "0.11"
 ureq = { version = "3", default-features = false, features = ["native-tls"] }
 zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
