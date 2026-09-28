@@ -200,6 +200,8 @@ def test_qualified_names(base: Path) -> None:
         ("?GLog@@3PAVFOutputDevice@@A", "class FOutputDevice * GLog", "GLog"),
         ("?GNatives@@3PAP8UObject@@AEXAAVFFrame@@QAX@ZA",
          "void (__thiscall UObject::** GNatives)(class FFrame &,void * const)", "GNatives"),
+        ("?GCasts@@3PAP8UObject@@AEXAAVFFrame@@QAX@ZA",
+         "void (__thiscall UObject::* GCasts[256])(class FFrame &,void * const)", "GCasts"),
         ("_strlen", "", "strlen"),
     ):
         got = qualified_name(name, demangled)
