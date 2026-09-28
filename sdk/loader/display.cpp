@@ -288,6 +288,52 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     return result;
 }
 
+// [Display] FrameStats: frames per second and the time spent in Present,
+// logged every 10 seconds. A Present that takes a whole frame means something
+// below the game (runtime, driver, compositor) paces it.
+constexpr int kDevice8Present = 15;  // IDirect3DDevice8 vtable slot
+
+using PresentFn = HRESULT(WINAPI*)(void* device, const RECT* source, const RECT* dest, HWND window,
+                                   const void* dirty);
+PresentFn g_present = nullptr;
+bool g_frameStats = false;
+LARGE_INTEGER g_ticksPerSecond{};
+LARGE_INTEGER g_statsStart{};
+LONGLONG g_presentTicks = 0;
+int g_frames = 0;
+
+HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest, HWND window, const void* dirty) {
+    LARGE_INTEGER before;
+    LARGE_INTEGER after;
+    QueryPerformanceCounter(&before);
+    HRESULT result = g_present(device, source, dest, window, dirty);
+    QueryPerformanceCounter(&after);
+
+    g_presentTicks += after.QuadPart - before.QuadPart;
+    ++g_frames;
+
+    const double seconds = double(after.QuadPart - g_statsStart.QuadPart) / double(g_ticksPerSecond.QuadPart);
+    if (seconds >= 10.0) {
+        const double presentMs = 1000.0 * double(g_presentTicks) / double(g_ticksPerSecond.QuadPart) / g_frames;
+        T3_LOG("display: %.1f fps, %.2f ms per frame in Present", g_frames / seconds, presentMs);
+        g_statsStart = after;
+        g_presentTicks = 0;
+        g_frames = 0;
+    }
+    return result;
+}
+
+void HookPresent(void* device) {
+    void* present = VtableEntry(device, kDevice8Present);
+    if (MH_CreateHook(present, reinterpret_cast<void*>(&PresentDetour), reinterpret_cast<void**>(&g_present)) ==
+            MH_OK &&
+        MH_EnableHook(present) == MH_OK) {
+        QueryPerformanceFrequency(&g_ticksPerSecond);
+        QueryPerformanceCounter(&g_statsStart);
+        T3_LOG("display: frame statistics on");
+    }
+}
+
 HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus, DWORD flags,
                                   PresentParameters* params, void** device) {
     DisplayMode desktop{};
@@ -311,6 +357,9 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
                 MH_EnableHook(reset) == MH_OK) {
                 T3_LOG("display: device Reset hooked");
             }
+        }
+        if (g_frameStats && !g_present) {
+            HookPresent(*device);
         }
     }
     return result;
@@ -574,6 +623,7 @@ void Install(const Options& options) {
         Hook(kWindowPlacedPosition, reinterpret_cast<void*>(&PlacedPositionDetour),
              reinterpret_cast<void**>(&g_placedPosition), "UI placement");
     }
+    g_frameStats = options.frameStats;
     if (options.borderless) {
         HMODULE exe = GetModuleHandleW(nullptr);
         g_direct3DCreate8 = reinterpret_cast<Direct3DCreate8Fn>(
