@@ -1,20 +1,24 @@
 // Three independent display features, each behind its own T3SDK.ini option
 // (see display.hpp): rewriting the resolution table, running the Direct3D 8
-// device windowed and borderless (and keeping it running in the background),
-// and rescaling the UI layout for widescreen.
+// device windowed and borderless (with what that needs: bringing the window
+// to the front, covering level changes, running in the background), and
+// rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
 
+#include "curtain.hpp"
 #include "engine.hpp"
 #include "iat.hpp"
 #include "log.hpp"
 
 #include <MinHook.h>
 #include <windows.h>
+#include <shellapi.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <set>
 #include <utility>
 #include <vector>
@@ -150,19 +154,113 @@ void MakeWindowed(PresentParameters* params) {
     }
 }
 
+// The rectangle of the monitor `window` is on.
+RECT MonitorRect(HWND window) {
+    MONITORINFO monitor{};
+    monitor.cbSize = sizeof(monitor);
+    GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitor);
+    return monitor.rcMonitor;
+}
+
 // A popup window covering the monitor it is on; Present scales the back buffer to it.
 void MakeBorderless(HWND window) {
     if (!window) {
         return;
     }
-    MONITORINFO monitor{};
-    monitor.cbSize = sizeof(monitor);
-    GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY), &monitor);
-    const RECT& r = monitor.rcMonitor;
+    const RECT r = MonitorRect(window);
     SetWindowLongW(window, GWL_STYLE, WS_POPUP | WS_VISIBLE);
     SetWindowLongW(window, GWL_EXSTYLE, GetWindowLongW(window, GWL_EXSTYLE) & ~(WS_EX_TOPMOST | WS_EX_WINDOWEDGE));
     SetWindowPos(window, HWND_NOTOPMOST, r.left, r.top, r.right - r.left, r.bottom - r.top,
                  SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+}
+
+// T3 restarts for every level change (New Game, entering or leaving a
+// mission). The outgoing game draws the next level's loading screen, starts
+// the game's launcher with the level and ends; the launcher starts a new
+// T3Main.exe, which draws the same loading screen while it loads the level
+// (RelaunchForLevelChange at 0x10901D60, LoadingScreen::Begin at 0x109E1FC0).
+// An exclusive fullscreen device takes the screen when it is created; a
+// borderless window has to be brought to the front, and Windows only allows
+// that when the program in front lets it. So the outgoing game passes that
+// right on while it still has the foreground, and covers its monitor with the
+// loading screen until the incoming game has drawn its own (curtain.hpp).
+// Without this the player lands on the desktop for seconds, then has to
+// click the game.
+constexpr char kGameLauncher[] = "Ion Launcher.exe";
+// void LoadingScreen::Begin(IDirect3DDevice8* device, const char* map, bool), __cdecl
+constexpr uintptr_t kLoadingScreenBegin = 0x109E1FC0;
+
+using ShellExecuteExAFn = BOOL(WINAPI*)(SHELLEXECUTEINFOA* info);
+using LoadingScreenBeginFn = void(__cdecl*)(void* device, const char* map, int flag);
+ShellExecuteExAFn g_shellExecuteExA = nullptr;
+LoadingScreenBeginFn g_loadingScreenBegin = nullptr;
+
+bool OwnsForeground() {
+    DWORD pid = 0;
+    GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+    return pid == GetCurrentProcessId();
+}
+
+bool StartsGameLauncher(const SHELLEXECUTEINFOA* info) {
+    if (!info || !info->lpFile) {
+        return false;
+    }
+    const char* name = strrchr(info->lpFile, '\\');
+    return _stricmp(name ? name + 1 : info->lpFile, kGameLauncher) == 0;
+}
+
+BOOL WINAPI ShellExecuteExADetour(SHELLEXECUTEINFOA* info) {
+    // Only when the player is in the game: a level change while they work in
+    // another program must neither cover a screen nor pull the next game to
+    // the front.
+    if (StartsGameLauncher(info) && OwnsForeground()) {
+        AllowSetForegroundWindow(ASFW_ANY);
+        if (g_window) {
+            curtain::Raise(MonitorRect(g_window));
+        }
+        T3_LOG("display: level change; the next game window may come to the front");
+    }
+    return g_shellExecuteExA(info);
+}
+
+// The outgoing game draws the loading screen before it raises the curtain,
+// so the curtain found here is always a previous game's.
+void __cdecl LoadingScreenBeginDetour(void* device, const char* map, int flag) {
+    g_loadingScreenBegin(device, map, flag);
+    curtain::Lift(g_window);
+}
+
+// Called once per game process, when its window is created: the moment an
+// exclusive fullscreen device would have taken the screen. Windows refuses a
+// plain SetForegroundWindow when the game was started by a background
+// process (Steam, the game's launcher after a level change), so the fallback
+// briefly shares input with the window in front, which lets the call through.
+void BringToFront(HWND window) {
+    HWND front = GetForegroundWindow();
+    if (!window || front == window) {
+        return;
+    }
+
+    if (SetForegroundWindow(window)) {
+        T3_LOG("display: window brought to the front");
+        return;
+    }
+
+    DWORD self = GetCurrentThreadId();
+    DWORD frontThread = front ? GetWindowThreadProcessId(front, nullptr) : 0;
+    bool attached = frontThread && frontThread != self && AttachThreadInput(self, frontThread, TRUE);
+    BringWindowToTop(window);
+    SetForegroundWindow(window);
+    SetFocus(window);
+    if (attached) {
+        AttachThreadInput(self, frontThread, FALSE);
+    }
+
+    if (GetForegroundWindow() == window) {
+        T3_LOG("display: window brought to the front (through the window in front)");
+    } else {
+        T3_LOG("display: Windows kept another program in front of the game window");
+    }
 }
 
 // The present parameters the game created its device with. The viewport's
@@ -205,6 +303,7 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
            wasFullscreen ? "fullscreen made borderless" : "windowed", result);
     if (SUCCEEDED(result)) {
         MakeBorderless(g_window);
+        BringToFront(g_window);
         if (!g_reset) {
             void* reset = VtableEntry(*device, kDevice8Reset);
             if (MH_CreateHook(reset, reinterpret_cast<void*>(&ResetDetour), reinterpret_cast<void**>(&g_reset)) ==
@@ -476,15 +575,23 @@ void Install(const Options& options) {
              reinterpret_cast<void**>(&g_placedPosition), "UI placement");
     }
     if (options.borderless) {
-        g_direct3DCreate8 = reinterpret_cast<Direct3DCreate8Fn>(PatchImport(
-            GetModuleHandleW(nullptr), "d3d8.dll", "Direct3DCreate8", reinterpret_cast<void*>(&Direct3DCreate8Detour)));
+        HMODULE exe = GetModuleHandleW(nullptr);
+        g_direct3DCreate8 = reinterpret_cast<Direct3DCreate8Fn>(
+            PatchImport(exe, "d3d8.dll", "Direct3DCreate8", reinterpret_cast<void*>(&Direct3DCreate8Detour)));
         if (!g_direct3DCreate8) {
             T3_LOG("display: borderless unavailable (no Direct3DCreate8 import)");
-        } else if (!options.pauseInBackground) {
+        } else {
+            g_shellExecuteExA = reinterpret_cast<ShellExecuteExAFn>(
+                PatchImport(exe, "SHELL32.dll", "ShellExecuteExA", reinterpret_cast<void*>(&ShellExecuteExADetour)));
+            Hook(kLoadingScreenBegin, reinterpret_cast<void*>(&LoadingScreenBeginDetour),
+                 reinterpret_cast<void**>(&g_loadingScreenBegin), "level-change curtain");
+
             // Only a borderless game can keep running: an exclusive fullscreen
             // device is lost as soon as another window takes the focus.
-            Hook(kViewportWndProc, reinterpret_cast<void*>(&ViewportWndProcDetour),
-                 reinterpret_cast<void**>(&g_viewportWndProc), "running in the background");
+            if (!options.pauseInBackground) {
+                Hook(kViewportWndProc, reinterpret_cast<void*>(&ViewportWndProcDetour),
+                     reinterpret_cast<void**>(&g_viewportWndProc), "running in the background");
+            }
         }
     }
     T3_LOG("display: native resolutions %s, borderless %s, widescreen UI %s (width %.0f), %s in the background",

@@ -18,6 +18,7 @@
 #include <t3sdk/t3sdk.h>
 
 #include <intrin.h>
+#include <tlhelp32.h>
 
 #include <cstdio>
 #include <cstring>
@@ -72,6 +73,36 @@ fs::path ModulePath(HMODULE module) {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(module, path, MAX_PATH);
     return path;
+}
+
+// Logs who started this process and with which command line. The game
+// restarts for every level change, and this shows which program relaunched it
+// and what it passed along.
+void LogProcessOrigin() {
+    DWORD self = GetCurrentProcessId();
+    DWORD parent = 0;
+    wchar_t parentName[MAX_PATH] = L"?";
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot != INVALID_HANDLE_VALUE) {
+        PROCESSENTRY32W entry{};
+        entry.dwSize = sizeof(entry);
+        for (BOOL ok = Process32FirstW(snapshot, &entry); ok; ok = Process32NextW(snapshot, &entry)) {
+            if (entry.th32ProcessID == self) {
+                parent = entry.th32ParentProcessID;
+            }
+        }
+
+        // The parent may already have exited; its name then stays "?".
+        for (BOOL ok = Process32FirstW(snapshot, &entry); ok && parent; ok = Process32NextW(snapshot, &entry)) {
+            if (entry.th32ProcessID == parent) {
+                wcsncpy_s(parentName, entry.szExeFile, _TRUNCATE);
+            }
+        }
+        CloseHandle(snapshot);
+    }
+
+    T3_LOG("process %lu, started by %ls (%lu), command line: %s", self, parentName, parent, GetCommandLineA());
 }
 
 Settings LoadSettings(const fs::path& ini) {
@@ -313,6 +344,7 @@ void Start() {
     g_settings = LoadSettings(g_dir / "T3SDK.ini");
     log::Open(g_dir / "T3SDK.log", g_settings.console);
     T3_LOG("T3SDK %s in %s", T3SDK_VERSION, ModulePath(nullptr).string().c_str());
+    LogProcessOrigin();
 
     engine::Build build = engine::CheckBuild();
     if (!build.supported) {
