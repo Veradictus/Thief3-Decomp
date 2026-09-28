@@ -59,6 +59,7 @@ Thumbs.db
 !/launcher/.yarn/releases/
 /launcher/.pnp.*
 /launcher/dist/
+/launcher/.svelte-check/
 /launcher/src-tauri/target/
 /launcher/src-tauri/gen/
 /launcher/src-tauri/bundle/
