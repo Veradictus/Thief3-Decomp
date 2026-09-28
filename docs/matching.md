@@ -198,8 +198,10 @@ first) and puts each into a unit:
   ```
 
 It runs under a lock (`build/agent/integrate.lock`). Afterwards: `python
-configure.py && ninja`, then compare the report with the previous one
-(`objdiff-cli report changes`) and reject any regression.
+configure.py && ninja`, compare the report with the previous one
+(`objdiff-cli report changes`) and reject any regression, then run `python
+tools/progress_report.py write` and commit `progress/` with the source: CI
+publishes that report to decomp.dev ([decomp-dev.md](decomp-dev.md)).
 
 The report should use the same code-reference ruler as the gate. With
 objdiff 3.8.1, `report generate` on a function calling `?Other@@YAHH@Z`
