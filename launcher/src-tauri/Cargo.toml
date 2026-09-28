@@ -19,10 +19,15 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha1 = "0.10"
-# Save backups and the logs zip (saves.rs, diag.rs).
+# Save backups and the logs zip (saves.rs, diag.rs); mod packages (src/mods):
+# .t3mod zips, overlay hashes, versions and ranges, and the mod index over
+# HTTPS. ureq's native-tls is Windows' own TLS (Schannel) there, so no C code
+# is built for the Windows target.
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 dirs = "7"
+semver = { version = "1", features = ["serde"] }
 sha2 = "0.10"
+ureq = { version = "3", default-features = false, features = ["native-tls"] }
 zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [target.'cfg(windows)'.dependencies]

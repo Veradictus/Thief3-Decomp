@@ -49,7 +49,9 @@ python tools/mods/selftest.py                                                   
   window (hooks `Direct3DCreate8` → `CreateDevice`/`Reset`), widescreen UI
   (`Config::GetFloat`, `Window::PlacedPosition`). A vectored handler logs
   crashes to `System/T3SDK.log`.
-- Mods: `System/mods/*.dll` exporting `T3Mod_Init(const T3SdkApi*)`. The API is
+- Mods: DLLs exporting `T3Mod_Init(const T3SdkApi*)`, loaded from
+  `System/mods/load-order.txt` (`.t3mod` packages, docs/mods.md), then
+  `System/mods/*.dll`. The API is
   plain C, `__cdecl`, and only grows (check `api->size`).
 - Engine: Ion Storm's early Unreal Engine 2 fork (script packages version 95 /
   licensee 133). FName carries a 16-bit instance number, printed as

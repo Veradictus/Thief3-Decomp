@@ -7,6 +7,7 @@ mod detect;
 mod diag;
 mod game;
 mod ini;
+mod mods;
 mod proc;
 mod saves;
 mod tasks;
@@ -41,8 +42,16 @@ pub fn run() {
             detect::check_sdk_root,
             game::overview,
             game::list_maps,
-            game::list_mods,
-            game::set_mod_enabled,
+            mods::list_mods,
+            mods::set_mod_enabled,
+            mods::set_package_enabled,
+            mods::set_mod_order,
+            mods::install_mod,
+            mods::remove_mod,
+            mods::sync_mods,
+            mods::mod_profile,
+            mods::mod_index,
+            mods::install_from_index,
             game::read_sdk_settings,
             game::write_sdk_settings,
             game::create_sdk_settings,
