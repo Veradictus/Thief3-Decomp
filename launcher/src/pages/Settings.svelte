@@ -4,9 +4,12 @@
   import { onMount } from "svelte";
   import Icon from "$components/Icon.svelte";
   import PathField from "$components/PathField.svelte";
-  import { api, emptyConfig, launcherVersion, type Config, type Detected } from "$lib/api";
+  import ReportCard from "$components/ReportCard.svelte";
+  import UpdatesCard from "$components/UpdatesCard.svelte";
+  import { api, emptyConfig, launcherVersion, type Candidate, type Config, type Detected } from "$lib/api";
   import { mods } from "$lib/mods.svelte";
   import { app, guard, saveConfig, toast } from "$lib/app.svelte";
+  import { ago, bytes } from "$lib/format";
 
   let { setup = false }: { setup?: boolean } = $props();
 
@@ -18,6 +21,8 @@
   let pythonOk = $state(false);
   let rootOk = $state(false);
   let version = $state("");
+  let savesFound = $state<Candidate[]>([]);
+  let savesAuto = $state("");
 
   const ready = $derived(gameOk && pythonOk && rootOk);
   const dirty = $derived(JSON.stringify(draft) !== JSON.stringify(app.config));
@@ -37,6 +42,11 @@
   onMount(() => {
     if (setup || !app.config?.gameDir) void detect();
     void launcherVersion().then((v) => (version = v));
+    if (!setup)
+      void guard(api.savesInfo()).then((info) => {
+        savesFound = info?.candidates.filter((c) => c.exists) ?? [];
+        savesAuto = info && info.folder?.source !== "Settings" ? (info.folder?.path ?? "") : "";
+      });
   });
 
   const DEFAULT_INDEX = "https://veradictus.github.io/Thief3-Decomp/modindex/index.json";
@@ -66,6 +76,16 @@
     return { ok: r.ok, message: r.message, detail: r.sdkBuilt ? "SDK built" : "SDK not built yet" };
   };
   const projectCheck = (path: string) => Promise.resolve({ ok: true, message: `Maps are exported to ${path}.` });
+  const savesCheck = async (path: string) => {
+    const r = await api.savesInfo(path);
+    if (!r.exists) return { ok: false, message: "There is no folder here." };
+    const { count, size, newest } = r.summary;
+    return {
+      ok: true,
+      message: `${count.toString()} saves, ${bytes(size)}.`,
+      detail: newest ? `newest ${ago(newest)}` : undefined,
+    };
+  };
 </script>
 
 <div class="page">
@@ -137,6 +157,14 @@
         hint="Where maps are exported. Empty: build\assets\godot in the T3SDK folder."
         check={projectCheck}
       />
+      <PathField
+        label="Saves folder"
+        bind:value={draft.savesDir}
+        optional
+        hint={`The game's SaveGames folder, for save backups. Empty: found automatically${savesAuto ? ` (${savesAuto})` : ""}.`}
+        candidates={savesFound}
+        check={savesCheck}
+      />
       <div class="field card">
         <div class="row">
           <div class="grow">
@@ -176,6 +204,9 @@
   </div>
 
   {#if !setup}
+    <UpdatesCard bind:autoCheck={draft.autoUpdateCheck} />
+    <ReportCard />
+
     <div class="about card">
       <h3>About</h3>
       <p class="muted">

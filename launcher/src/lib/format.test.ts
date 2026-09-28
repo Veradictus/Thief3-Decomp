@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import type { Setting } from "./api";
-import { ago, bytes, elapsed, isKeySetting, isSwitch, keyName, settingDescription, settingLabel } from "./format";
+import {
+  ago,
+  bytes,
+  dateTime,
+  elapsed,
+  firstLink,
+  isKeySetting,
+  isSwitch,
+  keyName,
+  percent,
+  settingDescription,
+  settingLabel,
+} from "./format";
 
 const setting = (key: string, value: string, description = "", defaultValue: string | null = value): Setting => ({
   key,
@@ -71,5 +83,31 @@ describe("settings", () => {
     expect(keyName(" 0x7b ")).toBe("F12");
     expect(keyName("0")).toBe("Off");
     expect(keyName("0x41")).toBe("");
+  });
+});
+
+describe("updates", () => {
+  it("shows download progress only when the size is known", () => {
+    expect(percent(0, null)).toBeNull();
+    expect(percent(5, 0)).toBeNull();
+    expect(percent(0, 200)).toBe(0);
+    expect(percent(99, 200)).toBe(49);
+    expect(percent(250, 200)).toBe(100);
+  });
+  it("finds the release link in the notes", () => {
+    expect(firstLink(null)).toBeNull();
+    expect(firstLink("no link here")).toBeNull();
+    expect(firstLink("T3SDK Launcher 0.2.0: https://github.com/o/r/releases/tag/v0.2.0")).toBe(
+      "https://github.com/o/r/releases/tag/v0.2.0",
+    );
+    expect(firstLink("See (https://example.org/notes).")).toBe("https://example.org/notes");
+    expect(firstLink("http://insecure.example first, then https://ok.example/x.")).toBe("https://ok.example/x");
+  });
+});
+
+describe("backups", () => {
+  it("shows when a backup was made", () => {
+    expect(dateTime(null)).toBe("");
+    expect(dateTime(1_790_000_000)).toMatch(/2026/);
   });
 });
