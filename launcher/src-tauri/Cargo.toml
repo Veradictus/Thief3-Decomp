@@ -19,19 +19,29 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha1 = "0.10"
-# Mod packages (src/mods): versions and ranges, .t3mod zips (deflate only),
-# overlay hashes, and the mod index over HTTPS. native-tls is Windows' own TLS
-# (schannel) there, so no C code is built for the Windows target.
+# Save backups and the logs zip (saves.rs, diag.rs); mod packages (src/mods):
+# .t3mod zips, overlay hashes, versions and ranges, and the mod index over
+# HTTPS. ureq's native-tls is Windows' own TLS (Schannel) there, so no C code
+# is built for the Windows target.
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+dirs = "7"
 semver = { version = "1", features = ["serde"] }
 sha2 = "0.10"
-zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 ureq = { version = "3", default-features = false, features = ["native-tls"] }
-
-[dev-dependencies]
-tempfile = "3"
+zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
+# The updater downloads over the system's TLS (Schannel) on Windows, so no C
+# toolchain is needed (and `cargo check --target x86_64-pc-windows-msvc` works
+# from Linux); rustls elsewhere.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls"] }
+
+[target.'cfg(not(windows))'.dependencies]
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls"] }
+
+[dev-dependencies]
+tempfile = "3"
 
 [profile.release]
 codegen-units = 1

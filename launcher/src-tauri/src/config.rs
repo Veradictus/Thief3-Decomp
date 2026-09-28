@@ -23,6 +23,14 @@ pub struct Config {
     pub project_dir: Option<PathBuf>,
     /// The first-run setup was finished (or skipped).
     pub setup_complete: bool,
+    /// The game's SaveGames folder; unset or empty: found automatically (saves.rs).
+    pub saves_dir: Option<PathBuf>,
+    /// Back up the saves before the launcher starts the game.
+    pub backup_before_launch: bool,
+    /// Look for a launcher update at start-up, at most once a day; unset means yes.
+    pub auto_update_check: Option<bool>,
+    /// When the launcher last looked for an update (Unix seconds); kept by update.rs.
+    pub last_update_check: Option<u64>,
     /// The mod index the Mods page browses; default `mods::DEFAULT_INDEX_URL`.
     pub mod_index_url: Option<String>,
     /// Where the tools write, when not <sdk_root>/build (see `resolve`).
@@ -98,6 +106,8 @@ pub async fn get_config(state: State<'_, AppState>) -> Result<Config, String> {
 #[tauri::command]
 pub async fn save_config(app: AppHandle, state: State<'_, AppState>, mut config: Config) -> Result<Config, String> {
     resolve(&app, &mut config);
+    // The UI may send an older copy of what the launcher records by itself.
+    config.last_update_check = config.last_update_check.max(state.config.lock().unwrap().last_update_check);
     let path = file(&app).ok_or("no per-user config folder")?;
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
@@ -106,4 +116,15 @@ pub async fn save_config(app: AppHandle, state: State<'_, AppState>, mut config:
     std::fs::write(&path, text).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
     *state.config.lock().unwrap() = config.clone();
     Ok(config)
+}
+
+/// Writes launcher.json for settings the launcher records by itself (the last
+/// update check), outside save_config.
+pub fn store(app: &AppHandle, config: &Config) -> Result<(), String> {
+    let path = file(app).ok_or("no per-user config folder")?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
+    }
+    let text = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+    std::fs::write(&path, text).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }

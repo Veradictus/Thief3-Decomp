@@ -5,8 +5,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { open } from "@tauri-apps/plugin-dialog";
-import { mockCall, mockListen, mockPick, mockPickMods } from "./mock";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { mockCall, mockListen, mockPick, mockPickMods, mockPickSave } from "./mock";
 
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -17,6 +17,12 @@ export interface Config {
   sdkRoot: string | null;
   projectDir: string | null;
   setupComplete: boolean;
+  /** The game's SaveGames folder; null: found automatically. */
+  savesDir: string | null;
+  backupBeforeLaunch: boolean;
+  /** Look for launcher updates at start-up; null means yes. */
+  autoUpdateCheck: boolean | null;
+  lastUpdateCheck: number | null;
   /** The mod index the Mods page browses; null for the default. */
   modIndexUrl: string | null;
 }
@@ -274,6 +280,80 @@ export interface TaskExit {
   cancelled: boolean;
 }
 
+export interface SavesFolder {
+  path: string;
+  source: string;
+  exists: boolean;
+}
+
+export interface SavesSummary {
+  count: number;
+  files: number;
+  size: number;
+  newest: number | null;
+}
+
+export interface SavesInfo {
+  folder: SavesFolder | null;
+  exists: boolean;
+  summary: SavesSummary;
+  candidates: SavesFolder[];
+}
+
+export interface Backup {
+  file: string;
+  label: string | null;
+  created: number;
+  saves: number | null;
+  size: number | null;
+  bytes: number;
+}
+
+export interface BackupList {
+  dir: string;
+  backups: Backup[];
+}
+
+export interface Restored {
+  before: Backup | null;
+  summary: SavesSummary;
+}
+
+export interface LogsReport {
+  path: string;
+  files: number;
+  bytes: number;
+}
+
+export interface UpdaterStatus {
+  /** This build can update itself (it was built with the update key). */
+  enabled: boolean;
+  /** Unzipped from the portable zip: new versions are downloaded by hand. */
+  portable: boolean;
+  version: string;
+  lastCheck: number | null;
+}
+
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  notes: string | null;
+  /** Release date, Unix seconds. */
+  date: number | null;
+}
+
+export interface UpdateCheck {
+  /** False when the start-up check was skipped (turned off, or done today). */
+  checked: boolean;
+  update: UpdateInfo | null;
+}
+
+export interface UpdateProgress {
+  downloaded: number;
+  total: number | null;
+  finished: boolean;
+}
+
 /** Before the real config loads (the UI waits for it, so this is rarely seen). */
 export const emptyConfig: Config = {
   gameDir: null,
@@ -282,6 +362,10 @@ export const emptyConfig: Config = {
   sdkRoot: null,
   projectDir: null,
   setupComplete: false,
+  savesDir: null,
+  backupBeforeLaunch: false,
+  autoUpdateCheck: null,
+  lastUpdateCheck: null,
   modIndexUrl: null,
 };
 
@@ -323,6 +407,16 @@ export const api = {
   openLink: (url: string) => call<null>("open_link", { url }),
   startTask: (spec: TaskSpec) => call<TaskStarted>("start_task", { spec }),
   cancelTask: (id: number) => call<null>("cancel_task", { id }),
+  savesInfo: (path: string | null = null) => call<SavesInfo>("saves_info", { path }),
+  listSaveBackups: () => call<BackupList>("list_save_backups"),
+  createSaveBackup: (label: string | null) => call<Backup>("create_save_backup", { label }),
+  restoreSaveBackup: (file: string) => call<Restored>("restore_save_backup", { file }),
+  deleteSaveBackup: (file: string) => call<null>("delete_save_backup", { file }),
+  openSavesFolder: (which: "saves" | "backups") => call<null>("open_saves_folder", { which }),
+  collectLogs: (path: string, tasks: string | null) => call<LogsReport>("collect_logs", { path, tasks }),
+  updaterStatus: () => call<UpdaterStatus>("updater_status"),
+  checkUpdate: (auto: boolean) => call<UpdateCheck>("check_update", { auto }),
+  installUpdate: () => call<null>("install_update"),
 };
 
 /** The launcher's version ("preview" outside Tauri). */
@@ -367,6 +461,12 @@ export function onFileDrop(handler: (event: FileDrop) => void): Promise<Unlisten
     const p = e.payload;
     handler(p.type === "enter" || p.type === "drop" ? { type: p.type, paths: p.paths } : { type: p.type });
   });
+}
+
+/** A save dialog for a .zip file; null when cancelled. */
+export async function pickZip(title: string, defaultPath: string): Promise<string | null> {
+  if (!inTauri) return mockPickSave(title, defaultPath);
+  return await save({ title, defaultPath, filters: [{ name: "Zip archive", extensions: ["zip"] }] });
 }
 
 export function errorText(e: unknown): string {
