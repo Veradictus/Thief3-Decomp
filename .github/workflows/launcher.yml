@@ -37,3 +37,5 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/launcher-build.yml
+    # The updater key, when set (docs/releasing.md); pull requests from forks get none.
+    secrets: inherit

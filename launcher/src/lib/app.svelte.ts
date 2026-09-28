@@ -13,7 +13,7 @@ import {
 } from "./api";
 import { elapsed } from "./format";
 
-export type Page = "play" | "maps" | "mods" | "sdk" | "tasks" | "settings";
+export type Page = "play" | "maps" | "mods" | "saves" | "sdk" | "tasks" | "settings";
 
 interface AppState {
   config: Config | null;
