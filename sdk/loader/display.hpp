@@ -1,8 +1,8 @@
 #pragma once
 
-// Options for display.cpp's three independent display features: the monitor's
-// own resolutions in the Options menu, a borderless window instead of
-// exclusive fullscreen, and a UI layout scaled for the screen's aspect ratio.
+// Options for display.cpp's display features: the monitor's own resolutions
+// in the Options menu, a borderless window instead of exclusive fullscreen,
+// frame pacing, and a UI layout scaled for the screen's aspect ratio.
 namespace t3sdk::display {
 
 struct Options {
@@ -21,6 +21,10 @@ struct Options {
     // Pause the game while another window has the focus, as the game does on
     // its own. Off: a borderless game keeps running in the background.
     bool pauseInBackground = false;
+    // Move the game world on every frame. The engine moves it only once 10 ms
+    // have passed, which above 100 fps looks choppy. On unless turned off: a
+    // fix, and an older T3SDK.ini has no line for it.
+    bool smoothFrames = true;
     // Scale of the borderless window's menu cursor; 0 = follow the screen
     // height (1 at 768 lines).
     double cursorScale = 0;

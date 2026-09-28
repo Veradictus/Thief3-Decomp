@@ -1,8 +1,8 @@
-// Three independent display features, each behind its own T3SDK.ini option
-// (see display.hpp): rewriting the resolution table, running the Direct3D 8
-// device windowed and borderless (with what that needs: the game's cursor,
-// bringing the window to the front, covering level changes, running in the
-// background), and rescaling the UI layout for widescreen.
+// The display features, each behind its own T3SDK.ini option (see
+// display.hpp): rewriting the resolution table, running the Direct3D 8 device
+// windowed and borderless (with what that needs: the game's cursor, bringing
+// the window to the front, covering level changes, running in the
+// background), frame pacing, and rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
 
@@ -286,6 +286,32 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     MakeBorderless(g_window);
     T3_LOG("display: Reset %ux%u windowed -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight, result);
     return result;
+}
+
+// ---- frame pacing ---------------------------------------------------------------------
+// The engine's clock (TimeManager, advanced by EndFrame at 0x10D3EDF0 once a
+// frame) moves the world only once 10 ms have passed and carries shorter
+// frames over to the next one. That caps the world at 100 updates a second:
+// above 100 fps the world, and the camera with it, moves on every second or
+// third frame, unevenly, and the game looks choppy however high the frame
+// rate is. [Display] SmoothFrames lowers that minimum step, which the
+// TimeManager constructor sets (later only the SIMTIME SETMIN console command
+// changes it), so every frame moves the world.
+constexpr uintptr_t kTimeManagerMinStep = 0x10D3EBA1;  // imm32 of MOV [ESI+4], 0.01f in TimeManager::TimeManager
+constexpr uint32_t kEngineMinStep = 0x3C23D70A;        // 0.01f
+constexpr float kSmoothMinStep = 0.001f;               // every frame moves the world, up to 1000 fps
+
+void LowerMinimumStep() {
+    auto step = reinterpret_cast<uint32_t*>(kTimeManagerMinStep);
+    if (*step != kEngineMinStep) {
+        T3_LOG("display: smooth frames not applied, unexpected code at %08X", unsigned(kTimeManagerMinStep));
+        return;
+    }
+    DWORD protect;
+    VirtualProtect(step, sizeof(*step), PAGE_EXECUTE_READWRITE, &protect);
+    memcpy(step, &kSmoothMinStep, sizeof(*step));
+    VirtualProtect(step, sizeof(*step), protect, &protect);
+    FlushInstructionCache(GetCurrentProcess(), step, sizeof(*step));
 }
 
 // [Display] FrameStats: frames per second and the time spent in Present,
@@ -907,6 +933,9 @@ void Install(const Options& options) {
         Hook(kWindowPlacedPosition, reinterpret_cast<void*>(&PlacedPositionDetour),
              reinterpret_cast<void**>(&g_placedPosition), "UI placement");
     }
+    if (options.smoothFrames) {
+        LowerMinimumStep();
+    }
     g_frameStats = options.frameStats;
     g_cursorScale = options.cursorScale;
     if (options.borderless) {
@@ -932,6 +961,7 @@ void Install(const Options& options) {
     T3_LOG("display: native resolutions %s, borderless %s, widescreen UI %s (width %.0f), %s in the background",
            options.nativeResolutions ? "on" : "off", options.borderless && g_direct3DCreate8 ? "on" : "off",
            options.widescreenUI ? "on" : "off", g_uiWidth, g_viewportWndProc ? "keeps running" : "pauses");
+    T3_LOG("display: smooth frames %s", options.smoothFrames ? "on" : "off");
 }
 
 }  // namespace t3sdk::display
