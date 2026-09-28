@@ -182,7 +182,8 @@ def main() -> None:
     n.rule(
         "model",
         f"$python tools/delink_model.py --exe $exe --sha1 $sha1 --symbols $symbols --splits $splits "
-        f"--chunk-size {CHUNK_SIZE:#x} --model $model --groups $groups",
+        f"--chunk-size {CHUNK_SIZE:#x} {' '.join(f'--break {b:#x}' for b in (CRT_ENTRY, *FUNCLETS))} "
+        f"--model $model --groups $groups",
         description="MODEL $model",
     )
     n.build(

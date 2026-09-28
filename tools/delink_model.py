@@ -166,6 +166,9 @@ def main() -> None:
     parser.add_argument("--symbols", type=Path, required=True)
     parser.add_argument("--splits", type=Path, required=True)
     parser.add_argument("--chunk-size", type=lambda s: int(s, 0), default=0x10000)
+    parser.add_argument("--break", dest="breaks", type=lambda s: int(s, 0), action="append", default=[],
+                        help="an address no auto unit may span (repeatable; configure.py passes the "
+                             "boundaries between progress categories)")
     parser.add_argument("--model", type=Path, required=True, help="output: delink model JSON")
     parser.add_argument("--groups", type=Path, required=True, help="output: delink idapro.json grouping")
     args = parser.parse_args()
@@ -231,7 +234,7 @@ def main() -> None:
     args.model.parent.mkdir(parents=True, exist_ok=True)
     args.model.write_text(json.dumps(model, separators=(",", ":")), encoding="utf-8")
 
-    units = splitslib.plan(splitslib.load(args.splits), functions, args.chunk_size)
+    units = splitslib.plan(splitslib.load(args.splits), functions, args.chunk_size, breaks=args.breaks)
     args.groups.write_text(json.dumps(splitslib.to_idapro(units), indent=1), encoding="utf-8")
 
     text = next(s for s in pe.sections if s.name == ".text")
