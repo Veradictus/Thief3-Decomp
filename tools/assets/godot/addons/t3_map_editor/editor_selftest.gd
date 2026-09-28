@@ -119,6 +119,15 @@ func run(plugin: EditorPlugin, scene_path: String) -> void:
 	dock.refresh()
 	check(dock.changed.size() == 1, 'and undo brings the change back')
 
+	# Saving the scene (Ctrl+S) writes the edits file too. The signal stands in
+	# for a real save, which fails headless (no viewport for the thumbnail).
+	var edits_path := String(r.get('path', ''))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(edits_path))
+	plugin.scene_saved.emit(root.scene_file_path)
+	await frames(2)
+	doc = JSON.parse_string(FileAccess.get_file_as_string(edits_path))
+	check(doc is Dictionary and Edits.same_json(doc.get('actors'), want), 'saving the scene saves the T3 edits too')
+
 	finish()
 
 ## Opens `path` once the editor has started up (it opens the main scene or the

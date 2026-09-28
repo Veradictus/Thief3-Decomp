@@ -36,10 +36,11 @@ import ninja_syntax  # noqa: E402
 import splits as splitslib  # noqa: E402
 import symbols as symbolslib  # noqa: E402
 
-# CRT entry point (docs/target.md; configure.py's CRT_ENTRY when it defines
-# one): functions from here on are mostly library code (CRT, STL, D3DX), which
-# is matched from library objects rather than decompiled, and not queued.
-LIBRARY_START = 0x10D1F7AF
+# Where the libraries linked after the game start (configure.py's LIBRARY_START
+# when it defines one): functions from here on are mostly library code (qhull,
+# CRT, STL, D3DX, Havok), which is matched from library objects or original
+# sources rather than decompiled, and not queued.
+LIBRARY_START = 0x10CFBFB0
 ATTEMPT_CAP = 12
 CLAIM_TTL = 2 * 3600
 PLACEHOLDER = re.compile(r"^(?:[A-Za-z]+_)*(?:FUN|DAT|LAB|PTR|BYTE|WORD|DWORD|QWORD|switchdataD|caseD|s|u|thunk)_"
@@ -80,6 +81,19 @@ def atomic_write(path: Path, text: str) -> None:
             os.replace(tmp, path)
             return
         except PermissionError:  # Windows: a reader has the file open for a moment
+            if attempt == 19:
+                raise
+            time.sleep(0.05)
+
+
+def unlink(path: Path) -> None:
+    """Deletes `path` if it exists, retrying while a reader has it open (Windows
+    refuses to delete an open file)."""
+    for attempt in range(20):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
             if attempt == 19:
                 raise
             time.sleep(0.05)
@@ -240,7 +254,7 @@ class Project:
     def breaks(self) -> Tuple[int, ...]:
         """Addresses no auto unit spans, as configure.py passes them to splits.plan()."""
         cfg = self.configure
-        return tuple(a for a in (getattr(cfg, "CRT_ENTRY", None), *getattr(cfg, "FUNCLETS", ())) if a)
+        return tuple(a for a in (getattr(cfg, "LIBRARY_START", None), *getattr(cfg, "FUNCLETS", ())) if a)
 
     def plan(self, declared: List[splitslib.Unit]) -> List[splitslib.Unit]:
         """Declared plus auto units, exactly as configure.py plans the split."""
@@ -296,17 +310,9 @@ class Project:
         return start, end
 
     def library_start(self) -> int:
-        """The exe's entry point when the exe is present, else LIBRARY_START."""
-        if not hasattr(self, "_library_start"):
-            self._library_start = getattr(self.configure, "CRT_ENTRY", LIBRARY_START)
-            if self.exe and self.exe.is_file():
-                try:
-                    import pe
-                    image = pe.PE(self.exe.read_bytes())
-                    self._library_start = image.image_base + image.entry_rva
-                except (OSError, ValueError):
-                    pass
-        return self._library_start
+        """Where the libraries linked after the game start: configure.py's
+        LIBRARY_START, else this module's."""
+        return getattr(self.configure, "LIBRARY_START", LIBRARY_START)
 
     # -- compiling -------------------------------------------------------------
     def cflags_for(self, address: Optional[int] = None) -> List[str]:
@@ -354,6 +360,12 @@ class Project:
         command, cwd = self.compile_command(source, output, cflags)
         # Like ninja: a rule's command runs through /bin/sh off Windows, as a command line on Windows.
         shell = isinstance(command, str) and os.name != "nt"
+        if isinstance(command, str) and os.name == "nt":
+            # Windows looks a relative program up from this process's directory, not
+            # from cwd, so a worker in a worktree would not find build/'s cl.exe.
+            program, sep, rest = command.partition(" ")
+            if not Path(program).is_absolute() and (cwd / program).is_file():
+                command = f'"{cwd / program}"{sep}{rest}'
         try:
             proc = subprocess.run(command, cwd=cwd, shell=shell, capture_output=True, text=True, errors="replace",
                                   timeout=300)
@@ -490,7 +502,7 @@ class Claims:
         with Lock(self.lock, stale=60, wait=30):
             if path.exists() and self._live(path):
                 return None
-            path.unlink(missing_ok=True)  # expired
+            unlink(path)  # expired
             return claim if self._create(path, claim) else None
 
     def renew(self, address: int, agent: str, ttl: float = CLAIM_TTL) -> Optional[dict]:
@@ -508,7 +520,7 @@ class Claims:
             if claim is None or (agent and claim.get("agent") != agent):
                 return False
             try:
-                path.unlink()
+                unlink(path)
             except OSError:
                 return False
             return True
@@ -568,6 +580,10 @@ def qualified_name(name: str, demangled: str = "") -> str:
             if depth == 0:
                 text = text[:i].rstrip()
                 break
+    # A function-pointer variable, "void (__thiscall UObject::** GNatives)(...)":
+    # its name closes the parenthesised declarator (after any array bounds).
+    if text.endswith(")"):
+        text = re.sub(r"(\[\d*\])+$", "", text[:-1].rstrip()).rstrip()
     # The name is the last space-separated token outside template brackets.
     depth = 0
     for i in range(len(text) - 1, -1, -1):
