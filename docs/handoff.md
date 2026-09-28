@@ -101,9 +101,11 @@ touching the user's mouse: the main menu reacts to posted clicks.
    - Install the launcher from the PR's `launcher-windows` artifact and run
      setup, Install T3SDK, Play, Remove. Then tag `v0.1.0` for the first
      release.
-2. **decomp.dev**: the private build image, the `T3_BUILD_IMAGE` variable and
-   the registration ([decomp-dev.md](decomp-dev.md)). Needs the owner's GitHub
-   account.
+2. **decomp.dev**: registration works as soon as the baseline report (nothing
+   matched, from `symbols.txt`) is on `main`; the private build image and the
+   `T3_BUILD_IMAGE` variable switch CI to the real report, needed before
+   matched code shows ([decomp-dev.md](decomp-dev.md)). Needs the owner's
+   GitHub account.
 3. **Matching pilot** (about 300 functions, stratified by size; see
    [matching.md](matching.md) and
    [research/llm-matching.md](research/llm-matching.md)): first check `try.py`
