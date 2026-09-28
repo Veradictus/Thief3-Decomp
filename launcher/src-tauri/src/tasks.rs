@@ -207,6 +207,51 @@ fn quote(arg: &std::ffi::OsStr) -> String {
     }
 }
 
+/// `line` without terminal escape sequences: Godot colours its progress lines
+/// (ESC[90m ... ESC[0m) even when its output is a pipe, and ignores NO_COLOR.
+fn strip_escapes(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut chars = line.chars();
+    while let Some(c) = chars.next() {
+        if c != '\x1b' {
+            out.push(c);
+            continue;
+        }
+        match chars.next() {
+            // CSI: parameters, then one final character from @ to ~.
+            Some('[') => {
+                for c in chars.by_ref() {
+                    if ('@'..='~').contains(&c) {
+                        break;
+                    }
+                }
+            }
+            // OSC: up to BEL, or ESC \.
+            Some(']') => {
+                while let Some(c) = chars.next() {
+                    if c == '\x07' {
+                        break;
+                    }
+                    if c == '\x1b' {
+                        chars.next();
+                        break;
+                    }
+                }
+            }
+            // Other escapes: intermediates (space to /), then one final character.
+            Some(c) if (' '..='/').contains(&c) => {
+                for c in chars.by_ref() {
+                    if !(' '..='/').contains(&c) {
+                        break;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
 /// Emits each line of `stream`; tools print progress with \r as well as \n.
 fn pump(app: AppHandle, id: u32, name: &'static str, stream: impl Read + Send + 'static) {
     std::thread::spawn(move || {
@@ -219,7 +264,7 @@ fn pump(app: AppHandle, id: u32, name: &'static str, stream: impl Read + Send + 
                 Ok(_) => {
                     let text = String::from_utf8_lossy(&buf);
                     for line in text.trim_end_matches(['\r', '\n']).split('\r') {
-                        let _ = app.emit("task-output", TaskOutput { id, stream: name, line: line.to_string() });
+                        let _ = app.emit("task-output", TaskOutput { id, stream: name, line: strip_escapes(line) });
                     }
                 }
             }
@@ -314,4 +359,18 @@ pub async fn cancel_task(state: State<'_, AppState>, id: u32) -> Result<(), Stri
         }
     }
     child.kill().map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::strip_escapes;
+
+    #[test]
+    fn escapes_are_stripped_from_tool_output() {
+        let godot =
+            "[  16% ] \x1b[90m\x1b[1mfirst_scan_filesystem\x1b[22m | Loading global class names...\x1b[39m\x1b[0m";
+        assert_eq!(strip_escapes(godot), "[  16% ] first_scan_filesystem | Loading global class names...");
+        assert_eq!(strip_escapes("\x1b]0;title\x07done \x1b(B\u{e9}"), "done \u{e9}");
+        assert_eq!(strip_escapes("plain text"), "plain text");
+    }
 }
