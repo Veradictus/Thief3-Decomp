@@ -73,6 +73,8 @@ export interface Job {
   ended: number | null;
   /** Key of a job that must succeed first; this one is skipped otherwise. */
   requires: number | null;
+  /** Runs once this job has succeeded, e.g. to open what it prepared. */
+  onDone: (() => void) | null;
 }
 
 export const jobs = $state({ list: [] as Job[], selected: null as number | null });
@@ -81,7 +83,12 @@ const MAX_LINES = 5000;
 let jobKey = 0;
 let listening = false;
 
-export function enqueue(spec: TaskSpec, title: string, requires: Job | null = null): Job {
+export function enqueue(
+  spec: TaskSpec,
+  title: string,
+  requires: Job | null = null,
+  onDone: (() => void) | null = null,
+): Job {
   const job: Job = {
     key: ++jobKey,
     spec,
@@ -94,6 +101,7 @@ export function enqueue(spec: TaskSpec, title: string, requires: Job | null = nu
     started: null,
     ended: null,
     requires: requires?.key ?? null,
+    onDone,
   };
   jobs.list.push(job);
   jobs.selected ??= job.key;
@@ -134,6 +142,7 @@ function finish(job: Job, state: JobState, code: number | null) {
   job.code = code;
   job.ended = Date.now();
   if (state === "failed") toast(`${job.title} failed`, "error");
+  if (state === "done") job.onDone?.();
   void refresh();
   void pump();
 }

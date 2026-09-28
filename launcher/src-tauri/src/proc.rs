@@ -21,8 +21,20 @@ pub fn quiet(program: &Path) -> Command {
 
 /// Runs a probe and returns its stdout and stderr, or None if it could not
 /// start, failed, or ran longer than `timeout`.
-pub fn probe(mut cmd: Command, timeout: Duration) -> Option<String> {
-    let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().ok()?;
+pub fn probe(cmd: Command, timeout: Duration) -> Option<String> {
+    run(cmd, timeout).ok()
+}
+
+/// Runs a short tool and returns its stdout and stderr. The error is what it
+/// printed when it failed, or why it could not run or finish in `timeout`.
+pub fn run(mut cmd: Command, timeout: Duration) -> Result<String, String> {
+    let program = cmd.get_program().to_string_lossy().into_owned();
+    let mut child = cmd
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("cannot start {program}: {e}"))?;
     let start = Instant::now();
     loop {
         match child.try_wait() {
@@ -30,15 +42,16 @@ pub fn probe(mut cmd: Command, timeout: Duration) -> Option<String> {
             Ok(None) if start.elapsed() < timeout => std::thread::sleep(Duration::from_millis(25)),
             _ => {
                 let _ = child.kill();
-                return None;
+                return Err(format!("{program} did not finish within {} s", timeout.as_secs()));
             }
         }
     }
-    let out = child.wait_with_output().ok()?;
-    if !out.status.success() {
-        return None;
-    }
+    let out = child.wait_with_output().map_err(|e| e.to_string())?;
     let mut text = String::from_utf8_lossy(&out.stdout).into_owned();
     text.push_str(&String::from_utf8_lossy(&out.stderr));
-    Some(text)
+    if out.status.success() {
+        Ok(text)
+    } else {
+        Err(text.trim().to_string())
+    }
 }

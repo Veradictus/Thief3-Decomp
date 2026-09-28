@@ -18,8 +18,15 @@ new actor is always a copy of one in the map.
    T3 edits** button does the same). Nodes you add some other way are not
    T3 actors and are not saved.
 4. Back in Map Studio, click **Repack**, then **Install**, and play the map.
+   **Install** repacks first if the edits changed since the last repack.
 5. **Restore original** puts the unmodified map back. Every original map is
    backed up once, before it is first replaced.
+
+Your edits live in `<Level>.edits.json`, and exporting a map again keeps
+them: the new export shows the map with your edits applied. So when an
+update of the tools changes how maps are exported, Map Studio exports an
+outdated map again by itself when you open it (or all of them at once with
+**Update all now**), and you carry on where you left off.
 
 ![Map Studio: the game's maps, and the export, edit, repack and install steps for the selected one](../images/launcher-map-studio.png)
 
@@ -32,7 +39,7 @@ The launcher runs the tools in `tools/assets/`, which also work by hand from
 a checkout:
 
 ```sh
-python tools/assets/t3map.py Inn                  # export one map (or --all) to build/assets/godot/
+python tools/assets/t3map.py Inn                  # export one map (or --all), with its saved edits
 godot --path build/assets/godot                   # the viewer
 godot --editor --path build/assets/godot          # the editor, with the T3 Map dock
 python tools/assets/t3pack.py apply build/assets/godot/Inn/Inn.edits.json   # a patched copy of the map

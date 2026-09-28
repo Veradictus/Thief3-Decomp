@@ -25,9 +25,10 @@ decompilation** worked mostly by Claude agents under the strict gate in
 - The Ghidra database in `ghidra/` is analysed and has the names from
   `symbols.txt` applied (the export round-trips byte for byte).
 - The asset exporter turns all 32 maps into a Godot 4.7 project in
-  `build/assets/godot/`, tested against the user's Godot 4.7.2. Inn has been
-  re-exported with the editor plugin; the other maps predate it: re-export
-  them (Map Studio, or `t3map.py`) before editing.
+  `build/assets/godot/`, tested against the user's Godot 4.7.2. Exports are
+  stamped with the export format (`tools/assets/formats.json`) and apply the
+  level's saved edits, so Map Studio exports outdated maps again by itself
+  before opening them; exports made before the stamp count as outdated.
 - On the real install: `t3pack.py roundtrip --all` reports all 55 packages
   identical, and `apply` works on Inn (a dry run moved and scaled one fence;
   every other object stayed byte-identical). No patched map has been loaded

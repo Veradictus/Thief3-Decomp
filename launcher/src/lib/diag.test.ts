@@ -15,6 +15,7 @@ function job(key: number, state: Job["state"], lines: string[], extra: Partial<J
     started: 1000,
     ended: state === "running" ? null : 5200,
     requires: null,
+    onDone: null,
     ...extra,
   };
 }
