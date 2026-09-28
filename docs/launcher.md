@@ -75,15 +75,17 @@ in the checkout's `build/`.
 
 ## Building
 
-Needs Node 20+ and Rust (stable). On Windows, WebView2 (part of Windows 10
+Needs Node 20+ (its Corepack supplies the Yarn version pinned in
+`package.json`) and Rust (stable). On Windows, WebView2 (part of Windows 10
 and 11); on Linux, WebKitGTK 4.1 (`libwebkit2gtk-4.1-dev` and Tauri's other
 [prerequisites](https://tauri.app/start/prerequisites/)).
 
 ```sh
+corepack enable          # once: makes `yarn` the pinned Yarn 4
 cd launcher
-npm install
-npm run tauri dev        # the app, with live reload
-npm run tauri build      # release build and NSIS installer in src-tauri/target/release/bundle/
+yarn install
+yarn tauri dev           # the app, with live reload
+yarn tauri build         # release build and NSIS installer in src-tauri/target/release/bundle/
 ```
 
 A release-style build with the bundled tools, SDK and Python (the SDK built
@@ -91,19 +93,32 @@ first with `tools/sdk.py build`):
 
 ```sh
 python tools/stage_launcher.py stage [--version 0.2.0]
-cd launcher && npx tauri build --config src-tauri/bundle/tauri.bundle.conf.json
+cd launcher && yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json
 python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe dist/portable.zip
 ```
 
-`npm run dev` serves the UI alone in a browser. Outside Tauri, `src/lib/mock.ts`
-answers the commands with made-up data, so the UI can be worked on and
+`yarn dev` serves the UI alone in a browser. Outside Tauri, `src/lib/mock.ts`
+answers the commands with made-up data, so the UI can be worked on, tested and
 screenshotted without the game (`?page=maps` opens a page, `?setup` the setup
 screen).
+
+### The UI stack
+
+| Tool | What for |
+|---|---|
+| Yarn 4 (Corepack, `nodeLinker: node-modules`) | packages; `yarn.lock` is committed, CI installs with `--immutable` |
+| TypeScript 6, strict (`noUncheckedIndexedAccess`, unused checks) | `yarn typecheck` runs svelte-check over `.ts` and `.svelte` |
+| ESLint 10 flat config: typescript-eslint strict + stylistic (type-checked), eslint-plugin-svelte | `yarn lint` |
+| Prettier 3 with the Svelte plugin, 120 columns | `yarn format`, `yarn format:check` |
+| Vitest | `yarn test`: display helpers (`src/lib/format.ts`) and the job queue, run against the mock with fake timers |
+| Vite 8 + Svelte 5 (runes) | `yarn dev`, `yarn build`; imports use the `$lib/` and `$components/` aliases |
+
+`yarn verify` runs typecheck, lint, format check and tests, as CI does.
 
 Checks:
 
 ```sh
-npm run check                                    # svelte-check (TypeScript)
+yarn verify                                      # the UI: types, lint, format, tests
 cd src-tauri && cargo test && cargo clippy && cargo fmt --check
 cargo check --target x86_64-pc-windows-msvc      # the Windows-only code, from Linux
 ```

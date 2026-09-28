@@ -2,14 +2,14 @@
   // Paths to the game, Godot, Python and the T3SDK tools. Also the first-run
   // setup screen (`setup`), prefilled from detection.
   import { onMount } from "svelte";
-  import Icon from "../components/Icon.svelte";
-  import PathField from "../components/PathField.svelte";
-  import { api, launcherVersion, type Config, type Detected } from "../lib/api";
-  import { app, guard, saveConfig, toast } from "../lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import PathField from "$components/PathField.svelte";
+  import { api, emptyConfig, launcherVersion, type Config, type Detected } from "$lib/api";
+  import { app, guard, saveConfig, toast } from "$lib/app.svelte";
 
   let { setup = false }: { setup?: boolean } = $props();
 
-  let draft = $state<Config>({ ...app.config! });
+  let draft = $state<Config>({ ...(app.config ?? emptyConfig) });
   let detected = $state<Detected | null>(null);
   let detecting = $state(false);
   let gameOk = $state(false);
@@ -60,7 +60,7 @@
     const r = await api.checkSdkRoot(path);
     return { ok: r.ok, message: r.message, detail: r.sdkBuilt ? "SDK built" : "SDK not built yet" };
   };
-  const projectCheck = async (path: string) => ({ ok: true, message: `Maps are exported to ${path}.` });
+  const projectCheck = (path: string) => Promise.resolve({ ok: true, message: `Maps are exported to ${path}.` });
 </script>
 
 <div class="page">
@@ -85,26 +85,53 @@
   {/if}
 
   <div class="fields">
-    <PathField label="Thief: Deadly Shadows" bind:value={draft.gameDir} bind:ok={gameOk}
+    <PathField
+      label="Thief: Deadly Shadows"
+      bind:value={draft.gameDir}
+      bind:ok={gameOk}
       hint="The game folder: it contains System and Content. The Steam release (patch 1.1) gets the full SDK."
-      candidates={detected?.games} check={gameCheck}
-      action={{ label: "Get Thief: Deadly Shadows on Steam", href: "https://store.steampowered.com/app/6980/" }} />
-    <PathField label="T3SDK folder" bind:value={draft.sdkRoot} bind:ok={rootOk}
+      candidates={detected?.games}
+      check={gameCheck}
+      action={{ label: "Get Thief: Deadly Shadows on Steam", href: "https://store.steampowered.com/app/6980/" }}
+    />
+    <PathField
+      label="T3SDK folder"
+      bind:value={draft.sdkRoot}
+      bind:ok={rootOk}
       hint="The T3SDK tools and SDK. The launcher ships with its own copy; a T3SDK checkout (for developers) works too."
-      candidates={detected?.sdkRoots} check={rootCheck}
-      action={{ label: "Get T3SDK", href: "https://github.com/Veradictus/Thief3-Decomp" }} />
-    <PathField label="Python" bind:value={draft.python} bind:ok={pythonOk} directory={false}
+      candidates={detected?.sdkRoots}
+      check={rootCheck}
+      action={{ label: "Get T3SDK", href: "https://github.com/Veradictus/Thief3-Decomp" }}
+    />
+    <PathField
+      label="Python"
+      bind:value={draft.python}
+      bind:ok={pythonOk}
+      directory={false}
       hint="Runs the T3SDK tools (SDK install, map export, repack). The launcher ships with one; any Python 3.10+ works too."
-      candidates={detected?.pythons} check={pythonCheck}
-      action={{ label: "Get Python", href: "https://www.python.org/downloads/" }} />
-    <PathField label="Godot" bind:value={draft.godot} bind:ok={godotOk} directory={false} optional
+      candidates={detected?.pythons}
+      check={pythonCheck}
+      action={{ label: "Get Python", href: "https://www.python.org/downloads/" }}
+    />
+    <PathField
+      label="Godot"
+      bind:value={draft.godot}
+      bind:ok={godotOk}
+      directory={false}
+      optional
       hint="Godot 4.7 or newer, to view and edit exported maps. Not needed to play."
-      candidates={detected?.godots} check={godotCheck}
-      action={{ label: "Get Godot", href: "https://godotengine.org/download/" }} />
+      candidates={detected?.godots}
+      check={godotCheck}
+      action={{ label: "Get Godot", href: "https://godotengine.org/download/" }}
+    />
     {#if !setup}
-      <PathField label="Godot project folder" bind:value={draft.projectDir} optional
+      <PathField
+        label="Godot project folder"
+        bind:value={draft.projectDir}
+        optional
         hint="Where maps are exported. Empty: build\assets\godot in the T3SDK folder."
-        check={projectCheck} />
+        check={projectCheck}
+      />
     {/if}
   </div>
 
@@ -117,7 +144,7 @@
       <button class="btn ghost" onclick={() => saveConfig({ ...draft, setupComplete: true })}>Skip for now</button>
       <button class="btn primary" onclick={save} disabled={!ready}>Continue<Icon name="chevron" /></button>
     {:else}
-      <button class="btn" onclick={() => (draft = { ...app.config! })} disabled={!dirty}>Revert</button>
+      <button class="btn" onclick={() => (draft = { ...(app.config ?? emptyConfig) })} disabled={!dirty}>Revert</button>
       <button class="btn primary" onclick={save} disabled={!dirty}><Icon name="check" />Save</button>
     {/if}
   </div>
@@ -127,11 +154,13 @@
       <h3>About</h3>
       <p class="muted">
         T3SDK Launcher {version}. T3SDK is a fan project, not affiliated with or endorsed by the owners of the Thief
-        series. It changes the game only in memory while it runs; map repacks replace map files only when you
-        install them, after backing up the originals.
+        series. It changes the game only in memory while it runs; map repacks replace map files only when you install
+        them, after backing up the originals.
       </p>
       <div class="row">
-        <button class="btn small" onclick={() => saveConfig({ ...app.config!, setupComplete: false })}>Run setup again</button>
+        <button class="btn small" onclick={() => saveConfig({ ...(app.config ?? emptyConfig), setupComplete: false })}
+          >Run setup again</button
+        >
       </div>
     </div>
   {/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
   // A path setting: text field, Browse, detected candidates, and a live check.
   import Icon from "./Icon.svelte";
-  import { api, pick, errorText, type Candidate, type CheckResult } from "../lib/api";
+  import { api, pick, errorText, type Candidate, type CheckResult } from "$lib/api";
 
   let {
     label,
@@ -54,8 +54,10 @@
   $effect(() => {
     const path = value;
     clearTimeout(timer);
-    timer = setTimeout(() => run(path), 250);
-    return () => clearTimeout(timer);
+    timer = setTimeout(() => void run(path), 250);
+    return () => {
+      clearTimeout(timer);
+    };
   });
 
   async function browse() {
@@ -69,7 +71,10 @@
 <div class="field card">
   <div class="head">
     <div class="grow">
-      <h3>{label} {#if optional}<span class="faint opt">optional</span>{/if}</h3>
+      <h3>
+        {label}
+        {#if optional}<span class="faint opt">optional</span>{/if}
+      </h3>
       {#if hint}<p class="muted hint">{hint}</p>{/if}
     </div>
     {#if checking}
@@ -83,8 +88,13 @@
     {/if}
   </div>
   <div class="row">
-    <input type="text" spellcheck="false" placeholder={directory ? "Folder path" : "Program path"}
-      value={value ?? ""} oninput={(e) => (value = e.currentTarget.value.trim() || null)} />
+    <input
+      type="text"
+      spellcheck="false"
+      placeholder={directory ? "Folder path" : "Program path"}
+      value={value ?? ""}
+      oninput={(e) => (value = e.currentTarget.value.trim() || null)}
+    />
     <button class="btn" onclick={browse}><Icon name="folder" />Browse</button>
   </div>
   {#if result}

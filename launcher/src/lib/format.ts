@@ -1,0 +1,58 @@
+// Display helpers: plain functions of their arguments, so they are easy to test.
+import type { Setting } from "./api";
+
+const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+
+/** "just now", "5 min ago", "3 h ago", else the date. `seconds` is a Unix time. */
+export function ago(seconds: number | null, now = Date.now()): string {
+  if (!seconds) return "";
+  const d = now / 1000 - seconds;
+  if (d < 60) return "just now";
+  if (d < 3600) return `${Math.floor(d / 60).toString()} min ago`;
+  if (d < 86400) return `${Math.floor(d / 3600).toString()} h ago`;
+  return dateFormat.format(seconds * 1000);
+}
+
+export function bytes(n: number | null): string {
+  if (n === null) return "";
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/** Time between two millisecond timestamps: "4.2 s", "2 min 5 s". */
+export function elapsed(started: number | null, ended: number | null, now = Date.now()): string {
+  if (!started) return "";
+  const s = ((ended ?? now) - started) / 1000;
+  return s < 60 ? `${s.toFixed(1)} s` : `${Math.floor(s / 60).toString()} min ${Math.round(s % 60).toString()} s`;
+}
+
+/** An INI key as a label: "SkipIntros" -> "Skip intros", "UILayoutTrace" -> "UI layout trace". */
+export function settingLabel(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .replace(/ ([A-Z][a-z])/g, (m) => m.toLowerCase());
+}
+
+/** T3SDK.ini comments read "1 = do this."; next to a switch, "Do this." says it. */
+export function settingDescription(setting: Setting): string {
+  return setting.description.replace(/^1 = /, "").replace(/^./, (c) => c.toUpperCase());
+}
+
+/** Settings whose default (or value) is 0 or 1 are on/off switches. */
+export const isSwitch = (setting: Setting) => ["0", "1"].includes(setting.default ?? setting.value);
+
+/** Settings named ...Key hold a virtual-key code. */
+export const isKeySetting = (setting: Setting) => /key$/i.test(setting.key);
+
+const KEY_NAMES: Record<string, string> = {
+  "0": "Off",
+  ...Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [`0x${(0x70 + i).toString(16)}`, `F${(i + 1).toString()}`]),
+  ),
+};
+
+/** The name of a virtual-key code as T3SDK.ini writes it ("0x79" -> "F10"), or "". */
+export function keyName(code: string): string {
+  return KEY_NAMES[code.trim().toLowerCase()] ?? "";
+}

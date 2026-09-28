@@ -1,5 +1,5 @@
 // Typed wrappers around the Rust commands (src-tauri/src). Outside Tauri, in a
-// plain browser (`npm run dev`), calls go to mock.ts so the UI can be worked on
+// plain browser (`yarn dev`), calls go to mock.ts so the UI can be worked on
 // and screenshotted without the game.
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
@@ -140,10 +140,20 @@ export interface TaskExit {
   cancelled: boolean;
 }
 
+/** Before the real config loads (the UI waits for it, so this is rarely seen). */
+export const emptyConfig: Config = {
+  gameDir: null,
+  godot: null,
+  python: null,
+  sdkRoot: null,
+  projectDir: null,
+  setupComplete: false,
+};
+
 export type Location = "game" | "system" | "mods" | "log" | "project" | "sdk" | "patched" | "backup";
 
 function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-  return inTauri ? invoke<T>(cmd, args) : mockCall<T>(cmd, args);
+  return inTauri ? invoke<T>(cmd, args) : (mockCall(cmd, args) as Promise<T>);
 }
 
 export const api = {
@@ -157,18 +167,18 @@ export const api = {
   overview: () => call<Overview>("overview"),
   listMaps: () => call<MapEntry[]>("list_maps"),
   listMods: () => call<ModEntry[]>("list_mods"),
-  setModEnabled: (name: string, enabled: boolean) => call<void>("set_mod_enabled", { name, enabled }),
+  setModEnabled: (name: string, enabled: boolean) => call<null>("set_mod_enabled", { name, enabled }),
   readSdkSettings: () => call<SdkSettings>("read_sdk_settings"),
   writeSdkSettings: (changes: { section: string; key: string; value: string }[]) =>
-    call<void>("write_sdk_settings", { changes }),
-  createSdkSettings: () => call<void>("create_sdk_settings"),
+    call<null>("write_sdk_settings", { changes }),
+  createSdkSettings: () => call<null>("create_sdk_settings"),
   readSdkLog: (lines: number) => call<string[]>("read_sdk_log", { lines }),
   launchGame: () => call<string>("launch_game"),
-  openGodot: (level: string | null, editor: boolean) => call<void>("open_godot", { level, editor }),
-  openLocation: (which: Location) => call<void>("open_location", { which }),
-  openLink: (url: string) => call<void>("open_link", { url }),
+  openGodot: (level: string | null, editor: boolean) => call<null>("open_godot", { level, editor }),
+  openLocation: (which: Location) => call<null>("open_location", { which }),
+  openLink: (url: string) => call<null>("open_link", { url }),
   startTask: (spec: TaskSpec) => call<TaskStarted>("start_task", { spec }),
-  cancelTask: (id: number) => call<void>("cancel_task", { id }),
+  cancelTask: (id: number) => call<null>("cancel_task", { id }),
 };
 
 /** The launcher's version ("preview" outside Tauri). */
@@ -176,8 +186,16 @@ export function launcherVersion(): Promise<string> {
   return inTauri ? getVersion() : Promise.resolve("preview");
 }
 
+// The caller names the payload type the Rust side emits, as with Tauri's listen().
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function onEvent<T>(name: string, handler: (payload: T) => void): Promise<UnlistenFn> {
-  return inTauri ? listen<T>(name, (e) => handler(e.payload)) : mockListen<T>(name, handler);
+  if (!inTauri)
+    return mockListen(name, (payload) => {
+      handler(payload as T);
+    });
+  return listen<T>(name, (e) => {
+    handler(e.payload);
+  });
 }
 
 /** A folder or file picker; null when cancelled. */

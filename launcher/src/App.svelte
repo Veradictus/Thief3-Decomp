@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import Icon from "./components/Icon.svelte";
-  import { inTauri } from "./lib/api";
-  import { app, jobs, loadConfig, pending, refresh, running, type Page } from "./lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import { inTauri } from "$lib/api";
+  import { app, jobs, loadConfig, pending, refresh, running, type Page } from "$lib/app.svelte";
   import Maps from "./pages/Maps.svelte";
   import Mods from "./pages/Mods.svelte";
   import Play from "./pages/Play.svelte";
@@ -23,11 +23,14 @@
     if (start) app.page = start;
     void loadConfig().then(refresh);
     // Pick up changes made outside the launcher (the game, Godot, a shell).
-    const timer = setInterval(() => document.visibilityState === "visible" && refresh(), 15000);
-    window.addEventListener("focus", refresh);
+    const onFocus = () => void refresh();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 15000);
+    window.addEventListener("focus", onFocus);
     return () => {
       clearInterval(timer);
-      window.removeEventListener("focus", refresh);
+      window.removeEventListener("focus", onFocus);
     };
   });
 
@@ -86,7 +89,13 @@
       {:else}<Settings />{/if}
 
       {#if current && app.page !== "tasks"}
-        <button class="taskbar" onclick={() => { jobs.selected = current.key; app.page = "tasks"; }}>
+        <button
+          class="taskbar"
+          onclick={() => {
+            jobs.selected = current.key;
+            app.page = "tasks";
+          }}
+        >
           <span class="spinner"></span>
           <strong>{current.title}</strong>
           <span class="mono faint line">{lastLine}</span>
@@ -99,7 +108,9 @@
 
 <div class="toasts">
   {#each app.toasts as t (t.id)}
-    <div class="toast" class:error={t.kind === "error"}><Icon name={t.kind === "error" ? "alert" : "check"} />{t.text}</div>
+    <div class="toast" class:error={t.kind === "error"}>
+      <Icon name={t.kind === "error" ? "alert" : "check"} />{t.text}
+    </div>
   {/each}
 </div>
 
