@@ -570,18 +570,25 @@ static func collect(root: Node) -> Dictionary:
 		warnings.push_front('%d actor%s without t3_origin metadata (%s): exported by an older t3map.py, re-export the map'
 			% [no_origin.size(), '' if no_origin.size() == 1 else 's', listed(no_origin)])
 
+	# What this format cannot save yet, counted for the dock and the launcher.
+	var added := 0
+	var removed := 0
+
 	var copies: Array = found['copies']
+	added += copies.size()
 	if not copies.is_empty():
 		warnings.append('%d added actor%s (copies of %s); adding actors is not supported yet, they are not saved' % [
 			copies.size(), '' if copies.size() == 1 else 's',
 			listed(copies.map(func(n): return String(n.get_meta('t3_name'))))])
 
 	var foreign := foreign_nodes(root)
+	added += foreign.size()
 	if not foreign.is_empty():
 		warnings.append('%d node%s without T3 metadata (%s); adding actors is not supported yet, they are not saved' % [
 			foreign.size(), '' if foreign.size() == 1 else 's', listed(foreign.map(func(n): return String(n.name)))])
 
 	var expected := int(root.get_meta('t3_actor_count', nodes.size()))
+	removed = maxi(expected - nodes.size(), 0)
 	if nodes.size() < expected:
 		var missing: Array = []
 		for key in exported_names(root):
@@ -596,7 +603,24 @@ static func collect(root: Node) -> Dictionary:
 	if not src.is_empty():
 		doc['source'] = src
 	doc['actors'] = actors
-	return {'doc': doc, 'changed': changed, 'warnings': warnings, 'actors': nodes.size()}
+	if added > 0 or removed > 0:
+		doc['not_saved'] = {'added': added, 'removed': removed}
+	return {'doc': doc, 'changed': changed, 'warnings': warnings, 'actors': nodes.size(),
+		'not_saved': {'added': added, 'removed': removed}}
+
+## What an edits file could not save, from collect()'s not_saved counts:
+## "9 added actors and 1 removed actor", or "" when nothing was left out.
+static func not_saved_text(counts: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	var added := int(counts.get('added', 0))
+	var removed := int(counts.get('removed', 0))
+
+	if added > 0:
+		parts.append('%d added actor%s' % [added, '' if added == 1 else 's'])
+	if removed > 0:
+		parts.append('%d removed actor%s' % [removed, '' if removed == 1 else 's'])
+
+	return ' and '.join(parts)
 
 ## Up to MAX_LISTED items of `items`, comma-separated, with "..." if there are more.
 static func listed(items: Array) -> String:
@@ -617,14 +641,15 @@ static func edits_path(root: Node) -> String:
 	return 'res://%s/%s.edits.json' % [level, level]
 
 ## Collects the level's edits and writes them to `path` (default:
-## edits_path()).  Returns {ok, path, actors (number saved), warnings, error}.
+## edits_path()).  Returns {ok, path, actors (number saved), not_saved
+## ({added, removed}), warnings, error}.
 static func save(root: Node, path: String = '') -> Dictionary:
 	if path == '':
 		path = edits_path(root)
 
 	var c := collect(root)
 	var result := {'ok': false, 'path': path, 'actors': (c['doc']['actors'] as Dictionary).size(),
-		'warnings': c['warnings'], 'error': ''}
+		'not_saved': c['not_saved'], 'warnings': c['warnings'], 'error': ''}
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
 		result['error'] = 'cannot write %s (%s)' % [path, error_string(FileAccess.get_open_error())]

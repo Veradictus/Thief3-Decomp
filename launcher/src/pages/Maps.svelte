@@ -32,6 +32,15 @@
     if (hasGodot) enqueue({ kind: "import" }, "Import into Godot", job);
   }
 
+  // Actors added or removed in Godot, which the edits file cannot save
+  // ("9 added actors"), or "" when there are none.
+  function notSaved(m: MapEntry): string {
+    const parts = [];
+    if (m.notSavedAdded) parts.push(`${m.notSavedAdded} added actor${m.notSavedAdded > 1 ? "s" : ""}`);
+    if (m.notSavedRemoved) parts.push(`${m.notSavedRemoved} removed actor${m.notSavedRemoved > 1 ? "s" : ""}`);
+    return parts.join(" and ");
+  }
+
   function stage(m: MapEntry): { label: string; kind: "" | "ok" | "warn" | "info" } {
     if (m.installed) return { label: "Installed", kind: "ok" };
     if (m.stale) return { label: "Repack needed", kind: "warn" };
@@ -150,6 +159,7 @@
           <p class="muted">
             {#if sel.editedActors}
               {sel.editedActors} actor{sel.editedActors > 1 ? "s" : ""} changed · saved {ago(sel.editsTime)}
+              {#if notSaved(sel)}<span class="warn-text"> · {notSaved(sel)} not saved</span>{/if}
             {:else}
               Move, rotate and scale actors, or change their properties, then save (Ctrl+S). Adding and deleting actors
               is not supported yet.
@@ -177,6 +187,9 @@
               Patched map built {ago(sel.patchedTime)}.
             {:else if sel.exported && sel.editedActors === null}
               Nothing to repack yet: no edits saved in Godot.
+            {:else if sel.editedActors === 0 && notSaved(sel)}
+              <span class="warn-text">Nothing to repack: {notSaved(sel)} are not saved.</span> Adding and deleting actors
+              is not supported yet; move, rotate and scale existing ones.
             {:else if sel.editedActors === 0}
               Nothing to repack: the saved edits change no actors.
             {:else}

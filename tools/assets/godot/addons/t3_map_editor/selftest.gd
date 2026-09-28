@@ -265,6 +265,9 @@ func test_edits(packed: PackedScene) -> Dictionary:
 	var w := '\n'.join(Edits.collect(root)['warnings'])
 	check(w.contains('1 added actor (copies of Yawed)') and w.contains('1 node without T3 metadata (NewMarker)')
 		and w.contains('1 actor removed (LevelInfo0)'), 'added and removed actors are reported')
+	var not_saved = Edits.collect(root)['doc'].get('not_saved')
+	check(Edits.same_json(not_saved, {'added': 2, 'removed': 1}),
+		'the edits file counts what it cannot save: %s' % JSON.stringify(not_saved))
 
 	root.free()
 	return got

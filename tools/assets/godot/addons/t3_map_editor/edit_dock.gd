@@ -581,6 +581,13 @@ func save_edits() -> Dictionary:
 
 	EditorInterface.get_resource_filesystem().update_file(r['path'])
 	_status.text = 'Saved %d changed actor%s to %s' % [r['actors'], '' if r['actors'] == 1 else 's', r['path']]
+
+	# Duplicated or deleted actors are easy to mistake for saved edits.
+	var left_out := Edits.not_saved_text(r['not_saved'])
+	if left_out != '':
+		_status.text += ('\nNot saved: %s. Adding and deleting actors is not supported yet: move, rotate '
+			+ 'and scale the existing ones, or change their properties.') % left_out
+
 	print('T3 edits: ' + _status.text)
 	for w in r['warnings']:
 		push_warning('T3 edits: ' + String(w))
