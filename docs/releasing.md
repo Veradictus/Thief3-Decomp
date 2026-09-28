@@ -58,19 +58,26 @@ password somewhere safe, such as a password manager: installed launchers
 accept updates signed with this key only. If it is lost, every user has to
 install the next version by hand.
 
-Then, in the repository's **Settings → Secrets and variables → Actions**:
+Then, in the repository's **Settings → Environments**, create an environment
+named `Updater` and add to it:
 
 | Name | Kind | Value |
 |---|---|---|
 | `TAURI_SIGNING_PRIVATE_KEY` | secret | the contents of `t3sdk-updater.key` |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | secret | its password (leave it out for a key without one) |
-| `T3_UPDATER_PUBKEY` | variable | the contents of `t3sdk-updater.key.pub` (one line) |
+| `T3_UPDATER_PUBKEY` | secret or variable | the contents of `t3sdk-updater.key.pub` (one line) |
+
+`release.yml` runs the launcher build in that environment, so only release
+builds see the key; the builds for pushes and pull requests never do. If the
+environment has deployment rules, allow the `v*` tags. (Repository-level
+secrets and variables under **Settings → Secrets and variables → Actions**
+work too, but then every same-repository build can read the key.)
 
 What the workflows do with them:
 
 1. `launcher-build.yml` stages with
    `stage_launcher.py stage --updater-pubkey "$T3_UPDATER_PUBKEY"` (and this
-   repository's endpoint) when both the variable and the private key are
+   repository's endpoint) when both the public and the private key are
    there. The generated
    `launcher/src-tauri/bundle/tauri.bundle.conf.json` then has
    `plugins.updater` (the public key, the endpoint

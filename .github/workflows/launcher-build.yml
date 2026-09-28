@@ -10,12 +10,19 @@ on:
         description: launcher version (semver, a leading "v" is dropped); empty for a development build
         type: string
         default: ""
-    # The updater key (docs/releasing.md). Without it, or without the
-    # T3_UPDATER_PUBKEY variable, the launcher is built without the updater.
+      environment:
+        description: GitHub environment holding the updater key (release.yml passes "Updater"); empty for none
+        type: string
+        default: ""
+    # The updater key (docs/releasing.md), from the repository or from the
+    # environment above. Without the private key and T3_UPDATER_PUBKEY (a
+    # secret or a variable), the launcher is built without the updater.
     secrets:
       TAURI_SIGNING_PRIVATE_KEY:
         required: false
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
+      T3_UPDATER_PUBKEY:
         required: false
 
 permissions:
@@ -95,6 +102,9 @@ jobs:
   launcher:
     needs: [check, sdk]
     runs-on: windows-latest
+    # Environment secrets reach only a job that names the environment. An
+    # empty name (every build but a release) means no environment.
+    environment: ${{ inputs.environment }}
     defaults:
       run:
         shell: bash
@@ -119,9 +129,9 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
           # The in-app updater needs both halves of the key: the public one
-          # (a repository variable) and the private one (a secret, absent in
+          # (a secret or a variable) and the private one (a secret, absent in
           # forks and in pull requests from them).
-          UPDATER_PUBKEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && vars.T3_UPDATER_PUBKEY || '' }}
+          UPDATER_PUBKEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && (secrets.T3_UPDATER_PUBKEY || vars.T3_UPDATER_PUBKEY) || '' }}
           UPDATER_ENDPOINT: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/latest.json
         run: |
           python tools/stage_launcher.py stage ${VERSION:+--version "$VERSION"} \
