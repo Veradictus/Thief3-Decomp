@@ -16,7 +16,7 @@ Your worker id comes from `$T3_AGENT_ID` (wave.py sets it).
 ## The loop
 
 1. **Claim.** `python tools/agent/next.py claim` prints JSON: `addr`,
-   `symbol` (the symbols.txt name, often a placeholder like `FUN_10a52530`),
+   `symbol` (the symbols.txt name, often a placeholder like `FUN_10a52420`),
    `size`, `callees`, and `siblings` (accepted functions nearby). If
    `empty` is true, the queue is done: stop.
 2. **Read the context.** `python tools/agent/context.py <addr>`: the target's
@@ -33,7 +33,7 @@ Your worker id comes from `$T3_AGENT_ID` (wave.py sets it).
    struct Foo { int a; int b; int Get() const; };   // what the function needs
    int Helper(int);          // callees: declared, never defined (see the cheat sheet)
 
-   // FUNCTION: 0x10A52530
+   // FUNCTION: 0x10A52420
    int Foo::Get() const
    {
        return a + Helper(b);
@@ -112,7 +112,7 @@ Then claim the next function.
 End your run with one line of JSON, and nothing after it:
 
 ```json
-{"agent": "w03", "matched": ["0x10A52530"], "deferred": [{"addr": "0x10A52600", "best": 87.5, "why": "register allocation in the loop"}], "needs": ["a header for Foo: the target reads fields at +0x30 and +0x34"], "idioms": ["x * 6 compiles to lea eax, [eax+eax*0x2]; shl eax, 0x1"]}
+{"agent": "w03", "matched": ["0x10A52420"], "deferred": [{"addr": "0x10A52440", "best": 87.5, "why": "register allocation in the loop"}], "needs": ["a header for Foo: the target reads fields at +0x30 and +0x34"], "idioms": ["x * 6 compiles to lea eax, [eax+eax*0x2]; shl eax, 0x1"]}
 ```
 
 `needs` lists headers, layouts, names and declarations the lead should
