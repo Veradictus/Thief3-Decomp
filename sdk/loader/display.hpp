@@ -21,6 +21,9 @@ struct Options {
     // Pause the game while another window has the focus, as the game does on
     // its own. Off: a borderless game keeps running in the background.
     bool pauseInBackground = false;
+    // Scale of the borderless window's menu cursor; 0 = follow the screen
+    // height (1 at 768 lines).
+    double cursorScale = 0;
     // Log frames per second and the time spent presenting, every 10 seconds.
     bool frameStats = false;
 };
