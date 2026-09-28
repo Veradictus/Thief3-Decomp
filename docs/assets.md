@@ -504,17 +504,48 @@ Run `t3map.py <Level>` or `t3map.py --all`. The output goes to
 `build/assets/godot/`, which is itself a Godot 4.7 project:
 
 ```
-project.godot                  the viewer project (rewritten on every export)
-t3_maps.json                   index of exported maps: id, title, scene, counts, default start, source
+project.godot                  the viewer project (updated on every export)
+t3_maps.json                   index of exported maps: id, title, scene, counts, default start, source,
+                               export format version, the scene's SHA-1
 t3_tools/                      copy of tools/assets/godot/: the viewer and check scripts
 addons/t3_map_editor/          the map editor plugin (enabled in project.godot)
-<Level>/<Level>.tscn           the level (text scene, format 3)
+<Level>/<Level>.tscn           the level (text scene, format 3), with its saved edits applied
+<Level>/<Level>.tscn.bak       the scene an export replaced, if it had been saved in Godot
 <Level>/<Level>.actors.json    every actor and link object, lossless-ish, for tools
-<Level>/<Level>.edits.json     changes saved by the map editor plugin (not written by the export)
+<Level>/<Level>.edits.json     changes saved by the map editor plugin (read, never written, by the export)
 <Level>/meshes/<mesh>[__<skin>].glb   one per (mesh, skin) pair used
 <Level>/meshes/<Level>_bsp.glb        BSP render blocks, one node per block
 <Level>/textures/*.png                 decoded textures (lower-case names)
 ```
+
+`project.godot`, `t3_tools/` and the plugin are only written where they
+differ from the tools, so an open editor sees no change; `t3map.py
+--project-only` updates just them (the launcher does that before it opens
+Godot).
+
+**Exporting again.** An export shows the map with its saved edits applied
+(see [Map editor plugin](#map-editor-plugin)), so exporting a map again
+keeps the work done on it; `--without-edits` exports the map as it is. The
+scene an export replaces is kept as `<Level>.tscn.bak` when it was saved in
+Godot since the last export (its SHA-1 is not the one in `t3_maps.json`),
+in case it holds something the edits file cannot (nodes that are not T3
+actors). While the game holds a patched map (`t3pack.py install`), the
+export reads the original from its backup, unless the saved edits were made
+from the patched map itself: an installed patch is never exported as if it
+were the map.
+
+**Export format.** `tools/assets/formats.json` holds the format versions
+that the tools, the launcher and the plugin share: `map_export` for what an
+export writes, `map_edits` for the edits file. Every export is stamped with
+`map_export` (the scene root's `t3_export_version`, `actors.json` and the
+index). When a change to the exporter needs old exports made again, raise
+`map_export`:
+
+- `t3map.py` exports a map of an older version in full, meshes and textures
+  too (it otherwise reuses the files that exist);
+- the launcher's Map Studio marks such maps outdated and exports one again,
+  with its saved edits, before it opens it in Godot;
+- the plugin warns in the dock about a scene of an older version.
 
 Scene structure:
 
@@ -713,13 +744,27 @@ and save the changes as `<Level>/<Level>.edits.json` for `t3pack.py`.
   arrays, object references and bitfields are read-only, and so is
   `DrawScale` (scale the node). Edits are kept in the node's
   `t3_gamesys_edits` metadata, so they are saved with the scene;
-  `t3_gamesys` keeps the exported values.
+  `t3_gamesys` keeps the map's values.
 - **Changed actors.** The dock lists the changed actors (click one to select
   it) and reverts one with **Revert**. All changes go through undo/redo.
 - **Save T3 edits** (dock button, or Project > Tools) writes the edits file,
   and so does saving the level's scene (Ctrl+S).
-  **Load** (or Load T3 edits) applies it to the scene, for example after a
-  re-export: every actor in the file gets its saved state.
+  **Load** (or Load T3 edits) applies it to the scene: every actor in the
+  file gets its saved state. An export applies the file already, so Load is
+  only needed after changing the file by hand; loading into a scene that
+  holds the edits changes nothing.
+
+**Saved edits in the export.** The exporter applies the level's edits file
+to the scene it writes, the way Load does: a changed actor's node stands
+where it was put and holds its property edits in `t3_gamesys_edits`, each
+new actor is a node at the end of its original's folder, named after it
+with " (copy)", and removed actors have no node. Every node keeps
+`t3_origin`, its placement in the map file, so the plugin finds the same
+edits in the scene and saves the same file again; `check_scene.gd` checks
+exactly that for every scene that has an edits file. Edits that match no
+actor in the map are reported and left out, and the edits file is copied to
+`<Level>.edits.json.bak` first, since saving the scene would rewrite it
+without them.
 
 Only changes are written. The plugin compares each actor with its
 `t3_origin` and `t3_gamesys`:
@@ -747,7 +792,8 @@ New and removed actors:
   become an actor: the dock warns, and the edits file only counts such nodes
   under `not_saved`, so Map Studio can say why there is nothing to repack.
 - **Load** makes the copies again and deletes the removed actors, as one
-  undoable action; **Revert** on a new actor deletes it.
+  undoable action; **Revert** on a new actor deletes it. A copy already in
+  the scene where the file puts it is not made again.
 
 The edits file is format `t3-map-edits` version 2, described with
 `t3pack.py` in section 8 ("Getting edits back into the game"). The plugin
@@ -760,10 +806,12 @@ scenes exported without it.
 `godot_check.py --editor-selftest [DIR]` tests the plugin without game
 files. It writes a synthetic level (made-up actors and a cube) into a
 project at DIR (default `build/assets/editor_selftest/`) with the exporter's
-own writers. Then it runs the model test headlessly (`selftest.gd`: rotator
-round trip including pitch ±90°, every kind of edit, save and load), checks
-the saved file with Python, and opens the level in the headless editor to
-drive the dock (select, edit, save, undo, load, revert).
+own writers, and the same level exported with saved edits. Then it runs
+the model test headlessly (`selftest.gd`: rotator round trip including pitch
+±90°, every kind of edit, save and load, loading into the export with saved
+edits), checks the saved file with Python, checks with `check_scene.gd` that
+the export with saved edits holds exactly them, and opens the level in the
+headless editor to drive the dock (select, edit, save, undo, load, revert).
 
 ## 7. Existing tools and documentation
 
@@ -1104,7 +1152,8 @@ and `t3texpack.py apply` and `restore`, which replace `.ibt` bundles.
 | `t3bsp.py stats\|export <map>` | BSP render blocks to glTF |
 | `t3props.py table\|scripts\|enums` | Gamesys property table, UnrealScript source dump |
 | `t3gamesys.py list\|show\|json` | Archetypes and their resolved properties |
-| `t3map.py <map>\|--all [--json-only] [--scale S]` | Level to JSON + Godot scene |
+| `t3map.py <map>\|--all [--json-only] [--scale S] [--without-edits]` | Level to JSON + Godot scene, with its saved edits |
+| `t3map.py --project-only [-o DIR]` | Update the project's viewer and map editor plugin only |
 | `t3pack.py roundtrip\|apply\|install\|restore` | Write maps back: round-trip check, edits file to a patched `.gmp`, install with a backup, restore (section 8) |
 | `upkgwrite.py` | Package writer and actor editing, used by `t3pack.py` |
 | `t3texpack.py list\|check\|apply\|restore`, `--selfcheck` | Texture packs: replace textures inside `.ibt` bundles with DDS files, with a backup and a record; restore. `--selfcheck` checks the writer and the encoder on the retail bundles (section 3) |

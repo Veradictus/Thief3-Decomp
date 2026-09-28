@@ -4,7 +4,8 @@
 Builds a tiny Flesh-style Unreal package, a map-like package and a tiny .ibt
 block file in build/assets/selftest/, then checks that the parsers, the
 texture and mesh converters, the glTF writer, the coordinate conversion, the
-package writer and the map edits (t3pack.py) agree with what was written.
+package writer and the map edits (t3pack.py) agree with what was written, and
+that an export (t3map.py) applies saved edits and keeps itself current.
 selftest_texpack.py then checks the block-file writer and texture packs
 (ibtwrite.py, t3texpack.py) in a stand-in game folder.
 Run: python tools/assets/selftest.py
@@ -25,6 +26,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ibt import IBT, PartReader  # noqa: E402
 from t3common import BUILD_DIR, Reader, godot_basis, u2g, write_index  # noqa: E402
+from t3map import (EXPORT_VERSION, TOOLS_DIR, ActorRecord, ensure_project, export_source,  # noqa: E402
+                   keep_previous_scene, resolve_edits, write_tscn)
 from t3mesh import ResourceSet, mesh_to_gltf, parse_static_mesh  # noqa: E402
 from t3pack import (EditsError, apply_edits, check_source, install, load_edits, original_source,  # noqa: E402
                     restore, roundtrip, write_verified)
@@ -404,6 +407,15 @@ def test_writer() -> None:
     assert (backups / "SynthMap.gmp").read_bytes() == data and len(log) == 2, log
     install(OUT / "cli.gmp", game, level="synthmap", backup_dir=backups, log=log.append)
     assert (backups / "SynthMap.gmp").read_bytes() == data and "backup kept" in log[2], log
+    # a patched map with new actors installs: it starts with the original's objects
+    install(OUT / "grown.gmp", game, level="synthmap", backup_dir=backups, log=log.append)
+    assert (maps / "SynthMap.gmp").read_bytes() == (OUT / "grown.gmp").read_bytes()
+    (OUT / "other.gmp").write_bytes(build_package())
+    try:
+        install(OUT / "other.gmp", game, level="synthmap", backup_dir=backups, log=log.append)
+        raise AssertionError("a package that is not a patched map was installed")
+    except EditsError as ex:
+        assert "other.gmp is not a patched SynthMap.gmp" in str(ex), ex
     # edits made from the original still apply while a patched copy is installed: to the backup
     sha1 = hashlib.sha1(data).hexdigest()
     made_from_original = load_edits({**base, "source": {"size": len(data), "sha1": sha1}, "actors": {}})
@@ -415,6 +427,102 @@ def test_writer() -> None:
     assert (maps / "SynthMap.gmp").read_bytes() == data
     assert restore(None, game, backup_dir=backups, log=log.append) == 0 and "already the original" in log[-1]
     print("package writer, map edits, install and restore: ok")
+
+
+# --- exports ---------------------------------------------------------------------------------
+
+def scene_nodes(text: str) -> dict:
+    """The node sections of a scene file: {node name: its lines}."""
+    nodes = {}
+    for block in text.split("\n[node ")[1:]:
+        name = block.split('"', 2)[1]
+        nodes[name] = block
+    return nodes
+
+
+def test_export() -> None:
+    """t3map.py: the scene of an export holds the saved edits, the original
+    map is exported while a patched one is installed, a scene saved in Godot
+    is kept before an export replaces it, and the project's files are only
+    written when they change."""
+    out = OUT / "export"
+    shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True)
+    actors = [ActorRecord("LevelInfo0", "LevelInfo", base="LevelInfo"),
+              ActorRecord("Crate__7", "StaticMeshActor", base="StaticMeshActor", location=(10.0, 20.0, 30.0),
+                          mesh="Box", skin="Default", gamesys={"Health": 5}, gamesys_types={"Health": "int"}),
+              ActorRecord("Point__3", "TestPoint", base="TestPoint")]
+    doc = load_edits({"format": "t3-map-edits", "version": 2, "level": "Synth",
+                      "actors": {"crate__7": {"location": [11.0, 20.0, 30.0], "gamesys": {"Health": 9}},
+                                 "Nobody": {"draw_scale": 2.0}},
+                      "added": [{"copy_of": "Crate__7", "location": [50.0, 20.0, 30.0], "rotation": [0, 16384, 0],
+                                 "gamesys": {"Health": 1.5}}],
+                      "removed": ["Point__3", "LevelInfo0"]})
+    saved = resolve_edits(actors, doc)
+    assert saved.problems == ["changed actor Nobody: no actor of that name in the map",
+                              "removed actor LevelInfo0: the level needs its LevelInfo, so it stays"], saved.problems
+    assert list(saved.placed) == ["Crate__7"] and saved.placed["Crate__7"].location == (11.0, 20.0, 30.0)
+    assert saved.gamesys == {"Crate__7": {"Health": 9}} and saved.removed == {"Point__3"}
+    assert saved.copies[0][0] is actors[1] and saved.copies[0][1].rotation == (0, 16384, 0)
+    assert saved.summary() == "1 changed, 1 new and 1 removed actors"
+
+    scene = out / "Synth.tscn"
+    write_tscn(scene, "Synth", actors, {("Box", "Default"): "Box.glb"}, 0.01905, edits=saved)
+    text = scene.read_text(encoding="utf-8")
+    nodes = scene_nodes(text)
+    assert "metadata/t3_actor_count = 2" in text and f"metadata/t3_export_version = {EXPORT_VERSION}" in text
+    assert "Point__3" not in text and "LevelInfo0" in text
+    crate, copy = nodes["Box #7"], nodes["Box #7 (copy)"]
+    origin = 'metadata/t3_origin = "{\\"location\\": [10.0, 20.0, 30.0]'
+    assert origin in crate and origin in copy, (crate, copy)
+    assert "metadata/t3_gamesys_edits = {\"Health\": 9}" in crate
+    assert "metadata/t3_gamesys_edits = {\"Health\": 1.5}" in copy
+    # where they stand: Unreal (x, y, z) is Godot (x, z, y), scaled
+    assert crate.split("transform = ")[1].split("\n")[0].endswith("0.20955, 0.5715, 0.381)"), crate
+    assert copy.split("transform = ")[1].split("\n")[0].endswith("0.9525, 0.5715, 0.381)"), copy
+
+    # while a patched map is installed, the original is exported, unless the
+    # saved edits were made from the patched map
+    game_map, backups = out / "game" / "Synth.gmp", out / "backup"
+    game_map.parent.mkdir()
+    backups.mkdir()
+    game_map.write_bytes(b"original")
+    assert export_source(game_map, None, backups) == game_map
+    (backups / "Synth.gmp").write_bytes(b"original")
+    assert export_source(game_map, None, backups) == game_map
+    game_map.write_bytes(b"patched!")
+    assert export_source(game_map, None, backups) == backups / "Synth.gmp"
+    made_on_patch = {"source": {"size": 8, "sha1": hashlib.sha1(b"patched!").hexdigest()}}
+    assert export_source(game_map, made_on_patch, backups) == game_map
+
+    # the scene an export replaces is kept if it was saved in Godot
+    edits_file = out / "Synth.edits.json"
+    sha1 = hashlib.sha1(scene.read_bytes()).hexdigest()
+    assert keep_previous_scene(scene, {"scene_sha1": sha1}, edits_file) is None
+    assert keep_previous_scene(out / "none.tscn", None, edits_file) is None
+    assert keep_previous_scene(scene, None, edits_file) is None  # an older export, never edited
+    edits_file.write_text("{}", encoding="utf-8")
+    assert keep_previous_scene(scene, None, edits_file) == out / "Synth.tscn.bak"
+    scene.write_text(text + '\n[node name="Mine" type="Node3D" parent="."]\n', encoding="utf-8")
+    kept = keep_previous_scene(scene, {"scene_sha1": sha1}, edits_file)
+    assert kept is not None and "Mine" in kept.read_text(encoding="utf-8")
+
+    # project files: written once, then only what changed; Godot's own files stay
+    project = out / "project"
+    assert ensure_project(project) > 0 and ensure_project(project) == 0
+    addon = project / "addons" / "t3_map_editor"
+    (addon / "plugin.gd").write_text("# changed", encoding="utf-8")
+    (addon / "plugin.gd.uid").write_text("uid://keep", encoding="utf-8")
+    assert ensure_project(project) == 1
+    assert (addon / "plugin.gd").read_bytes() == (TOOLS_DIR / "godot" / "addons" / "t3_map_editor" /
+                                                  "plugin.gd").read_bytes()
+    assert (addon / "plugin.gd.uid").read_text(encoding="utf-8") == "uid://keep"
+    tool = str(Path(__file__).resolve().parent / "t3map.py")
+    env = {k: v for k, v in os.environ.items() if k != "T3_GAME_DIR"}
+    r = subprocess.run([sys.executable, tool, "--project-only", "-o", str(project)], capture_output=True, text=True,
+                       env=env)
+    assert r.returncode == 0 and "project files up to date" in r.stdout, (r.stdout, r.stderr)
+    print("exports: saved edits, original source, kept scenes, project files: ok")
 
 
 # --- synthetic block file ---------------------------------------------------------------------
@@ -546,6 +654,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     test_package()
     test_writer()
+    test_export()
     test_ibt()
     test_math_and_props()
     selftest_texpack.main()

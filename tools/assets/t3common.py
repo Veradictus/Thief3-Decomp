@@ -12,18 +12,23 @@ Standard library only.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import struct
 import sys
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # Output goes under <repo>/build, or under $T3SDK_BUILD_DIR: the launcher points
 # that at a per-user folder when it runs the copy of the tools it ships with.
 BUILD_ROOT = Path(os.environ.get("T3SDK_BUILD_DIR") or REPO_ROOT / "build")
 BUILD_DIR = BUILD_ROOT / "assets"
+
+# Format versions of what the map tools write (map_export, map_edits), shared
+# with the launcher and the map editor plugin; see formats.json.
+FORMATS: Dict[str, Any] = json.loads((Path(__file__).resolve().parent / "formats.json").read_text(encoding="utf-8"))
 
 _U8 = struct.Struct("<B")
 _U16 = struct.Struct("<H")

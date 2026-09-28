@@ -15,8 +15,8 @@ Usage:
       intact.  --all: every map, script package and UTX file of the install.
       A package that differs is written to build/assets/roundtrip/.
   t3pack.py apply <edits.json> [-o out.gmp] [--source <.gmp>] [--dry-run]
-      apply a map edits file (t3-map-edits version 1, see docs/assets.md) to
-      the level's .gmp and write build/assets/patched/<Level>.gmp.
+      apply a map edits file (t3-map-edits, see docs/assets.md) to the
+      level's .gmp and write build/assets/patched/<Level>.gmp.
   t3pack.py install <patched.gmp> [--level NAME] [--dry-run]
       copy a patched map into Content/T3/Maps, after backing up the original
       once to build/assets/backup/ (an existing backup is never replaced).
@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from t3common import run_cli, BUILD_DIR, content_dir, game_dir, resolve_map  # noqa: E402
+from t3common import run_cli, BUILD_DIR, FORMATS, content_dir, game_dir, resolve_map  # noqa: E402
 from t3props import PropertyNames, load_table  # noqa: E402
 from upkg import RF_HasStack, Export, Package, prop_value, struct_fields  # noqa: E402
 from upkgwrite import (STRUCTS, ActorEdit, LayoutError, PackageWriter, block_kind, compare_packages, f32,  # noqa: E402
@@ -54,10 +54,10 @@ BACKUP_DIR = BUILD_DIR / "backup"
 ROUNDTRIP_DIR = BUILD_DIR / "roundtrip"
 
 EDITS_FORMAT = "t3-map-edits"
-# 2 adds "added" (new actors, each a copy of one in the map) and "removed";
-# version 1 files, which only change actors, still load.
-EDITS_VERSION = 2
-EDITS_VERSIONS = (1, 2)
+# 2 adds "added" (new actors, each a copy of one in the map) and "removed".
+# Files of every earlier version still load.
+EDITS_VERSION: int = FORMATS["map_edits"]
+EDITS_VERSIONS = tuple(range(1, EDITS_VERSION + 1))
 ACTOR_KEYS = ("location", "rotation", "draw_scale", "gamesys")
 
 
@@ -76,8 +76,8 @@ def _is_integral(v: Any) -> bool:
 
 
 def load_edits(source: Union[str, Path, Dict[str, Any]]) -> Dict[str, Any]:
-    """Read and check a map edits document (format "t3-map-edits", version 1
-    or 2) from a path or an already parsed dict.
+    """Read and check a map edits document (format "t3-map-edits", any version
+    in EDITS_VERSIONS) from a path or an already parsed dict.
 
     Returns a normalised copy: {"format", "version", "level", "source" (a
     dict, or None when absent), "actors": {export name: {...}}, "added":
@@ -217,7 +217,8 @@ def sha1_of(path: Path) -> str:
     return h.hexdigest()
 
 
-def _source_matches(path: Path, src: Dict[str, Any]) -> bool:
+def source_matches(path: Path, src: Dict[str, Any]) -> bool:
+    """Whether `path` is the map an edits "source" record ({size, sha1}) describes."""
     if "size" in src and path.stat().st_size != src["size"]:
         return False
     return "sha1" not in src or sha1_of(path) == src["sha1"]
@@ -229,12 +230,12 @@ def check_source(edits: Dict[str, Any], path: Path, backup_dir: Path = BACKUP_DI
     src = edits.get("source") or {}
     if "sha1" not in src and "size" not in src:
         return "no source hash in the edits file: not checked"
-    if _source_matches(path, src):
+    if source_matches(path, src):
         what = f"sha1 {src['sha1'][:12]}" if "sha1" in src else f"size {src['size']}"
         return f"matches the edits' source ({what})"
     hint = ""
     backup = backup_dir / path.name
-    if backup.is_file() and backup.resolve() != path.resolve() and _source_matches(backup, src):
+    if backup.is_file() and backup.resolve() != path.resolve() and source_matches(backup, src):
         hint = f" The backup matches: pass --source {backup}"
     raise EditsError(f"{path} is not the file these edits were made from (expected size {src.get('size')}, "
                      f"sha1 {src.get('sha1')}). Export the map again and redo the edits, or pass --source "
@@ -249,7 +250,7 @@ def original_source(edits: Dict[str, Any], path: Path, backup_dir: Path = BACKUP
     src = edits.get("source") or {}
     backup = backup_dir / path.name
     if (("sha1" in src or "size" in src) and backup.is_file() and backup.resolve() != path.resolve()
-            and not _source_matches(path, src) and _source_matches(backup, src)):
+            and not source_matches(path, src) and source_matches(backup, src)):
         log(f"{path.name}: the game has a patched copy; using the backed-up original {backup}")
         return backup
     return path
@@ -967,7 +968,7 @@ def main() -> None:
     s.add_argument("package", nargs="?", help="map name (Inn) or path to a package")
     s.add_argument("--all", action="store_true", help="every map, script package and UTX file")
     s = sub.add_parser("apply", help="apply a map edits file; writes build/assets/patched/<Level>.gmp")
-    s.add_argument("edits", help="edits file (t3-map-edits, version 1)")
+    s.add_argument("edits", help="edits file (t3-map-edits)")
     s.add_argument("-o", "--output", help="patched map to write (default build/assets/patched/<Level>.gmp)")
     s.add_argument("--source", help="map to patch (default: the level's .gmp in the game folder)")
     s.add_argument("-n", "--dry-run", action="store_true", help="check and verify, write nothing")

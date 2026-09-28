@@ -226,10 +226,13 @@ class ResourceSet:
     """Resolves names across a level bundle and the kernel bundle, the way the
     game has both loaded at once.  Exports textures on demand."""
 
-    def __init__(self, bundles: Sequence[IBT], texture_dir: Path, texture_uri_prefix: str = "../textures/") -> None:
+    def __init__(self, bundles: Sequence[IBT], texture_dir: Path, texture_uri_prefix: str = "../textures/",
+                 overwrite: bool = False) -> None:
+        """`overwrite`: export each texture again even if its PNG exists."""
         self.bundles = list(bundles)
         self.texture_dir = texture_dir
         self.uri_prefix = texture_uri_prefix
+        self.overwrite = overwrite
         self._materials: Dict[str, Optional[Material]] = {}
         self._textures: Dict[str, Optional[Tuple[str, bool]]] = {}
 
@@ -264,7 +267,7 @@ class ResourceSet:
             else:
                 tex = parse_texture(hit[1], hit[0].split(hit[1]))
                 png = self.texture_dir / f"{key}.png"
-                if not png.exists():
+                if self.overwrite or not png.exists():
                     export_texture(tex, self.texture_dir, dds=False, png=True)
                 self._textures[key] = (self.uri_prefix + png.name, texture_has_alpha(tex))
         return self._textures[key]

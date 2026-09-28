@@ -5,15 +5,16 @@ extends SceneTree
 ## game data).
 ##
 ## Usage (from the project folder, after --import):
-##   godot --headless --path <project> --script res://addons/t3_map_editor/selftest.gd -- res://T3EditTest/T3EditTest.tscn
+##   godot --headless --path <project> --script res://addons/t3_map_editor/selftest.gd -- res://T3EditTest/T3EditTest.tscn [res://T3EditBaked/T3EditBaked.tscn]
 ##
 ## Checks the rotator round trip (godot_basis() then rotator_from_basis(),
 ## including pitch +-90 and rotators outside the canonical range), that the
 ## untouched level has no edits, then moves, rotates and scales actors and
 ## edits gamesys values, saves with the same code as the dock's Save button,
-## and compares the file with the expected values; finally loads the file
-## into a fresh copy of the level and checks that it collects the same edits.
-## Exits with 0 (pass) or 1 (fail).
+## and compares the file with the expected values; then loads the file into a
+## fresh copy of the level and checks that it collects the same edits.  The
+## optional second scene is the level exported with saved edits: loading them
+## into it again must change nothing.  Exits with 0 (pass) or 1 (fail).
 
 # =============================================================================
 # VARIABLES
@@ -58,6 +59,8 @@ func _init() -> void:
 	test_load_added(packed)
 	test_speed()
 	test_old_export(packed)
+	if args.size() > 1:
+		test_saved_export(args[1])
 
 	if failures.is_empty():
 		print('SELFTEST PASSED')
@@ -364,4 +367,36 @@ func test_old_export(packed: PackedScene) -> void:
 	var w: Array = c['warnings']
 	check(w.size() == 1 and String(w[0]).begins_with('13 actors without t3_origin metadata')
 		and (c['doc']['actors'] as Dictionary).is_empty(), 'an older export gets one warning and no edits %s' % [w])
+	check(not Edits.is_outdated(root) and Edits.export_version(root) == Edits.EXPORT_VERSION,
+		'the exporter stamps the export format this plugin is made for (%d)' % Edits.export_version(root))
+
+	# Unstamped: exported before scenes carried an export format.
+	root.remove_meta('t3_export_version')
+	w = Edits.collect(root)['warnings']
+	check(Edits.is_outdated(root) and String(w[0]).begins_with('exported by older tools (export format 0'),
+		'a scene from older tools is reported first %s' % [w.slice(0, 1)])
+	root.free()
+
+# --- Saved Edits In An Export ---
+
+## The level exported with saved edits (the scene at `path`) holds them
+## already: loading its edits file again makes no new actor and deletes none,
+## and the level then collects the same edits as before.
+func test_saved_export(path: String) -> void:
+	var packed := load(path) as PackedScene
+	if not check(packed != null, 'loads %s' % path):
+		return
+
+	var root := packed.instantiate()
+	var r := Edits.read(Edits.edits_path(root))
+	check(r['error'] == '', 'reads its edits file %s' % r['error'])
+	var before := Edits.to_json(Edits.collect(root)['doc'])
+	var plan := Edits.plan_load(root, r['doc'])
+	var made := (plan['changes'] as Array).filter(func(c): return c.has('create') or c.has('delete'))
+	check(made.is_empty() and (plan['warnings'] as Array).is_empty(),
+		'loading the saved edits into the export again makes and deletes no actor %s' % [plan['warnings']])
+
+	Edits.apply_changes(plan['changes'])
+	var after := Edits.to_json(Edits.collect(root)['doc'])
+	check(after == before, 'and the level collects the same edits')
 	root.free()
