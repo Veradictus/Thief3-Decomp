@@ -8,8 +8,8 @@
     python tools/agent/next.py requeue (addr ... | --all)         # lead: forget deferrals
 
 The queue holds every function in symbols.txt except EH unwind funclets
-(`Unwind@`, `.text$x`), import thunks, the library region from the CRT entry
-point on (--all-regions includes it), and functions already accepted,
+(`Unwind@`, `.text$x`), import thunks, the library region from configure.py's
+LIBRARY_START on (--all-regions includes it), and functions already accepted,
 integrated into src/, deferred or claimed. It is ordered easy first: by a
 difficulty score from the target's instructions (instructions, branches,
 calls, switches, EH, x87; needs iced-x86 and the exe or split objects), else
@@ -96,7 +96,7 @@ def main() -> None:
         s = sub.add_parser(name)
         s.add_argument("--unit", help="only functions of this split unit (name or prefix, e.g. auto/text_10A5)")
         s.add_argument("--max-size", type=lambda v: int(v, 0), help="skip functions larger than this")
-        s.add_argument("--all-regions", action="store_true", help="include the library region after the CRT entry")
+        s.add_argument("--all-regions", action="store_true", help="include the library region (from LIBRARY_START on)")
         s.add_argument("--include-deferred", action="store_true")
         if name == "claim":
             s.add_argument("--agent", help="worker id (default: $T3_AGENT_ID)")

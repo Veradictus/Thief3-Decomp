@@ -45,8 +45,8 @@ wave's commands, prompt, settings and results) and `worktrees/`.
 ### Queue
 
 `next.py` lists every function of `symbols.txt` except EH unwind funclets
-(`Unwind@`, `.text$x`), import thunks, the library region from the CRT entry
-point `0x10D1F7AF` on (`--all-regions` includes it), and functions already
+(`Unwind@`, `.text$x`), import thunks, the library region from `0x10CFBFB0`
+on (qhull, then the C runtime; `--all-regions` includes it), and functions already
 accepted, integrated (a `// FUNCTION:` line in `src/`), deferred or claimed.
 With the current `symbols.txt` that leaves 18,195 functions. They are
 ordered easy first by a difficulty score when iced-x86 and the target's
