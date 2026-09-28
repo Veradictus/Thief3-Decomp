@@ -22,6 +22,8 @@ jobs:
     uses: ./.github/workflows/launcher-build.yml
     with:
       version: ${{ github.ref_name }}
+      # Holds the updater key (docs/releasing.md).
+      environment: Updater
     secrets: inherit
 
   release:
