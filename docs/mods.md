@@ -60,7 +60,7 @@ my-mod-1.2.0.t3mod          a zip
 | Field | Required | Meaning |
 |---|---|---|
 | `format` | yes | `1`. A reader refuses a higher number. |
-| `id` | yes | Unique, stable name: `^[a-z0-9][a-z0-9_-]{0,63}$`. Also the install folder name. |
+| `id` | yes | Unique, stable name: `^[a-z0-9][a-z0-9_-]{0,63}$`. Also the install folder name, so `disabled` and `originals` (folders of `System/mods/`) are reserved. |
 | `name` | yes | Display name, 1–80 characters. |
 | `version` | yes | [Semantic version](https://semver.org/): `MAJOR.MINOR.PATCH`, optional `-prerelease`, optional `+build`. |
 | `authors` | yes | One or more names. |
