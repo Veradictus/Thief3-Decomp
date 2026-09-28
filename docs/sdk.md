@@ -97,8 +97,24 @@ as it would without the SDK.
 ## Writing a mod
 
 Build a 32-bit DLL that exports `T3Mod_Init` using the C API in
-[`sdk/include/t3sdk/t3sdk.h`](../sdk/include/t3sdk/t3sdk.h). Put it in
-`System/mods/`; mods are loaded in filename order before the engine starts.
+[`sdk/include/t3sdk/t3sdk.h`](../sdk/include/t3sdk/t3sdk.h). Mods are loaded
+from `System/mods/` before the engine starts, in two groups:
+
+1. **Packages**: a `.t3mod` ([mods.md](mods.md)) that the launcher installed
+   lives in `System/mods/<id>/`, and the launcher lists its DLL as
+   `<id>/<dll>` in `System/mods/load-order.txt`. The SDK loads those lines
+   top to bottom, skipping blank lines and `#` comments, and refuses (with a
+   log line) a line with an absolute path or `..`. Each DLL is loaded with
+   `LoadLibraryExW(..., LOAD_WITH_ALTERED_SEARCH_PATH)`, so helper DLLs next
+   to it are found.
+2. **Loose DLLs**: every `System/mods/*.dll` not loaded yet, in filename
+   order. The launcher switches these off by moving them to
+   `System/mods/disabled/`.
+
+A mod's name in `T3SDK.log` and crash reports is its folder name (a loose
+DLL's: its file name). Without a `load-order.txt` only loose DLLs load, as
+before packages existed. For a quick test, drop the DLL into `System/mods/`;
+to share it, pack it (below).
 `T3Mod_Init` should register callbacks and return zero on success. Use the
 API's `version` and `size` fields when checking optional later API entries.
 For example, initialization should save the API pointer and defer engine

@@ -43,7 +43,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
 | Loader: `dinput8.dll` proxy, entry-point patch, MinHook | `sdk/loader/dllmain.cpp` | works |
 | Start-up, frame/exit hooks, settings, guarded mod callbacks | `sdk/loader/sdk.cpp` | works |
 | Engine access, lifecycle (`Ready`/`Exiting`), layout validation, log hook | `sdk/loader/engine.cpp` | works |
-| Mod loading from `System/mods/*.dll` | `sdk/loader/mods.cpp` | works |
+| Mod loading: `System/mods/load-order.txt` (packages), then `System/mods/*.dll` | `sdk/loader/mods.cpp` | loose DLLs work; the load order is not yet built or run (see Next steps 1) |
 | Crash reporter (vectored handler, logs location/registers/stack) | `sdk/loader/crash.cpp` | works |
 | Fixes: skip intro movies | `sdk/loader/fixes.cpp` | works |
 | Display: native resolutions, borderless window (cursor, VSync, focus, running in the background), frame pacing, widescreen UI | `sdk/loader/display.cpp` | works (details below); frame pacing and VSync not yet tried in the game |
@@ -58,6 +58,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
 | Map writer: byte-exact round trip, apply edits, install/restore with backup | `tools/assets/upkgwrite.py`, `t3pack.py` | round trip identical on the real install; `apply` checked on Inn; no patched map loaded in the game yet |
 | Texture packs: `.ibt` writer, DDS to texture resource, list/check/apply/restore with backup, `--selfcheck` | `tools/assets/ibtwrite.py`, `t3texpack.py` | synthetic tests pass; not run on real bundles |
 | Launcher (Tauri): setup, play, SDK install, mods, `T3SDK.ini`, Map Studio, task queue | `launcher/`, [launcher.md](launcher.md) | runs on Windows (`yarn tauri dev`) and under Xvfb on Linux; Windows build green in CI |
+| Mod manager: `.t3mod` install/upgrade/remove, load order, profiles, checks, `files/` overlay, texture-pack tasks, mod index browser | `launcher/src-tauri/src/mods.rs`, `launcher/src/pages/Mods.svelte`, [mods.md](mods.md) | Rust tests on temporary game folders and UI tests pass; not run on Windows or a real install |
 | Release bundle (tools, prebuilt SDK, embeddable Python) | `tools/stage_launcher.py` | builds in CI |
 | Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | 14 synthetic tests pass with the real MSVC 7.1 via wibo; not run on the real exe |
 | CI: launcher and SDK builds (artifacts), releases on `v*` tags, decomp.dev report | `.github/workflows/` | launcher/SDK green; decomp.dev job waits for `T3_BUILD_IMAGE` ([decomp-dev.md](decomp-dev.md)) |
@@ -153,6 +154,18 @@ Later the same day, played by the user:
      level and look at the texture, and `restore`. A level that fails to
      load or shows the old texture means the engine checks the 20-byte
      values (or reads the padding differently).
+   - Mod manager and loader ([mods.md](mods.md), [launcher.md](launcher.md#mods)):
+     build the SDK (the loader's `load-order.txt` code has only been
+     syntax-checked with clang), deploy it, then from the launcher install a
+     code package built from `templates/mod/` and a second one that needs
+     it. `T3SDK.log` must show the packages first, in the page's order and
+     named by folder, then the loose DLLs; a helper DLL next to a packaged
+     DLL must load; a `load-order.txt` line with `..` must be skipped with a
+     log line. Then a content overlay: a `files/` mod that replaces a
+     loading screen (`Content/T3/Bitmaps`) must show in the game, the
+     original must sit in `System/mods/originals/`, and switching the mod
+     off must put it back. With a texture pack on, a `files/` mod that
+     places an `.ibt` must queue restore, place the bundle, then apply.
 2. **decomp.dev**: registration works as soon as the baseline report (nothing
    matched, from `symbols.txt`) is on `main`; the private build image and the
    `T3_BUILD_IMAGE` variable switch CI to the real report, needed before

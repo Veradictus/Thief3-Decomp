@@ -269,12 +269,16 @@ def satisfies(range_text: str, version_text: str) -> bool:
 # Each check returns None when the value is fine, else what is wrong with it.
 
 ID_RE = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
+# Folders of System/mods/ that are not packages (the install folder is the id).
+RESERVED_IDS = frozenset({"disabled", "originals"})
 
 
 def check_id(value: Any) -> Optional[str]:
     if not isinstance(value, str) or not ID_RE.fullmatch(value):
         return (f"{value!r} is not a mod id: 1-64 characters of a-z, 0-9, '_' and '-', "
                 "starting with a letter or digit")
+    if value in RESERVED_IDS:
+        return f"{value!r} is reserved: System/mods/{value}/ is not a package folder"
     return None
 
 

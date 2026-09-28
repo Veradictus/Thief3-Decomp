@@ -31,6 +31,8 @@ pub struct Config {
     pub auto_update_check: Option<bool>,
     /// When the launcher last looked for an update (Unix seconds); kept by update.rs.
     pub last_update_check: Option<u64>,
+    /// The mod index the Mods page browses; default `mods::DEFAULT_INDEX_URL`.
+    pub mod_index_url: Option<String>,
     /// Where the tools write, when not <sdk_root>/build (see `resolve`).
     #[serde(skip)]
     pub data_dir: Option<PathBuf>,

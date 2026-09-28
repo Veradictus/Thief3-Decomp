@@ -4,8 +4,9 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { mockCall, mockListen, mockPick, mockPickSave } from "./mock";
+import { mockCall, mockListen, mockPick, mockPickMods, mockPickSave } from "./mock";
 
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -22,6 +23,8 @@ export interface Config {
   /** Look for launcher updates at start-up; null means yes. */
   autoUpdateCheck: boolean | null;
   lastUpdateCheck: number | null;
+  /** The mod index the Mods page browses; null for the default. */
+  modIndexUrl: string | null;
 }
 
 export interface Candidate {
@@ -95,12 +98,141 @@ export interface MapEntry {
   backedUp: boolean;
 }
 
-export interface ModEntry {
+// ---- mods (src-tauri/src/mods.rs; the format is docs/mods.md) ----
+
+/** A DLL straight in System/mods (or System/mods/disabled when off). */
+export interface LooseMod {
   name: string;
   enabled: boolean;
   size: number;
   modified: number | null;
 }
+
+/** An installed .t3mod package, System/mods/<id>/. */
+export interface ModPackage {
+  id: string;
+  name: string;
+  version: string | null;
+  authors: string[];
+  description: string | null;
+  homepage: string | null;
+  license: string | null;
+  tags: string[];
+  entry: string | null;
+  api: number | null;
+  requires: Record<string, string>;
+  conflicts: string[];
+  /** Switched on. */
+  enabled: boolean;
+  /** Enabled and without errors: loaded and applied. */
+  active: boolean;
+  position: number;
+  size: number;
+  /** Has a DLL. */
+  code: boolean;
+  /** Files under files/ and textures/. */
+  files: number;
+  textures: number;
+  /** Why the package cannot be used. */
+  error: string | null;
+}
+
+export type Severity = "error" | "warning" | "info";
+
+export type FixAction =
+  { kind: "moveBefore"; id: string; before: string } | { kind: "enable"; id: string } | { kind: "disable"; id: string };
+
+export interface Issue {
+  severity: Severity;
+  /** The package it is about; null for the whole list. */
+  mod: string | null;
+  message: string;
+  fix: { label: string; action: FixAction } | null;
+}
+
+export interface SyncReport {
+  placed: number;
+  restored: number;
+  changed: string[];
+  errors: string[];
+  skipped: string[];
+  installed: { id: string; name: string; version: string; previous: string | null } | null;
+  removed: string | null;
+}
+
+export interface ModList {
+  dir: string;
+  /** In load order. */
+  packages: ModPackage[];
+  loose: LooseMod[];
+  profile: string;
+  profiles: string[];
+  issues: Issue[];
+  sdk: { installed: boolean; api: number };
+  /**
+   * t3texpack.py: `needed` when the enabled texture packs (`mods`, in load
+   * order) changed; `bundles` are game bundles (.ibt) that wait for a
+   * `restore` before the sync places or removes them.
+   */
+  textures: { needed: boolean; mods: string[]; bundles: string[] };
+  report: SyncReport | null;
+}
+
+export type ProfileAction =
+  | { kind: "saveAs"; name: string }
+  | { kind: "switch"; name: string }
+  | { kind: "delete"; name: string }
+  | { kind: "rename"; from: string; to: string };
+
+export interface IndexNote {
+  severity: Severity;
+  message: string;
+}
+
+export interface IndexVersion {
+  version: string;
+  url: string;
+  size: number;
+  released: string | null;
+  api: number | null;
+  requires: Record<string, string>;
+  conflicts: string[];
+  /** No errors: it can be installed next to the enabled mods. */
+  compatible: boolean;
+  notes: IndexNote[];
+}
+
+export interface IndexMod {
+  id: string;
+  name: string;
+  description: string | null;
+  authors: string[];
+  homepage: string | null;
+  license: string | null;
+  tags: string[];
+  installed: string | null;
+  enabled: boolean;
+  /** Newest first. */
+  versions: IndexVersion[];
+  recommended: string | null;
+}
+
+export interface ModIndex {
+  url: string;
+  generated: string | null;
+  skipped: number;
+  mods: IndexMod[];
+  updates: { id: string; name: string; installed: string; latest: string }[];
+}
+
+export interface DownloadProgress {
+  id: string;
+  received: number;
+  total: number;
+}
+
+/** Files dragged over or dropped onto the window. */
+export type FileDrop = { type: "enter" | "drop"; paths: string[] } | { type: "over" | "leave" };
 
 export interface Setting {
   key: string;
@@ -126,7 +258,9 @@ export type TaskSpec =
   | { kind: "roundtrip"; level: string | null }
   | { kind: "repack"; level: string }
   | { kind: "install"; level: string }
-  | { kind: "restore"; level: string | null };
+  | { kind: "restore"; level: string | null }
+  | { kind: "texturePacks"; mods: string[] }
+  | { kind: "textureRestore" };
 
 export interface TaskStarted {
   id: number;
@@ -232,6 +366,7 @@ export const emptyConfig: Config = {
   backupBeforeLaunch: false,
   autoUpdateCheck: null,
   lastUpdateCheck: null,
+  modIndexUrl: null,
 };
 
 export type Location = "game" | "system" | "mods" | "log" | "project" | "sdk" | "patched" | "backup";
@@ -250,8 +385,17 @@ export const api = {
   checkSdkRoot: (path: string) => call<SdkRootCheck>("check_sdk_root", { path }),
   overview: () => call<Overview>("overview"),
   listMaps: () => call<MapEntry[]>("list_maps"),
-  listMods: () => call<ModEntry[]>("list_mods"),
-  setModEnabled: (name: string, enabled: boolean) => call<null>("set_mod_enabled", { name, enabled }),
+  listMods: () => call<ModList>("list_mods"),
+  /** A loose DLL on or off. */
+  setModEnabled: (name: string, enabled: boolean) => call<ModList>("set_mod_enabled", { name, enabled }),
+  setPackageEnabled: (id: string, enabled: boolean) => call<ModList>("set_package_enabled", { id, enabled }),
+  setModOrder: (order: string[]) => call<ModList>("set_mod_order", { order }),
+  installMod: (path: string) => call<ModList>("install_mod", { path }),
+  removeMod: (id: string) => call<ModList>("remove_mod", { id }),
+  syncMods: () => call<ModList>("sync_mods"),
+  modProfile: (action: ProfileAction) => call<ModList>("mod_profile", { action }),
+  modIndex: (refresh: boolean) => call<ModIndex>("mod_index", { refresh }),
+  installFromIndex: (id: string, version: string) => call<ModList>("install_from_index", { id, version }),
   readSdkSettings: () => call<SdkSettings>("read_sdk_settings"),
   writeSdkSettings: (changes: { section: string; key: string; value: string }[]) =>
     call<null>("write_sdk_settings", { changes }),
@@ -297,6 +441,26 @@ export async function pick(directory: boolean, title: string): Promise<string | 
   if (!inTauri) return mockPick(directory, title);
   const chosen = await open({ directory, multiple: false, title });
   return typeof chosen === "string" ? chosen : null;
+}
+
+/** .t3mod files to install; empty when cancelled. */
+export async function pickModPackages(): Promise<string[]> {
+  if (!inTauri) return mockPickMods();
+  const chosen = await open({
+    multiple: true,
+    title: "Install mods",
+    filters: [{ name: "T3SDK mod package", extensions: ["t3mod"] }],
+  });
+  return chosen ?? [];
+}
+
+/** Files dragged onto the window (Tauri's drag and drop; nothing in a browser). */
+export function onFileDrop(handler: (event: FileDrop) => void): Promise<UnlistenFn> {
+  if (!inTauri) return Promise.resolve(() => undefined);
+  return getCurrentWebview().onDragDropEvent((e) => {
+    const p = e.payload;
+    handler(p.type === "enter" || p.type === "drop" ? { type: p.type, paths: p.paths } : { type: p.type });
+  });
 }
 
 /** A save dialog for a .zip file; null when cancelled. */

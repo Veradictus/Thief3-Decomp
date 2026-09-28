@@ -60,7 +60,7 @@ my-mod-1.2.0.t3mod          a zip
 | Field | Required | Meaning |
 |---|---|---|
 | `format` | yes | `1`. A reader refuses a higher number. |
-| `id` | yes | Unique, stable name: `^[a-z0-9][a-z0-9_-]{0,63}$`. Also the install folder name. |
+| `id` | yes | Unique, stable name: `^[a-z0-9][a-z0-9_-]{0,63}$`. Also the install folder name, so `disabled` and `originals` (folders of `System/mods/`) are reserved. |
 | `name` | yes | Display name, 1–80 characters. |
 | `version` | yes | [Semantic version](https://semver.org/): `MAJOR.MINOR.PATCH`, optional `-prerelease`, optional `+build`. |
 | `authors` | yes | One or more names. |
@@ -150,7 +150,11 @@ The launcher's record, rewritten as a whole:
   package goes to the end. Later mods load later and win content conflicts.
 - `enabled` is a subset of `order`.
 - A profile is a saved `order` + `enabled`; switching profiles applies it.
-  Ids in a profile that are not installed are skipped (and reported).
+  Ids in a profile that are not installed are skipped (and reported). The
+  active profile follows every change, so "save as" copies it.
+- `textures` (left out when empty) lists the texture packs `t3texpack.py`
+  last applied, as `"<id>@<version>"` in load order, so the launcher knows
+  when to apply them again (see textures/, below).
 - A missing or unreadable file means "nothing enabled, folder order".
 
 ### Content: files/
@@ -210,14 +214,18 @@ take `--dry-run`; the game folder comes from `T3_GAME_DIR` (or
 reported, 2 a bad command line; the last line of output is a one-line
 summary.
 
-After every sync of `files/`, the launcher runs `apply` with the enabled
-mods that have `textures/`, in load order (with none, `apply` restores every
-bundle it patched before). A `files/` mod can place a whole `.ibt`, so
-before a sync that places or removes an `.ibt` the launcher runs `restore`
-first: the texture packs then apply on top of the placed bundle, and the
-sync never moves a patched bundle into `originals/`. A bundle that changed
-since `apply` wrote it (neither the original nor the patched file) is left
-alone and reported.
+After a sync of `files/`, the launcher runs `apply` with the enabled mods
+that have `textures/`, in load order (with none, `apply` restores every
+bundle it patched before), whenever that set (ids and versions) differs from
+the one it last applied or bundles were restored; otherwise `apply` would
+change nothing. A `files/` mod can place a whole `.ibt`, so before a sync
+that places or removes an `.ibt` the launcher runs `restore` first: the sync
+leaves such bundles until `restore` has succeeded, the texture packs then
+apply on top of the placed bundle, and the sync never moves a patched bundle
+into `originals/`. Because packs patch bundles in place, the sync checks a
+placed `.ibt` against its recorded SHA-256 only when it is about to change
+it. A bundle that changed since `apply` wrote it (neither the original nor
+the patched file) is left alone and reported.
 
 It is experimental because the engine may check the 20-byte values in the
 bundle's header and table ([assets.md](assets.md), section 3); the tool keeps
@@ -245,6 +253,10 @@ Before a sync and when the list changes, the launcher checks the enabled set:
 | `api` higher than the installed SDK's `T3SDK_API_VERSION` | warning (the mod may refuse to load) |
 | `entry` set but the SDK is not installed | warning |
 | two enabled mods providing the same `files/` or `textures/` path | information: the later one wins |
+
+A mod with an error stays off, for a conflict both mods: the sync leaves it
+out of `load-order.txt` and of the content, and a mod whose requirement is
+off is off too.
 
 ## Building a package
 
