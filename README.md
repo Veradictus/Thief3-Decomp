@@ -177,6 +177,14 @@ The settings, the fixes, the API's lifecycle and threading rules are in
 [mod author guide](https://veradictus.github.io/Thief3-Decomp/modding/first-mod)
 goes from the mod template to a published `.t3mod` package.
 
+The quickest start is [templates/mod](templates/mod/): copy it into a new
+repository, set your mod's id and version, and CMake builds the DLL against
+the SDK headers and packs a `.t3mod` that the launcher installs by drag and
+drop. Its GitHub workflow attaches the package to a release when you push a
+version tag, and the [mod index](modindex/) lists released mods in the
+launcher's mod browser. The package format is [docs/mods.md](docs/mods.md);
+`tools/t3mod.py` checks and packs packages by hand.
+
 ## Build from source
 
 Every push builds the launcher (installer and portable zip) and the SDK on
@@ -261,6 +269,10 @@ sdk/                     the SDK: loader (dinput8.dll), public headers, example 
 launcher/                the desktop launcher (Tauri: Rust backend, Svelte UI)
 tools/sdk.py             build / deploy / run / drive the SDK
 tools/stage_launcher.py  what the release launcher ships with (tools, SDK, Python)
+tools/t3mod.py           check, pack and inspect .t3mod mod packages (tools/mods/: shared rules, fixtures)
+tools/modindex.py        the mod index: validate, verify, build, add
+templates/mod/           starter project for a mod: CMake, presets, packaging, release workflow
+modindex/                the mod index: one file per published mod
 tools/assets/            map and asset export to Godot, the viewer, the editor plugin, repacking
 tools/ghidra/            Ghidra scripts (export, names, decompile, disassemble)
 tools/agent/             the matching loop: work queue, context, try, accept, integrate

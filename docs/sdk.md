@@ -38,6 +38,8 @@ PE timestamp, image size, and load base. If any runtime check fails, it logs
 the reason and leaves the game unmodified by SDK hooks. The addresses in
 [`engine.md`](engine.md) are for this exact executable.
 
+The build also copies the public headers into `build/sdk/bin/include/t3sdk/`,
+so `build/sdk/bin/` holds what the release's `T3SDK_<version>_x86.zip` holds.
 Deploy copies DLL, PDB, and INI files from `build/sdk/bin/` into `System/` and
 records the files it installed in `build/sdk/deployed.json` (under
 `$T3SDK_BUILD_DIR/sdk/` when that is set, as the launcher does for its bundled
@@ -102,6 +104,15 @@ If initialization fails, the SDK removes callbacks registered by that DLL
 before unloading it. The complete example is
 [`sdk/mods/hello/hello.cpp`](../sdk/mods/hello/hello.cpp); register a mod's
 CMake target in [`sdk/CMakeLists.txt`](../sdk/CMakeLists.txt).
+
+A mod of its own, outside this repository, starts from
+[`templates/mod/`](../templates/mod/): a CMake project (with presets for MSVC
+x86) that builds against the SDK headers, from a checkout's `sdk/include` or
+downloaded with the SDK release, whose zip has them under `include/t3sdk/`.
+It writes `mod.json` from the project's version and packs
+`<id>-<version>.t3mod` ([mods.md](mods.md)), and its GitHub workflow attaches
+that package to a release for a version tag. CI builds the template against
+`sdk/include` on every SDK change.
 
 The public API is plain C and uses caller-owned buffers for returned text.
 The optional C++ [`unreal.hpp`](../sdk/include/t3sdk/unreal.hpp) exposes engine
