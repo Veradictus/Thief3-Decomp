@@ -42,6 +42,13 @@ pub enum TaskSpec {
     Install { level: String },
     /// tools/assets/t3pack.py restore: put original maps back.
     Restore { level: Option<String> },
+    /// tools/assets/t3texpack.py apply --pack System/mods/<id> ... for these
+    /// mods (the enabled ones with textures/, in load order; none restores
+    /// every patched bundle). Recorded in state.json when it succeeds.
+    TexturePacks { mods: Vec<String> },
+    /// tools/assets/t3texpack.py restore, before a sync that places or
+    /// removes game bundles (.ibt); when it succeeds, that sync runs.
+    TextureRestore,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -75,11 +82,15 @@ pub struct Tasks {
     cancelled: Mutex<Vec<u32>>,
 }
 
+/// Runs once the job has succeeded.
+type After = Box<dyn FnOnce() -> Result<(), String> + Send>;
+
 struct Plan {
     title: String,
     program: PathBuf,
     args: Vec<OsString>,
     cwd: PathBuf,
+    after: Option<After>,
 }
 
 fn check_level(level: &str) -> Result<&str, String> {
@@ -99,7 +110,7 @@ fn plan(spec: &TaskSpec, cfg: &Config) -> Result<Plan, String> {
         Ok(path.into_os_string())
     };
     let python = |title: String, args: Vec<OsString>| -> Result<Plan, String> {
-        Ok(Plan { title, program: cfg.python()?, args, cwd: root.clone() })
+        Ok(Plan { title, program: cfg.python()?, args, cwd: root.clone(), after: None })
     };
     let project = || cfg.project().ok_or_else(|| "no Godot project folder".to_string());
     let one_or_all = |level: &Option<String>| -> Result<Vec<OsString>, String> {
@@ -124,6 +135,7 @@ fn plan(spec: &TaskSpec, cfg: &Config) -> Result<Plan, String> {
             program: cfg.godot()?,
             args: vec!["--headless".into(), "--path".into(), project()?.into_os_string(), "--import".into()],
             cwd: root.clone(),
+            after: None,
         }),
         TaskSpec::GodotCheck => {
             let args = vec![
@@ -161,6 +173,28 @@ fn plan(spec: &TaskSpec, cfg: &Config) -> Result<Plan, String> {
             args.extend(one_or_all(level)?);
             python(format!("Restore {}", name(level)), args)
         }
+        TaskSpec::TexturePacks { mods } => {
+            let game = cfg.game()?;
+            let mut args = vec![tool("assets/t3texpack.py")?, "apply".into()];
+            for dir in crate::mods::texture_packs(&game, mods)? {
+                args.extend(["--pack".into(), dir.into_os_string()]);
+            }
+            let title = match mods.is_empty() {
+                true => "Restore the original textures".to_string(),
+                false => format!("Apply texture packs: {}", mods.join(", ")),
+            };
+            let fingerprint = crate::mods::texture_fingerprint(&game, mods);
+            let mut plan = python(title, args)?;
+            plan.after = Some(Box::new(move || crate::mods::record_textures(&game, fingerprint)));
+            Ok(plan)
+        }
+        TaskSpec::TextureRestore => {
+            let game = cfg.game()?;
+            let args = vec![tool("assets/t3texpack.py")?, "restore".into()];
+            let mut plan = python("Restore the game's bundles, then place the mods' bundles".into(), args)?;
+            plan.after = Some(Box::new(move || crate::mods::place_bundles(&game)));
+            Ok(plan)
+        }
     }
 }
 
@@ -196,7 +230,8 @@ fn pump(app: AppHandle, id: u32, name: &'static str, stream: impl Read + Send + 
 #[tauri::command]
 pub async fn start_task(app: AppHandle, state: State<'_, AppState>, spec: TaskSpec) -> Result<TaskStarted, String> {
     let cfg = state.config.lock().unwrap().clone();
-    let plan = plan(&spec, &cfg)?;
+    let mut plan = plan(&spec, &cfg)?;
+    let after = plan.after.take();
     let command = std::iter::once(plan.program.as_os_str())
         .chain(plan.args.iter().map(|a| a.as_os_str()))
         .map(quote)
@@ -249,7 +284,17 @@ pub async fn start_task(app: AppHandle, state: State<'_, AppState>, spec: TaskSp
             list.retain(|c| *c != id);
             was
         };
-        let _ = waiter.emit("task-exit", TaskExit { id, code: status.and_then(|s| s.code()), cancelled });
+        let mut code = status.and_then(|s| s.code());
+        if let (Some(after), Some(true), false) = (after, status.map(|s| s.success()), cancelled) {
+            if let Err(text) = after() {
+                for line in text.lines() {
+                    let _ = waiter.emit("task-output", TaskOutput { id, stream: "stderr", line: line.to_string() });
+                }
+                // The tool worked but the launcher's part did not: the job failed.
+                code = Some(1);
+            }
+        }
+        let _ = waiter.emit("task-exit", TaskExit { id, code, cancelled });
     });
     Ok(TaskStarted { id, title: plan.title, command })
 }

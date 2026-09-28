@@ -6,13 +6,13 @@ import type {
   Detected,
   GameCheck,
   MapEntry,
-  ModEntry,
   Overview,
   SdkSettings,
   Setting,
   TaskSpec,
   TaskStarted,
 } from "./api";
+import { mockMods } from "./mock-mods";
 
 type Handler = (payload: unknown) => void;
 type Args = Record<string, unknown>;
@@ -28,12 +28,8 @@ let config: Config = {
   sdkRoot: firstRun ? null : "C:\\Dev\\Thief3-Decomp",
   projectDir: null,
   setupComplete: !firstRun,
+  modIndexUrl: null,
 };
-
-const mods: ModEntry[] = [
-  { name: "hello", enabled: true, size: 14336, modified: 1790000000 },
-  { name: "coop_prototype", enabled: false, size: 188416, modified: 1790100000 },
-];
 
 type SettingRow = [section: string, key: string, value: string, description: string];
 const settings: (Setting & { section: string })[] = (
@@ -145,6 +141,8 @@ function emit(name: string, payload: unknown) {
   });
 }
 
+const mods = mockMods(emit);
+
 let nextTask = 1;
 function fakeTask(title: string): TaskStarted {
   const id = nextTask++;
@@ -196,6 +194,10 @@ export function taskTitle(spec: TaskSpec): string {
       return `Install ${level}`;
     case "restore":
       return `Restore ${level}`;
+    case "texturePacks":
+      return spec.mods.length ? `Apply texture packs: ${spec.mods.join(", ")}` : "Restore the original textures";
+    case "textureRestore":
+      return "Restore the game's bundles, then place the mods' bundles";
   }
 }
 
@@ -244,8 +246,8 @@ const commands: Record<string, (args: Args) => unknown> = {
   overview: (): Overview => ({
     game: config.gameDir ? game() : null,
     sdk: { installed: true, managed: true, built: true, buildable: true, settings: true },
-    modsEnabled: mods.filter((m) => m.enabled).length,
-    modsDisabled: mods.filter((m) => !m.enabled).length,
+    modsEnabled: mods.counts().on,
+    modsDisabled: mods.counts().off,
     maps: {
       total: maps.length,
       exported: maps.filter((m) => m.exported).length,
@@ -256,13 +258,7 @@ const commands: Record<string, (args: Args) => unknown> = {
     running: false,
   }),
   list_maps: () => maps.map((m) => ({ ...m })),
-  list_mods: () => mods.map((m) => ({ ...m })),
-  set_mod_enabled: (args) => {
-    const mod = mods.find((m) => m.name === text(args, "name"));
-    if (!mod) throw new Error("mock: no such mod");
-    mod.enabled = args.enabled === true;
-    return null;
-  },
+  ...mods.commands,
   read_sdk_settings: sdkSettings,
   write_sdk_settings: (args) => {
     for (const change of args.changes as { section: string; key: string; value: string }[]) {
@@ -278,7 +274,11 @@ const commands: Record<string, (args: Args) => unknown> = {
   open_location: () => null,
   open_link: () => null,
   cancel_task: () => null,
-  start_task: (args) => fakeTask(taskTitle(args.spec as TaskSpec)),
+  start_task: (args) => {
+    const spec = args.spec as TaskSpec;
+    if (spec.kind === "texturePacks") mods.texturesApplied(spec.mods);
+    return fakeTask(taskTitle(spec));
+  },
 };
 
 export async function mockCall(cmd: string, args: Args = {}): Promise<unknown> {
@@ -299,4 +299,9 @@ export function mockListen(name: string, handler: Handler): Promise<() => void> 
 
 export function mockPick(directory: boolean, title: string): Promise<string | null> {
   return Promise.resolve(window.prompt(`${title} (${directory ? "folder" : "file"} path)`));
+}
+
+export function mockPickMods(): Promise<string[]> {
+  const path = window.prompt("Install mods (.t3mod path)", "C:\\Downloads\\night-vision-1.0.0.t3mod");
+  return Promise.resolve(path ? [path] : []);
 }

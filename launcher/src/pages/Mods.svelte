@@ -1,26 +1,31 @@
 <script lang="ts">
-  // Mod DLLs in System/mods. Turning one off moves it to System/mods/disabled,
-  // which the SDK does not load.
+  // The mod manager: installed packages in load order, with profiles and
+  // checks (mods/Installed.svelte), and the mod index (mods/Browse.svelte).
+  // Every change is saved and applied to the game folder at once.
   import Icon from "$components/Icon.svelte";
-  import Toggle from "$components/Toggle.svelte";
-  import { api, type ModEntry } from "$lib/api";
-  import { app, guard, refresh } from "$lib/app.svelte";
-  import { ago, bytes } from "$lib/format";
+  import { api, pickModPackages } from "$lib/api";
+  import { app, guard } from "$lib/app.svelte";
+  import { installFiles, loadIndex, loadMods, mods } from "$lib/mods.svelte";
+  import Browse from "./mods/Browse.svelte";
+  import Installed from "./mods/Installed.svelte";
 
-  let mods = $state<ModEntry[]>([]);
+  let tab = $state<"installed" | "browse">("installed");
 
   $effect(() => {
     void app.revision;
-    void load();
+    void loadMods();
   });
 
-  async function load() {
-    mods = (await guard(api.listMods())) ?? mods;
-  }
+  // Fetched once per session, for the updates count; Refresh in Browse fetches again.
+  $effect(() => {
+    if (!mods.index && !mods.indexLoading && !mods.indexError) void loadIndex(false);
+  });
 
-  async function set(mod: ModEntry, enabled: boolean) {
-    if ((await guard(api.setModEnabled(mod.name, enabled))) === undefined) mod.enabled = !enabled;
-    await refresh();
+  const updates = $derived(mods.index?.updates.length ?? 0);
+  const installed = $derived((mods.list?.packages.length ?? 0) + (mods.list?.loose.length ?? 0));
+
+  async function install() {
+    await installFiles(await pickModPackages());
   }
 </script>
 
@@ -29,98 +34,92 @@
     <div>
       <h1>Mods</h1>
       <p>
-        T3SDK loads every DLL in <code>System\mods</code> when the game starts, in name order. Changes apply on the next start.
+        Changes apply as you make them: switching, reordering or installing a mod updates the load order and the game's
+        files at once, and code mods load the next time the game starts. Drop <code>.t3mod</code> files anywhere on this window
+        to install them.
       </p>
     </div>
     <div class="row">
-      <button class="btn" onclick={load}><Icon name="refresh" />Refresh</button>
+      <button class="btn primary" onclick={install} disabled={mods.busy}><Icon name="download" />Install mod…</button>
       <button class="btn" onclick={() => guard(api.openLocation("mods"))}><Icon name="folder" />Open folder</button>
     </div>
   </div>
 
-  {#if !app.overview?.sdk.installed}
-    <div class="note card">
-      <Icon name="alert" />T3SDK is not installed, so the game will not load these mods. Install it from the Play page.
-    </div>
-  {/if}
-
-  <div class="card">
-    {#each mods as mod (mod.name)}
-      <div class="mod">
-        <div class="icon" class:off={!mod.enabled}><Icon name="puzzle" size={18} /></div>
-        <div class="grow">
-          <h3>{mod.name}</h3>
-          <p class="faint small">
-            <span class="mono">{mod.name}.dll</span> · {bytes(mod.size)} · changed {ago(mod.modified)}
-          </p>
-        </div>
-        <span class="badge" class:ok={mod.enabled}>{mod.enabled ? "Enabled" : "Off"}</span>
-        <Toggle checked={mod.enabled} label={`Enable ${mod.name}`} onchange={(on) => set(mod, on)} />
-      </div>
-    {:else}
-      <div class="empty">
-        <h3>No mods yet</h3>
-        <p>Put a mod's DLL into <code>System\mods</code>, or build one from the SDK's example.</p>
-        <p class="row center">
-          <button
-            class="btn small"
-            onclick={() =>
-              api.openLink("https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/sdk.md#writing-a-mod")}
-          >
-            <Icon name="book" size={14} />Writing a mod
-          </button>
-        </p>
-      </div>
-    {/each}
+  <div class="tabs" role="tablist">
+    <button
+      role="tab"
+      aria-selected={tab === "installed"}
+      class:active={tab === "installed"}
+      onclick={() => (tab = "installed")}
+    >
+      <Icon name="puzzle" size={15} />Installed<span class="count">{installed}</span>
+    </button>
+    <button
+      role="tab"
+      aria-selected={tab === "browse"}
+      class:active={tab === "browse"}
+      onclick={() => (tab = "browse")}
+    >
+      <Icon name="search" size={15} />Browse
+      {#if updates}<span class="count hot" title="Installed mods with a newer compatible version"
+          >{updates} update{updates > 1 ? "s" : ""}</span
+        >{/if}
+    </button>
   </div>
+
+  {#if tab === "installed"}
+    <Installed />
+  {:else}
+    <Browse />
+  {/if}
 </div>
 
 <style>
-  .mod {
+  .tabs {
     display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .tabs button {
+    display: inline-flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 18px;
-    border-top: 1px solid var(--line);
-  }
-
-  .mod:first-child {
-    border-top: 0;
-  }
-
-  .icon {
-    width: 38px;
+    gap: 8px;
     height: 38px;
-    border-radius: 9px;
-    display: grid;
-    place-items: center;
-    background: #2a2416;
-    color: var(--accent-2);
+    padding: 0 14px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: -1px;
   }
 
-  .icon.off {
+  .tabs button:hover {
+    color: var(--text);
+  }
+
+  .tabs button.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  .count {
+    min-width: 20px;
+    height: 19px;
+    padding: 0 7px;
+    border-radius: 99px;
     background: var(--panel-3);
-    color: var(--faint);
+    color: var(--muted);
+    font-size: 11.5px;
+    display: inline-grid;
+    place-items: center;
   }
 
-  .small {
-    font-size: 12.5px;
-    margin-top: 2px;
-  }
-
-  .note {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    color: var(--warn);
-    border-color: #5b4526;
-    background: #1c160d;
-  }
-
-  .center {
-    justify-content: center;
-    margin-top: 12px;
+  .count.hot {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
   }
 </style>
