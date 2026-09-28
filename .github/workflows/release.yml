@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
       - name: Files
@@ -64,7 +64,7 @@ jobs:
             '{version: $version, notes: $notes, pub_date: $pub_date,
               platforms: {"windows-x86_64": {signature: $signature, url: $url}}}' > dist/latest.json
           cat dist/latest.json
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           generate_release_notes: true
