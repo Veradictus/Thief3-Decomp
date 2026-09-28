@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "verify": "yarn typecheck && yarn lint && yarn format:check && yarn test",
-    "tauri": "tauri"
+    "tauri": "node scripts/tauri.js"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.0",
