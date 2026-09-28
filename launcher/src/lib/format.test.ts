@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Setting } from "./api";
-import { ago, bytes, elapsed, isKeySetting, isSwitch, keyName, settingDescription, settingLabel } from "./format";
+import {
+  ago,
+  bytes,
+  dateTime,
+  elapsed,
+  isKeySetting,
+  isSwitch,
+  keyName,
+  settingDescription,
+  settingLabel,
+} from "./format";
 
 const setting = (key: string, value: string, description = "", defaultValue: string | null = value): Setting => ({
   key,
@@ -71,5 +81,12 @@ describe("settings", () => {
     expect(keyName(" 0x7b ")).toBe("F12");
     expect(keyName("0")).toBe("Off");
     expect(keyName("0x41")).toBe("");
+  });
+});
+
+describe("backups", () => {
+  it("shows when a backup was made", () => {
+    expect(dateTime(null)).toBe("");
+    expect(dateTime(1_790_000_000)).toMatch(/2026/);
   });
 });

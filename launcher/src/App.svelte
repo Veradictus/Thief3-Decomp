@@ -6,6 +6,7 @@
   import Maps from "./pages/Maps.svelte";
   import Mods from "./pages/Mods.svelte";
   import Play from "./pages/Play.svelte";
+  import Saves from "./pages/Saves.svelte";
   import Sdk from "./pages/Sdk.svelte";
   import Settings from "./pages/Settings.svelte";
   import Tasks from "./pages/Tasks.svelte";
@@ -14,6 +15,7 @@
     { page: "play", label: "Play", icon: "play" },
     { page: "maps", label: "Map Studio", icon: "map" },
     { page: "mods", label: "Mods", icon: "puzzle" },
+    { page: "saves", label: "Saves", icon: "archive" },
     { page: "sdk", label: "SDK settings", icon: "sliders" },
     { page: "tasks", label: "Tasks", icon: "terminal" },
   ];
@@ -84,6 +86,7 @@
       {#if app.page === "play"}<Play />
       {:else if app.page === "maps"}<Maps />
       {:else if app.page === "mods"}<Mods />
+      {:else if app.page === "saves"}<Saves />
       {:else if app.page === "sdk"}<Sdk />
       {:else if app.page === "tasks"}<Tasks />
       {:else}<Settings />{/if}
