@@ -1,5 +1,10 @@
 <script lang="ts">
-  let { checked = $bindable(false), disabled = false, label = "", onchange }: {
+  let {
+    checked = $bindable(false),
+    disabled = false,
+    label = "",
+    onchange,
+  }: {
     checked?: boolean;
     disabled?: boolean;
     label?: string;
@@ -7,8 +12,18 @@
   } = $props();
 </script>
 
-<button class="toggle" class:on={checked} {disabled} role="switch" aria-checked={checked} aria-label={label}
-  onclick={() => { checked = !checked; onchange?.(checked); }}>
+<button
+  class="toggle"
+  class:on={checked}
+  {disabled}
+  role="switch"
+  aria-checked={checked}
+  aria-label={label}
+  onclick={() => {
+    checked = !checked;
+    onchange?.(checked);
+  }}
+>
   <span class="knob"></span>
 </button>
 
@@ -23,7 +38,9 @@
     background: #101216;
     cursor: pointer;
     padding: 0;
-    transition: background 0.15s, border-color 0.15s;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
   }
 
   .toggle.on {
@@ -44,7 +61,9 @@
     height: 14px;
     border-radius: 50%;
     background: var(--muted);
-    transition: transform 0.15s, background 0.15s;
+    transition:
+      transform 0.15s,
+      background 0.15s;
   }
 
   .on .knob {

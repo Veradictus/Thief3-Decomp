@@ -14,6 +14,9 @@ on:
 permissions:
   contents: read
 
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -22,8 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: launcher/package-lock.json
+      - name: Yarn (Corepack, the version pinned in launcher/package.json)
+        run: corepack enable
       - name: Tauri's Linux prerequisites
         run: |
           sudo apt-get update
@@ -34,12 +37,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: launcher/src-tauri
-      - name: UI
+      - name: UI (types, lint, format, tests, build)
         working-directory: launcher
         run: |
-          npm ci
-          npm run check
-          npm run build
+          yarn install --immutable
+          yarn verify
+          yarn build
       - name: Backend
         working-directory: launcher/src-tauri
         run: |
@@ -99,8 +102,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: launcher/package-lock.json
+      - name: Yarn (Corepack, the version pinned in launcher/package.json)
+        run: corepack enable
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -108,8 +111,8 @@ jobs:
       - name: Build
         working-directory: launcher
         run: |
-          npm ci
-          npx tauri build --config src-tauri/bundle/tauri.bundle.conf.json
+          yarn install --immutable
+          yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json
       - name: Package
         run: |
           mkdir -p dist

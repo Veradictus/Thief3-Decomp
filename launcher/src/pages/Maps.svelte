@@ -1,9 +1,10 @@
 <script lang="ts">
   // Map Studio: export a map to Godot, edit it there, repack it into a .gmp and
   // install it into the game (and put the original back).
-  import Icon from "../components/Icon.svelte";
-  import { api, type MapEntry } from "../lib/api";
-  import { ago, app, bytes, enqueue, guard, running } from "../lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import { api, type MapEntry } from "$lib/api";
+  import { app, enqueue, guard, running } from "$lib/app.svelte";
+  import { ago, bytes } from "$lib/format";
 
   let maps = $state<MapEntry[]>([]);
   let filter = $state("");
@@ -45,13 +46,22 @@
   <div class="page-head">
     <div>
       <h1>Map Studio</h1>
-      <p>Export a map to Godot, move things around, then repack it and try it in the game. Originals are backed up before anything is replaced.</p>
+      <p>
+        Export a map to Godot, move things around, then repack it and try it in the game. Originals are backed up before
+        anything is replaced.
+      </p>
     </div>
     <div class="row">
       <button class="btn" onclick={() => guard(api.openGodot(null, true))} disabled={!hasGodot}>
         <Icon name="edit" />Open project in Godot
       </button>
-      <button class="btn" onclick={() => exportMap(null)} disabled={busy}><Icon name="download" />Export all</button>
+      <button
+        class="btn"
+        onclick={() => {
+          exportMap(null);
+        }}
+        disabled={busy}><Icon name="download" />Export all</button
+      >
     </div>
   </div>
 
@@ -91,12 +101,18 @@
             <h2>{sel.title ?? sel.id}</h2>
             <p class="muted">
               <span class="mono">{sel.id}.gmp</span>
-              {#if sel.size} · {bytes(sel.size)}{/if}
-              {#if sel.actors} · {sel.actors} actors{/if}
+              {#if sel.size}
+                · {bytes(sel.size)}{/if}
+              {#if sel.actors}
+                · {sel.actors} actors{/if}
             </p>
           </div>
-          <button class="btn small ghost" title="Rewrite the unchanged map and compare it byte for byte"
-            onclick={() => enqueue({ kind: "roundtrip", level: sel.id }, `Round-trip check: ${sel.id}`)} disabled={busy || !sel.inGame}>
+          <button
+            class="btn small ghost"
+            title="Rewrite the unchanged map and compare it byte for byte"
+            onclick={() => enqueue({ kind: "roundtrip", level: sel.id }, `Round-trip check: ${sel.id}`)}
+            disabled={busy || !sel.inGame}
+          >
             <Icon name="check" size={14} />Round-trip check
           </button>
         </div>
@@ -105,9 +121,18 @@
           <div class="num">1</div>
           <div class="grow">
             <h3>Export to Godot</h3>
-            <p class="muted">{sel.exported ? "Exported: scene, meshes, textures, lights and every actor's data." : "Not exported yet."}</p>
+            <p class="muted">
+              {sel.exported ? "Exported: scene, meshes, textures, lights and every actor's data." : "Not exported yet."}
+            </p>
           </div>
-          <button class="btn" class:primary={!sel.exported} onclick={() => exportMap(sel.id)} disabled={busy || !sel.inGame}>
+          <button
+            class="btn"
+            class:primary={!sel.exported}
+            onclick={() => {
+              exportMap(sel.id);
+            }}
+            disabled={busy || !sel.inGame}
+          >
             <Icon name="download" />{sel.exported ? "Re-export" : "Export"}
           </button>
         </div>
@@ -125,9 +150,17 @@
             </p>
           </div>
           <div class="row">
-            <button class="btn" class:primary={sel.exported && !sel.editedActors} onclick={() => guard(api.openGodot(sel.id, true))}
-              disabled={!sel.exported || !hasGodot}><Icon name="edit" />Edit in Godot</button>
-            <button class="btn" onclick={() => guard(api.openGodot(sel.id, false))} disabled={!sel.exported || !hasGodot}>
+            <button
+              class="btn"
+              class:primary={sel.exported && !sel.editedActors}
+              onclick={() => guard(api.openGodot(sel.id, true))}
+              disabled={!sel.exported || !hasGodot}><Icon name="edit" />Edit in Godot</button
+            >
+            <button
+              class="btn"
+              onclick={() => guard(api.openGodot(sel.id, false))}
+              disabled={!sel.exported || !hasGodot}
+            >
               <Icon name="eye" />View
             </button>
           </div>
@@ -147,8 +180,12 @@
               {/if}
             </p>
           </div>
-          <button class="btn" class:primary={!!sel.editedActors && (!sel.patched || sel.stale)}
-            onclick={() => enqueue({ kind: "repack", level: sel.id }, `Repack ${sel.id}`)} disabled={busy || !sel.editedActors}>
+          <button
+            class="btn"
+            class:primary={!!sel.editedActors && (!sel.patched || sel.stale)}
+            onclick={() => enqueue({ kind: "repack", level: sel.id }, `Repack ${sel.id}`)}
+            disabled={busy || !sel.editedActors}
+          >
             <Icon name="box" />Repack
           </button>
         </div>
@@ -167,23 +204,41 @@
           </div>
           <div class="row">
             {#if sel.installed}
-              <button class="btn danger" onclick={() => enqueue({ kind: "restore", level: sel.id }, `Restore ${sel.id}`)} disabled={busy}>
+              <button
+                class="btn danger"
+                onclick={() => enqueue({ kind: "restore", level: sel.id }, `Restore ${sel.id}`)}
+                disabled={busy}
+              >
                 <Icon name="undo" />Restore original
               </button>
             {/if}
-            <button class="btn" class:primary={sel.patched && !sel.installed && !sel.stale}
-              onclick={() => enqueue({ kind: "install", level: sel.id }, `Install ${sel.id}`)} disabled={busy || !sel.patched}>
+            <button
+              class="btn"
+              class:primary={sel.patched && !sel.installed && !sel.stale}
+              onclick={() => enqueue({ kind: "install", level: sel.id }, `Install ${sel.id}`)}
+              disabled={busy || !sel.patched}
+            >
               <Icon name="upload" />{sel.installed ? "Reinstall" : "Install"}
             </button>
           </div>
         </div>
 
         <div class="row foot">
-          <button class="btn small ghost" onclick={() => guard(api.openLocation("project"))}><Icon name="folder" size={14} />Godot project</button>
-          <button class="btn small ghost" onclick={() => guard(api.openLocation("patched"))}><Icon name="folder" size={14} />Patched maps</button>
-          <button class="btn small ghost" onclick={() => guard(api.openLocation("backup"))}><Icon name="folder" size={14} />Backups</button>
+          <button class="btn small ghost" onclick={() => guard(api.openLocation("project"))}
+            ><Icon name="folder" size={14} />Godot project</button
+          >
+          <button class="btn small ghost" onclick={() => guard(api.openLocation("patched"))}
+            ><Icon name="folder" size={14} />Patched maps</button
+          >
+          <button class="btn small ghost" onclick={() => guard(api.openLocation("backup"))}
+            ><Icon name="folder" size={14} />Backups</button
+          >
           <div class="grow"></div>
-          <button class="btn small ghost danger" onclick={() => enqueue({ kind: "restore", level: null }, "Restore all maps")} disabled={busy}>
+          <button
+            class="btn small ghost danger"
+            onclick={() => enqueue({ kind: "restore", level: null }, "Restore all maps")}
+            disabled={busy}
+          >
             <Icon name="undo" size={14} />Restore all originals
           </button>
         </div>

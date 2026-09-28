@@ -1,18 +1,30 @@
 // Shared UI state: the config, the status overview, navigation, toasts, and the
 // job queue. Jobs run one at a time, in order, so two tools never write the
 // same Godot project or game folder at once.
-import { api, errorText, onEvent, type Config, type Overview, type TaskExit, type TaskOutput, type TaskSpec } from "./api";
+import {
+  api,
+  errorText,
+  onEvent,
+  type Config,
+  type Overview,
+  type TaskExit,
+  type TaskOutput,
+  type TaskSpec,
+} from "./api";
+import { elapsed } from "./format";
 
 export type Page = "play" | "maps" | "mods" | "sdk" | "tasks" | "settings";
 
-export const app = $state({
-  config: null as Config | null,
-  overview: null as Overview | null,
-  page: "play" as Page,
-  toasts: [] as { id: number; text: string; kind: "info" | "error" }[],
+interface AppState {
+  config: Config | null;
+  overview: Overview | null;
+  page: Page;
+  toasts: { id: number; text: string; kind: "info" | "error" }[];
   /** Bumped when files may have changed, so pages reload their lists. */
-  revision: 0,
-});
+  revision: number;
+}
+
+export const app = $state<AppState>({ config: null, overview: null, page: "play", toasts: [], revision: 0 });
 
 let toastId = 0;
 export function toast(text: string, kind: "info" | "error" = "info") {
@@ -71,13 +83,23 @@ let listening = false;
 
 export function enqueue(spec: TaskSpec, title: string, requires: Job | null = null): Job {
   const job: Job = {
-    key: ++jobKey, spec, title, state: "queued", id: null, command: "", lines: [], code: null, started: null, ended: null,
+    key: ++jobKey,
+    spec,
+    title,
+    state: "queued",
+    id: null,
+    command: "",
+    lines: [],
+    code: null,
+    started: null,
+    ended: null,
     requires: requires?.key ?? null,
   };
   jobs.list.push(job);
   jobs.selected ??= job.key;
   void pump();
-  return jobs.list[jobs.list.length - 1];
+  // The stored copy is the reactive one: return it, not the plain object.
+  return jobs.list.find((j) => j.key === job.key) ?? job;
 }
 
 export const running = () => jobs.list.find((j) => j.state === "running") ?? null;
@@ -146,23 +168,6 @@ async function listen() {
 
 // ---- formatting ------------------------------------------------------------------
 
-export function ago(seconds: number | null): string {
-  if (!seconds) return "";
-  const d = Date.now() / 1000 - seconds;
-  if (d < 60) return "just now";
-  if (d < 3600) return `${Math.floor(d / 60)} min ago`;
-  if (d < 86400) return `${Math.floor(d / 3600)} h ago`;
-  return new Date(seconds * 1000).toLocaleDateString();
-}
-
-export function bytes(n: number | null): string {
-  if (n === null) return "";
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
-}
-
 export function duration(job: Job): string {
-  if (!job.started) return "";
-  const s = ((job.ended ?? Date.now()) - job.started) / 1000;
-  return s < 60 ? `${s.toFixed(1)} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`;
+  return elapsed(job.started, job.ended);
 }

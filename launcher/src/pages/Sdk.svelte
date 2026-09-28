@@ -1,10 +1,11 @@
 <script lang="ts">
   // T3SDK.ini as switches. The list, order and descriptions come from the
   // SDK's own T3SDK.ini, so new settings show up without launcher changes.
-  import Icon from "../components/Icon.svelte";
-  import Toggle from "../components/Toggle.svelte";
-  import { api, type SdkSettings, type Setting } from "../lib/api";
-  import { app, guard, refresh, toast } from "../lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import Toggle from "$components/Toggle.svelte";
+  import { api, type SdkSettings } from "$lib/api";
+  import { isKeySetting, isSwitch, keyName, settingDescription, settingLabel } from "$lib/format";
+  import { app, guard, refresh, toast } from "$lib/app.svelte";
 
   let settings = $state<SdkSettings | null>(null);
   let values = $state<Record<string, string>>({});
@@ -30,8 +31,8 @@
 
   async function save() {
     const list = changes.map((k) => {
-      const [section, ...rest] = k.split(".");
-      return { section, key: rest.join("."), value: values[k] };
+      const dot = k.indexOf(".");
+      return { section: k.slice(0, dot), key: k.slice(dot + 1), value: values[k] ?? "" };
     });
     if ((await guard(api.writeSdkSettings(list))) === undefined) return;
     toast("Saved. The game picks this up the next time it starts.");
@@ -42,20 +43,6 @@
     await guard(api.createSdkSettings());
     await refresh();
   }
-
-  const isSwitch = (s: Setting) => ["0", "1"].includes(s.default ?? s.value);
-  const isKey = (s: Setting) => /key$/i.test(s.key);
-  // "SkipIntros" -> "Skip intros", "UILayoutTrace" -> "UI layout trace"
-  const words = (key: string) =>
-    key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
-      .replace(/ ([A-Z][a-z])/g, (m) => m.toLowerCase());
-  // Comments read "1 = do this."; the switch already says on/off.
-  const describe = (s: Setting) => s.description.replace(/^1 = /, "").replace(/^./, (c) => c.toUpperCase());
-
-  const KEYS: Record<string, string> = {
-    "0x70": "F1", "0x71": "F2", "0x72": "F3", "0x73": "F4", "0x74": "F5", "0x75": "F6", "0x76": "F7", "0x77": "F8",
-    "0x78": "F9", "0x79": "F10", "0x7a": "F11", "0x7b": "F12", "0": "Off",
-  };
 </script>
 
 <div class="page">
@@ -89,18 +76,32 @@
             {@const k = id(section.name, s.key)}
             <div class="setting">
               <div class="grow">
-                <h3>{words(s.key)} {#if values[k] !== saved[k]}<span class="badge warn">changed</span>{/if}</h3>
-                <p class="muted">{describe(s)}</p>
+                <h3>
+                  {settingLabel(s.key)}
+                  {#if values[k] !== saved[k]}<span class="badge warn">changed</span>{/if}
+                </h3>
+                <p class="muted">{settingDescription(s)}</p>
               </div>
               {#if isSwitch(s)}
                 <Toggle checked={values[k] === "1"} label={s.key} onchange={(on) => (values[k] = on ? "1" : "0")} />
-              {:else if isKey(s)}
+              {:else if isKeySetting(s)}
                 <div class="keybox">
-                  <input type="text" value={values[k]} spellcheck="false" oninput={(e) => (values[k] = e.currentTarget.value.trim())} />
-                  <span class="faint">{KEYS[values[k]?.toLowerCase()] ?? ""}</span>
+                  <input
+                    type="text"
+                    value={values[k]}
+                    spellcheck="false"
+                    oninput={(e) => (values[k] = e.currentTarget.value.trim())}
+                  />
+                  <span class="faint">{keyName(values[k] ?? "")}</span>
                 </div>
               {:else}
-                <input class="text" type="text" value={values[k]} spellcheck="false" oninput={(e) => (values[k] = e.currentTarget.value)} />
+                <input
+                  class="text"
+                  type="text"
+                  value={values[k]}
+                  spellcheck="false"
+                  oninput={(e) => (values[k] = e.currentTarget.value)}
+                />
               {/if}
             </div>
           {/each}

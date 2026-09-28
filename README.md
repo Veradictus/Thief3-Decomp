@@ -164,7 +164,7 @@ publishes them as a release. To build locally:
 | Part | Needs | Commands |
 |---|---|---|
 | SDK (`dinput8.dll`, example mod) | Windows, Python 3.10+, Visual Studio 2022+ with "Desktop development with C++" | see below |
-| Launcher | Node 20+, Rust (stable); Linux also [Tauri's prerequisites](https://tauri.app/start/prerequisites/) | `cd launcher`, `npm install`, `npm run tauri dev` |
+| Launcher | Node 20+ (with `corepack enable`, for Yarn 4), Rust (stable); Linux also [Tauri's prerequisites](https://tauri.app/start/prerequisites/) | `cd launcher`, `yarn install`, `yarn tauri dev` |
 | Map tools | Python 3.10+, Godot 4.7+ | `python tools/assets/t3map.py --all`, then `godot --path build/assets/godot` |
 
 The SDK, from the repository's folder:
