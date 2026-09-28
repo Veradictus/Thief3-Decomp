@@ -28,8 +28,13 @@ my-mod-1.2.0.t3mod          a zip
 - The file name is `<id>-<version>.t3mod` by convention; the manifest, not the
   name, is what counts.
 - Paths inside the zip use `/`, are relative, and contain no `..`, no drive
-  letters and no empty segments. A package that breaks this is refused.
-- Names are compared case-insensitively (the game runs on Windows).
+  letters and no empty segments. Each segment is a valid Windows name: none of
+  `\ : * ? " < > |` or control characters, no trailing dot or space, and no
+  device name such as `CON` or `NUL`. Entries are stored or deflated files,
+  neither encrypted nor symbolic links; directory entries (names ending in
+  `/`) are allowed and ignored. A package that breaks this is refused.
+- Names are compared case-insensitively (the game runs on Windows), so two
+  entries whose names differ only in case are refused.
 - `mod.json` is UTF-8 JSON without a byte-order mark.
 
 ## mod.json
@@ -76,11 +81,15 @@ without breaking older launchers. A package must contain at least one of
 
 A range is one or more comparators separated by commas, all of which must
 hold: `>=1.2.0`, `>1.2.0`, `<=2.0.0`, `<2.0.0`, `=1.2.3`, `^1.2.0` (same
-major; for `0.x`, same minor), `~1.2.0` (same major and minor), or `*` (any).
-Missing minor and patch numbers count as 0 (`>=1.2` is `>=1.2.0`). A version
-with a pre-release tag only satisfies a comparator whose own version has the
-same `MAJOR.MINOR.PATCH` and a pre-release tag. This is the subset that
-Rust's `semver` crate and the Python tool both implement the same way.
+major; for `0.x`, same minor; for `0.0.x`, that version only), `~1.2.0` (same
+major and minor), or `*` (any). A comparator may leave out the minor and patch
+numbers, which then match anything, as in Cargo: `>=1.2` is `>=1.2.0`, `<=1.2`
+is `<1.3.0`, `>1.2` is `>=1.3.0` and `=1.2` is `>=1.2.0, <1.3.0`. A version
+with a pre-release tag only satisfies a range with a comparator that has the
+same `MAJOR.MINOR.PATCH` and a pre-release tag (so neither `*` nor `>=1.0.0`
+matches `1.1.0-beta.1`). This is the subset that Rust's `semver` crate and the
+Python tool both implement the same way; the tool refuses forms outside it (a
+bare `1.2.3`, wildcards such as `1.*`, build metadata).
 
 ## Installed layout
 
@@ -178,7 +187,8 @@ through `entry`, so it shows up in the load order and in crash reports.
 
 `textures/<name>.dds` replaces the texture resource named `<name>` inside the
 game's `.ibt` bundles (the level bundles and the `Kernel_*` ones), for players
-without Sneaky Upgrade. `tools/assets/t3texpack.py` does the work:
+without Sneaky Upgrade. `textures/` holds only `.dds` files, with no
+subfolders. `tools/assets/t3texpack.py` does the work:
 
 ```sh
 python tools/assets/t3texpack.py list [<map or .ibt>]            # texture names, formats, sizes
@@ -226,6 +236,15 @@ python tools/t3mod.py validate <mod.json | folder | .t3mod>
 python tools/t3mod.py pack <folder> [-o <out.t3mod>]   # validates, then zips as <id>-<version>.t3mod
 python tools/t3mod.py info <.t3mod>                     # manifest, file list, SHA-256
 ```
+
+`pack` skips `.git`, `.gitkeep`, `Thumbs.db`, `.DS_Store`, `desktop.ini`,
+`.t3mod` files and `*.pdb` (unless `--with-pdb`), and gives the same bytes for
+the same files: entries sorted by path, fixed timestamps, deflate. `validate`
+and `pack` also warn about large or unusual files (executables, archives,
+empty files, DLLs under `files/`), and `validate` unpacks every entry of a
+`.t3mod` to catch a damaged file. The rules live in `tools/mods/t3modlib.py`,
+which `tools/modindex.py` shares; `tools/mods/selftest.py` tests both against
+the fixtures.
 
 `templates/mod/` is a starter project: CMake builds the DLL against the SDK
 headers, writes `mod.json` from the project version, and packs the `.t3mod`;
@@ -280,4 +299,13 @@ launcher setting).
 `tools/modindex.py validate` checks the per-mod files (CI runs it on every
 pull request that touches `modindex/`), `verify` also downloads each new
 version and checks it against its manifest, and `build -o <file>` writes the
-combined index.
+combined index. Authors prepare the entry for a new version with
+`add <.t3mod> --url <url>`; [modindex/README.md](../modindex/README.md) has
+how to submit it and the rules.
+
+```sh
+python tools/modindex.py validate [<mods/id.json> ...]    # schema, order, fields
+python tools/modindex.py verify [--changed-only <git ref>] # download, size, SHA-256, manifest
+python tools/modindex.py build -o <index.json>             # the combined index, sorted by id
+python tools/modindex.py add <.t3mod> --url <https url> [--released YYYY-MM-DD]
+```
