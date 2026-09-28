@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The work queue: which function to match next, with claims so parallel workers never collide.
 
-    python tools/agent/next.py claim [--agent ID] [--count N] [--unit U] [--min-size N] [--max-size N]
+    python tools/agent/next.py claim [--agent ID] [--count N] [--unit U] [--name REGEX] [--min-size N] [--max-size N]
     python tools/agent/next.py release [--agent ID] [addr ...]
     python tools/agent/next.py status
     python tools/agent/next.py list [--limit N] [--unit U]        # the queue head, unclaimed
@@ -22,6 +22,7 @@ Output is JSON.
 
 import argparse
 import bisect
+import re
 import sys
 from typing import Dict, List, Optional
 
@@ -53,7 +54,8 @@ def queue(p: Project, args, claimed: Optional[set] = None) -> List[dict]:
         a = f.address
         if (f.name.startswith("Unwind@") or text_x[0] <= a < text_x[1] or f.name in imports
                 or (a >= lib and not args.all_regions) or a in done or a in deferred or a in claimed
-                or (args.min_size and f.size < args.min_size) or (args.max_size and f.size > args.max_size)):
+                or (args.min_size and f.size < args.min_size) or (args.max_size and f.size > args.max_size)
+                or (args.name and not re.search(args.name, f.name))):
             continue
         unit = unit_of(a)
         if args.unit and not (unit == args.unit or unit.startswith(args.unit)):
@@ -95,6 +97,7 @@ def main() -> None:
     for name in ("claim", "list"):
         s = sub.add_parser(name)
         s.add_argument("--unit", help="only functions of this split unit (name or prefix, e.g. auto/text_10A5)")
+        s.add_argument("--name", help="only functions whose symbols.txt name matches this regex (e.g. ^UObject::exec)")
         s.add_argument("--min-size", type=lambda v: int(v, 0), help="skip functions smaller than this")
         s.add_argument("--max-size", type=lambda v: int(v, 0), help="skip functions larger than this")
         s.add_argument("--all-regions", action="store_true", help="include the library region (from LIBRARY_START on)")
@@ -138,7 +141,7 @@ def main() -> None:
         emit({"released": released})
     elif args.cmd == "status":
         live = claims.all()
-        args.unit, args.min_size, args.max_size, args.all_regions = None, None, None, False
+        args.unit, args.name, args.min_size, args.max_size, args.all_regions = None, None, None, None, False
         emit({
             "queue": len(queue(p, args)),
             "claimed": len(live),
