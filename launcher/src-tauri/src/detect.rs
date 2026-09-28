@@ -353,7 +353,7 @@ pub fn sha1_file(path: &Path) -> Option<String> {
             return Some(hash.clone());
         }
     }
-    let hash = format!("{:x}", Sha1::digest(std::fs::read(path).ok()?));
+    let hash: String = Sha1::digest(std::fs::read(path).ok()?).iter().map(|b| format!("{b:02x}")).collect();
     cache.lock().unwrap().insert(path.to_path_buf(), (stamp.0, stamp.1, hash.clone()));
     Some(hash)
 }
