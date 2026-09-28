@@ -27,6 +27,13 @@ zip = { version = "8", default-features = false, features = ["deflate-flate2-zli
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
+# The updater downloads over the system's TLS (Schannel) on Windows, so no C
+# toolchain is needed (and `cargo check --target x86_64-pc-windows-msvc` works
+# from Linux); rustls elsewhere.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls"] }
+
+[target.'cfg(not(windows))'.dependencies]
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls"] }
 
 [dev-dependencies]
 tempfile = "3"

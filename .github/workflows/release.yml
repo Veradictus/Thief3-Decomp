@@ -4,6 +4,9 @@
 #                                           prebuilt SDK and Python bundled
 #   T3SDK-Launcher_<version>_portable.zip   the same, to unzip and run
 #   T3SDK_<version>_x86.zip                 the SDK alone, for System/ by hand
+#   latest.json (+ the installer's .sig)    what the launcher's updater reads,
+#                                           when the updater key is set up
+# See docs/releasing.md.
 name: release
 
 on:
@@ -18,6 +21,7 @@ jobs:
     uses: ./.github/workflows/launcher-build.yml
     with:
       version: ${{ github.ref_name }}
+    secrets: inherit
 
   release:
     needs: build
@@ -35,6 +39,28 @@ jobs:
           cp artifacts/launcher-windows/* dist/
           (cd artifacts/sdk-bin && zip -r "../../dist/T3SDK_${version}_x86.zip" .)
           ls -l dist
+      - name: Updater manifest
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          # latest.json for the launcher's updater, which fetches it from
+          # releases/latest/download/ (so pre-releases are never offered).
+          # Only a build signed with the updater key has the .sig.
+          version="${GITHUB_REF_NAME#v}"
+          installer="T3SDK-Launcher_${version}_x64-setup.exe"
+          if [ ! -f "dist/$installer.sig" ]; then
+            echo "::notice::no $installer.sig (the updater key is not set up): no latest.json, see docs/releasing.md"
+            exit 0
+          fi
+          jq -n \
+            --arg version "$version" \
+            --arg notes "T3SDK Launcher $version: $REPO_URL/releases/tag/$GITHUB_REF_NAME" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg signature "$(cat "dist/$installer.sig")" \
+            --arg url "$REPO_URL/releases/download/$GITHUB_REF_NAME/$installer" \
+            '{version: $version, notes: $notes, pub_date: $pub_date,
+              platforms: {"windows-x86_64": {signature: $signature, url: $url}}}' > dist/latest.json
+          cat dist/latest.json
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*

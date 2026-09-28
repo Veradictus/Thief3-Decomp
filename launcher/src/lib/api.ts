@@ -19,6 +19,9 @@ export interface Config {
   /** The game's SaveGames folder; null: found automatically. */
   savesDir: string | null;
   backupBeforeLaunch: boolean;
+  /** Look for launcher updates at start-up; null means yes. */
+  autoUpdateCheck: boolean | null;
+  lastUpdateCheck: number | null;
 }
 
 export interface Candidate {
@@ -188,6 +191,35 @@ export interface LogsReport {
   bytes: number;
 }
 
+export interface UpdaterStatus {
+  /** This build can update itself (it was built with the update key). */
+  enabled: boolean;
+  /** Unzipped from the portable zip: new versions are downloaded by hand. */
+  portable: boolean;
+  version: string;
+  lastCheck: number | null;
+}
+
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  notes: string | null;
+  /** Release date, Unix seconds. */
+  date: number | null;
+}
+
+export interface UpdateCheck {
+  /** False when the start-up check was skipped (turned off, or done today). */
+  checked: boolean;
+  update: UpdateInfo | null;
+}
+
+export interface UpdateProgress {
+  downloaded: number;
+  total: number | null;
+  finished: boolean;
+}
+
 /** Before the real config loads (the UI waits for it, so this is rarely seen). */
 export const emptyConfig: Config = {
   gameDir: null,
@@ -198,6 +230,8 @@ export const emptyConfig: Config = {
   setupComplete: false,
   savesDir: null,
   backupBeforeLaunch: false,
+  autoUpdateCheck: null,
+  lastUpdateCheck: null,
 };
 
 export type Location = "game" | "system" | "mods" | "log" | "project" | "sdk" | "patched" | "backup";
@@ -236,6 +270,9 @@ export const api = {
   deleteSaveBackup: (file: string) => call<null>("delete_save_backup", { file }),
   openSavesFolder: (which: "saves" | "backups") => call<null>("open_saves_folder", { which }),
   collectLogs: (path: string, tasks: string | null) => call<LogsReport>("collect_logs", { path, tasks }),
+  updaterStatus: () => call<UpdaterStatus>("updater_status"),
+  checkUpdate: (auto: boolean) => call<UpdateCheck>("check_update", { auto }),
+  installUpdate: () => call<null>("install_update"),
 };
 
 /** The launcher's version ("preview" outside Tauri). */

@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icon from "$components/Icon.svelte";
+  import UpdateBanner from "$components/UpdateBanner.svelte";
   import { inTauri } from "$lib/api";
   import { app, jobs, loadConfig, pending, refresh, running, type Page } from "$lib/app.svelte";
+  import { startupUpdateCheck } from "$lib/update.svelte";
   import Maps from "./pages/Maps.svelte";
   import Mods from "./pages/Mods.svelte";
   import Play from "./pages/Play.svelte";
@@ -23,7 +25,7 @@
   onMount(() => {
     const start = new URLSearchParams(location.search).get("page") as Page | null;
     if (start) app.page = start;
-    void loadConfig().then(refresh);
+    void loadConfig().then(refresh).then(startupUpdateCheck);
     // Pick up changes made outside the launcher (the game, Godot, a shell).
     const onFocus = () => void refresh();
     const timer = setInterval(() => {
@@ -65,6 +67,7 @@
         {/each}
       </nav>
       <div class="grow"></div>
+      <UpdateBanner />
       <div class="status">
         {#if game}
           <span class="badge" class:ok={game.supported} class:warn={!game.supported}>

@@ -2,6 +2,7 @@
 """Stage what the release launcher ships with, and pack the portable build.
 
   stage [--version X.Y.Z] [--sdk-bin DIR] [--no-sdk] [--no-python]
+        [--updater-pubkey KEY [--updater-endpoint URL]]
       fill launcher/src-tauri/bundle/ and write tauri.bundle.conf.json there:
         t3sdk/tools/        sdk.py and the asset tools (tools/assets/)
         t3sdk/sdk/T3SDK.ini the settings template (descriptions for the launcher)
@@ -12,6 +13,11 @@
                             players need no Python of their own
       `yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json` then
       installs t3sdk/ and python/ next to the launcher.
+      With --updater-pubkey (the public half of the key from `yarn tauri
+      signer generate`), the config also turns on the in-app updater
+      (plugins.updater) and signed update artifacts; the build then needs
+      TAURI_SIGNING_PRIVATE_KEY. Without it the launcher has no updater.
+      See docs/releasing.md.
   portable <launcher.exe> <out.zip>
       zip the built launcher with the staged folders: unzip anywhere and run.
 
@@ -42,6 +48,10 @@ PYTHON_SHA256 = "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c
 
 SKIP = shutil.ignore_patterns("__pycache__", "*.pyc")
 
+# Where release builds look for updates: release.yml attaches latest.json to
+# every release, and GitHub serves the newest non-prerelease one here.
+UPDATER_ENDPOINT = "https://github.com/Veradictus/Thief3-Decomp/releases/latest/download/latest.json"
+
 # Shipped with the tools when the repository has them.
 NOTICES = ("LICENSE", "THIRD_PARTY_NOTICES.md")
 
@@ -61,6 +71,12 @@ def stage_notices(dest: Path) -> list[str]:
             shutil.copy2(ROOT / name, dest / name)
             copied.append(name)
     return copied
+
+
+def updater_config(pubkey: str, endpoint: str) -> dict:
+    """tauri-plugin-updater's configuration: the launcher registers the plugin
+    only when this is present (src-tauri/src/update.rs)."""
+    return {"pubkey": pubkey, "endpoints": [endpoint], "windows": {"installMode": "passive"}}
 
 
 def stage_sdk(dest: Path, sdk_bin: Path) -> int:
@@ -104,9 +120,16 @@ def cmd_stage(args: argparse.Namespace) -> None:
         stage_python(STAGE / "python")
         resources["bundle/python/"] = "python/"
         note += f", Python {PYTHON_VERSION}"
-    config = {"bundle": {"resources": resources}}
+    config: dict = {"bundle": {"resources": resources}}
     if args.version:
         config["version"] = args.version
+    # The key is one line of base64; a pasted repository variable may carry
+    # line breaks or spaces.
+    pubkey = "".join((args.updater_pubkey or "").split())
+    if pubkey:
+        config["bundle"]["createUpdaterArtifacts"] = True
+        config["plugins"] = {"updater": updater_config(pubkey, args.updater_endpoint)}
+        note += ", updater"
     (STAGE / "tauri.bundle.conf.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     print(f"staged {note} in {STAGE}")
 
@@ -136,6 +159,14 @@ def main() -> None:
     stage.add_argument("--sdk-bin", default=str(ROOT / "build" / "sdk" / "bin"), help="the built SDK")
     stage.add_argument("--no-sdk", action="store_true", help="ship without the prebuilt SDK")
     stage.add_argument("--no-python", action="store_true", help="ship without the embeddable Python")
+    stage.add_argument(
+        "--updater-pubkey",
+        metavar="KEY",
+        help="the updater's public key: turns on the in-app updater and signed update artifacts (empty: off)",
+    )
+    stage.add_argument(
+        "--updater-endpoint", metavar="URL", default=UPDATER_ENDPOINT, help="where the updater finds latest.json"
+    )
     portable = sub.add_parser("portable")
     portable.add_argument("exe")
     portable.add_argument("out")
