@@ -1,7 +1,7 @@
 // The display features, each behind its own T3SDK.ini option (see
 // display.hpp): rewriting the resolution table, running the Direct3D 8 device
-// windowed and borderless (with what that needs: the game's cursor, bringing
-// the window to the front, covering level changes, running in the
+// windowed and borderless (with what that needs: the game's cursor and VSync,
+// bringing the window to the front, covering level changes, running in the
 // background), frame pacing, and rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
@@ -122,6 +122,8 @@ struct DisplayMode {
     UINT Format;
 };
 constexpr UINT kSwapEffectDiscard = 1;
+constexpr UINT kSwapEffectCopyVSync = 4;
+constexpr UINT kPresentIntervalOne = 1;
 constexpr int kD3D8CreateDevice = 15;           // IDirect3D8 vtable slot
 constexpr int kD3D8GetAdapterDisplayMode = 8;   // IDirect3D8 vtable slot
 constexpr int kDevice8Reset = 14;               // IDirect3DDevice8 vtable slot
@@ -135,23 +137,35 @@ using GetAdapterDisplayModeFn = HRESULT(WINAPI*)(void* d3d, UINT adapter, Displa
 Direct3DCreate8Fn g_direct3DCreate8 = nullptr;
 CreateDeviceFn g_createDevice = nullptr;
 ResetFn g_reset = nullptr;
+bool g_borderless = false;
 HWND g_window = nullptr;
 UINT g_desktopFormat = 0;
 
 void* VtableEntry(void* object, int slot) { return (*reinterpret_cast<void***>(object))[slot]; }
 
-// Presentation parameters for a windowed device of the size the game asked for.
+// Presentation parameters for a windowed device of the size the game asked
+// for. The game's VSync option asks a fullscreen device to present once per
+// refresh (UD3DRenderDevice::SetRes, 0x10C84070); a window gets the same from
+// the swap effect, which allows neither multisampling nor extra back buffers.
 void MakeWindowed(PresentParameters* params) {
     if (params->Windowed) {
         return;
     }
+    const bool vsync = params->FullScreen_PresentationInterval == kPresentIntervalOne && !params->MultiSampleType;
     params->Windowed = TRUE;
-    params->SwapEffect = kSwapEffectDiscard;
+    params->SwapEffect = vsync ? kSwapEffectCopyVSync : kSwapEffectDiscard;
+    if (vsync) {
+        params->BackBufferCount = 1;
+    }
     params->FullScreen_RefreshRateInHz = 0;
     params->FullScreen_PresentationInterval = 0;  // D3DPRESENT_INTERVAL_DEFAULT: required when windowed
     if (g_desktopFormat) {
         params->BackBufferFormat = g_desktopFormat;
     }
+}
+
+const char* VSyncNote(const PresentParameters* params) {
+    return params->SwapEffect == kSwapEffectCopyVSync ? ", VSync" : "";
 }
 
 // The rectangle of the monitor `window` is on.
@@ -284,7 +298,8 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     MakeWindowed(params);
     HRESULT result = g_reset(device, params);
     MakeBorderless(g_window);
-    T3_LOG("display: Reset %ux%u windowed -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight, result);
+    T3_LOG("display: Reset %ux%u windowed%s -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight,
+           VSyncNote(params), result);
     return result;
 }
 
@@ -314,29 +329,56 @@ void LowerMinimumStep() {
     FlushInstructionCache(GetCurrentProcess(), step, sizeof(*step));
 }
 
-// [Display] FrameStats: frames per second and the time spent in Present,
-// logged every 10 seconds. A Present that takes a whole frame means something
-// below the game (runtime, driver, compositor) paces it.
+// [Display] MaxFPS holds each frame back until its turn, so frames leave at an
+// even pace (and the world, which steps by the frame time, moves evenly).
+// [Display] FrameStats logs frames per second and the time spent in Present
+// every 10 seconds; a Present that takes a whole frame means something below
+// the game (VSync, runtime, driver, compositor) paces it.
 constexpr int kDevice8Present = 15;  // IDirect3DDevice8 vtable slot
 
 using PresentFn = HRESULT(WINAPI*)(void* device, const RECT* source, const RECT* dest, HWND window,
                                    const void* dirty);
 PresentFn g_present = nullptr;
-bool g_frameStats = false;
 LARGE_INTEGER g_ticksPerSecond{};
+LONGLONG g_frameTicks = 0;      // the frame interval for MaxFPS; 0 = no limit
+LONGLONG g_nextFrame = 0;       // when the next frame may be presented
+HANDLE g_frameTimer = nullptr;  // high-resolution timer; without one the wait spins
+bool g_frameStats = false;
 LARGE_INTEGER g_statsStart{};
 LONGLONG g_presentTicks = 0;
 int g_frames = 0;
 
 void LogCursorCalls();
 
-HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest, HWND window, const void* dirty) {
-    LARGE_INTEGER before;
-    LARGE_INTEGER after;
-    QueryPerformanceCounter(&before);
-    HRESULT result = g_present(device, source, dest, window, dirty);
-    QueryPerformanceCounter(&after);
+void WaitForFrameTurn() {
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
 
+    // More than a frame late (or the first frame): start a new schedule
+    // instead of hurrying frames out to catch up.
+    if (now.QuadPart - g_nextFrame > g_frameTicks) {
+        g_nextFrame = now.QuadPart;
+    }
+
+    // Sleep until a millisecond before the turn, then spin: timers wake late.
+    const LONGLONG sleep = g_nextFrame - now.QuadPart - g_ticksPerSecond.QuadPart / 1000;
+    if (sleep > 0 && g_frameTimer) {
+        LARGE_INTEGER due;
+        due.QuadPart = -sleep * 10000000 / g_ticksPerSecond.QuadPart;  // relative, in 100 ns units
+        if (SetWaitableTimer(g_frameTimer, &due, 0, nullptr, nullptr, FALSE)) {
+            WaitForSingleObject(g_frameTimer, INFINITE);
+        }
+    }
+    while (now.QuadPart < g_nextFrame) {
+        YieldProcessor();
+        QueryPerformanceCounter(&now);
+    }
+    g_nextFrame += g_frameTicks;
+}
+
+void CountFrame(const LARGE_INTEGER& before) {
+    LARGE_INTEGER after;
+    QueryPerformanceCounter(&after);
     g_presentTicks += after.QuadPart - before.QuadPart;
     ++g_frames;
 
@@ -348,6 +390,18 @@ HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest,
         g_statsStart = after;
         g_presentTicks = 0;
         g_frames = 0;
+    }
+}
+
+HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest, HWND window, const void* dirty) {
+    if (g_frameTicks) {
+        WaitForFrameTurn();
+    }
+    LARGE_INTEGER before;
+    QueryPerformanceCounter(&before);
+    HRESULT result = g_present(device, source, dest, window, dirty);
+    if (g_frameStats) {
+        CountFrame(before);
     }
     return result;
 }
@@ -635,26 +689,33 @@ void HookPresent(void* device) {
     if (MH_CreateHook(present, reinterpret_cast<void*>(&PresentDetour), reinterpret_cast<void**>(&g_present)) ==
             MH_OK &&
         MH_EnableHook(present) == MH_OK) {
-        QueryPerformanceFrequency(&g_ticksPerSecond);
         QueryPerformanceCounter(&g_statsStart);
-        T3_LOG("display: frame statistics on");
+        T3_LOG("display: Present hooked (frame limit %s, frame statistics %s)", g_frameTicks ? "on" : "off",
+               g_frameStats ? "on" : "off");
     }
 }
 
 HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus, DWORD flags,
                                   PresentParameters* params, void** device) {
-    DisplayMode desktop{};
-    auto getMode = reinterpret_cast<GetAdapterDisplayModeFn>(VtableEntry(d3d, kD3D8GetAdapterDisplayMode));
-    if (SUCCEEDED(getMode(d3d, adapter, &desktop))) {
-        g_desktopFormat = desktop.Format;
+    const bool wasFullscreen = !params->Windowed;
+    if (g_borderless) {
+        DisplayMode desktop{};
+        auto getMode = reinterpret_cast<GetAdapterDisplayModeFn>(VtableEntry(d3d, kD3D8GetAdapterDisplayMode));
+        if (SUCCEEDED(getMode(d3d, adapter, &desktop))) {
+            g_desktopFormat = desktop.Format;
+        }
+        MakeWindowed(params);
     }
-    bool wasFullscreen = !params->Windowed;
-    MakeWindowed(params);
     g_window = params->hDeviceWindow ? params->hDeviceWindow : focus;
     HRESULT result = g_createDevice(d3d, adapter, type, focus, flags, params, device);
-    T3_LOG("display: CreateDevice %ux%u %s -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight,
-           wasFullscreen ? "fullscreen made borderless" : "windowed", result);
-    if (SUCCEEDED(result)) {
+    T3_LOG("display: CreateDevice %ux%u %s%s -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight,
+           !wasFullscreen ? "windowed" : g_borderless ? "fullscreen made borderless" : "fullscreen",
+           VSyncNote(params), result);
+    if (FAILED(result)) {
+        return result;
+    }
+
+    if (g_borderless) {
         MakeBorderless(g_window);
         BringToFront(g_window);
         if (!g_reset) {
@@ -668,9 +729,9 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
         if (!g_setCursor) {
             HookCursor(*device);
         }
-        if (g_frameStats && !g_present) {
-            HookPresent(*device);
-        }
+    }
+    if ((g_frameTicks || g_frameStats) && !g_present) {
+        HookPresent(*device);
     }
     return result;
 }
@@ -936,32 +997,51 @@ void Install(const Options& options) {
     if (options.smoothFrames) {
         LowerMinimumStep();
     }
+
+    QueryPerformanceFrequency(&g_ticksPerSecond);
     g_frameStats = options.frameStats;
+    if (options.maxFps > 0) {
+        g_frameTicks = g_ticksPerSecond.QuadPart / options.maxFps;
+        g_frameTimer =
+            CreateWaitableTimerExW(nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+    }
     g_cursorScale = options.cursorScale;
-    if (options.borderless) {
-        HMODULE exe = GetModuleHandleW(nullptr);
+
+    // The device hooks: borderless, and the frame limit and statistics.
+    HMODULE exe = GetModuleHandleW(nullptr);
+    g_borderless = options.borderless;
+    if (options.borderless || g_frameTicks || g_frameStats) {
         g_direct3DCreate8 = reinterpret_cast<Direct3DCreate8Fn>(
             PatchImport(exe, "d3d8.dll", "Direct3DCreate8", reinterpret_cast<void*>(&Direct3DCreate8Detour)));
         if (!g_direct3DCreate8) {
-            T3_LOG("display: borderless unavailable (no Direct3DCreate8 import)");
-        } else {
-            g_shellExecuteExA = reinterpret_cast<ShellExecuteExAFn>(
-                PatchImport(exe, "SHELL32.dll", "ShellExecuteExA", reinterpret_cast<void*>(&ShellExecuteExADetour)));
-            Hook(kLoadingScreenBegin, reinterpret_cast<void*>(&LoadingScreenBeginDetour),
-                 reinterpret_cast<void**>(&g_loadingScreenBegin), "level-change curtain");
-
-            // Only a borderless game can keep running: an exclusive fullscreen
-            // device is lost as soon as another window takes the focus.
-            if (!options.pauseInBackground) {
-                Hook(kViewportWndProc, reinterpret_cast<void*>(&ViewportWndProcDetour),
-                     reinterpret_cast<void**>(&g_viewportWndProc), "running in the background");
-            }
+            T3_LOG("display: borderless, frame limit and statistics unavailable (no Direct3DCreate8 import)");
+            g_borderless = false;
         }
     }
+
+    if (g_borderless) {
+        g_shellExecuteExA = reinterpret_cast<ShellExecuteExAFn>(
+            PatchImport(exe, "SHELL32.dll", "ShellExecuteExA", reinterpret_cast<void*>(&ShellExecuteExADetour)));
+        Hook(kLoadingScreenBegin, reinterpret_cast<void*>(&LoadingScreenBeginDetour),
+             reinterpret_cast<void**>(&g_loadingScreenBegin), "level-change curtain");
+
+        // Only a borderless game can keep running: an exclusive fullscreen
+        // device is lost as soon as another window takes the focus.
+        if (!options.pauseInBackground) {
+            Hook(kViewportWndProc, reinterpret_cast<void*>(&ViewportWndProcDetour),
+                 reinterpret_cast<void**>(&g_viewportWndProc), "running in the background");
+        }
+    }
+
     T3_LOG("display: native resolutions %s, borderless %s, widescreen UI %s (width %.0f), %s in the background",
-           options.nativeResolutions ? "on" : "off", options.borderless && g_direct3DCreate8 ? "on" : "off",
-           options.widescreenUI ? "on" : "off", g_uiWidth, g_viewportWndProc ? "keeps running" : "pauses");
-    T3_LOG("display: smooth frames %s", options.smoothFrames ? "on" : "off");
+           options.nativeResolutions ? "on" : "off", g_borderless ? "on" : "off", options.widescreenUI ? "on" : "off",
+           g_uiWidth, g_viewportWndProc ? "keeps running" : "pauses");
+    if (g_frameTicks) {
+        T3_LOG("display: smooth frames %s, at most %d fps%s", options.smoothFrames ? "on" : "off", options.maxFps,
+               g_frameTimer ? "" : " (no high-resolution timer: frames wait by spinning)");
+    } else {
+        T3_LOG("display: smooth frames %s, no frame limit", options.smoothFrames ? "on" : "off");
+    }
 }
 
 }  // namespace t3sdk::display
