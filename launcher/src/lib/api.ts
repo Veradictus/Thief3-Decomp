@@ -4,8 +4,8 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { open } from "@tauri-apps/plugin-dialog";
-import { mockCall, mockListen, mockPick } from "./mock";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { mockCall, mockListen, mockPick, mockPickSave } from "./mock";
 
 export const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
@@ -182,6 +182,12 @@ export interface Restored {
   summary: SavesSummary;
 }
 
+export interface LogsReport {
+  path: string;
+  files: number;
+  bytes: number;
+}
+
 /** Before the real config loads (the UI waits for it, so this is rarely seen). */
 export const emptyConfig: Config = {
   gameDir: null,
@@ -229,6 +235,7 @@ export const api = {
   restoreSaveBackup: (file: string) => call<Restored>("restore_save_backup", { file }),
   deleteSaveBackup: (file: string) => call<null>("delete_save_backup", { file }),
   openSavesFolder: (which: "saves" | "backups") => call<null>("open_saves_folder", { which }),
+  collectLogs: (path: string, tasks: string | null) => call<LogsReport>("collect_logs", { path, tasks }),
 };
 
 /** The launcher's version ("preview" outside Tauri). */
@@ -253,6 +260,12 @@ export async function pick(directory: boolean, title: string): Promise<string | 
   if (!inTauri) return mockPick(directory, title);
   const chosen = await open({ directory, multiple: false, title });
   return typeof chosen === "string" ? chosen : null;
+}
+
+/** A save dialog for a .zip file; null when cancelled. */
+export async function pickZip(title: string, defaultPath: string): Promise<string | null> {
+  if (!inTauri) return mockPickSave(title, defaultPath);
+  return await save({ title, defaultPath, filters: [{ name: "Zip archive", extensions: ["zip"] }] });
 }
 
 export function errorText(e: unknown): string {

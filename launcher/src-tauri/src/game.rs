@@ -66,7 +66,7 @@ pub struct Overview {
     pub running: bool,
 }
 
-fn sdk_status(cfg: &Config) -> SdkStatus {
+pub(crate) fn sdk_status(cfg: &Config) -> SdkStatus {
     let mut status = SdkStatus::default();
     if let Some(game) = &cfg.game_dir {
         let system = game.join("System");

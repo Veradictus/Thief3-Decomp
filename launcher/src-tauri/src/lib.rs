@@ -4,6 +4,7 @@
 // operation and exposes them as commands.
 mod config;
 mod detect;
+mod diag;
 mod game;
 mod ini;
 mod proc;
@@ -56,6 +57,7 @@ pub fn run() {
             saves::restore_save_backup,
             saves::delete_save_backup,
             saves::open_saves_folder,
+            diag::collect_logs,
         ])
         .run(tauri::generate_context!())
         .expect("the launcher failed to start");
