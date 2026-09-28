@@ -81,6 +81,7 @@ Match the surrounding code: its naming, comment density and idiom. The SDK is
 C++ built with MSVC for 32-bit x86 and must build without warnings. Tools are
 Python using only the standard library, plus Ghidra scripts in Java. The
 launcher is Rust and Svelte/TypeScript: `cargo fmt`, `cargo clippy` and
-`npm run check` must pass (see [docs/launcher.md](docs/launcher.md)). Record
-every engine address you use in `docs/engine.md` with its evidence, and its
-name in `config/PC_20040610/symbols.txt`.
+`yarn verify` (types, lint, format, tests) must pass (see
+[docs/launcher.md](docs/launcher.md)). Record every engine address you use in
+`docs/engine.md` with its evidence, and its name in
+`config/PC_20040610/symbols.txt`.

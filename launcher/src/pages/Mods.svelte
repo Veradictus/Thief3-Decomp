@@ -1,10 +1,11 @@
 <script lang="ts">
   // Mod DLLs in System/mods. Turning one off moves it to System/mods/disabled,
   // which the SDK does not load.
-  import Icon from "../components/Icon.svelte";
-  import Toggle from "../components/Toggle.svelte";
-  import { api, type ModEntry } from "../lib/api";
-  import { ago, app, bytes, guard, refresh } from "../lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import Toggle from "$components/Toggle.svelte";
+  import { api, type ModEntry } from "$lib/api";
+  import { app, guard, refresh } from "$lib/app.svelte";
+  import { ago, bytes } from "$lib/format";
 
   let mods = $state<ModEntry[]>([]);
 
@@ -27,7 +28,9 @@
   <div class="page-head">
     <div>
       <h1>Mods</h1>
-      <p>T3SDK loads every DLL in <code>System\mods</code> when the game starts, in name order. Changes apply on the next start.</p>
+      <p>
+        T3SDK loads every DLL in <code>System\mods</code> when the game starts, in name order. Changes apply on the next start.
+      </p>
     </div>
     <div class="row">
       <button class="btn" onclick={load}><Icon name="refresh" />Refresh</button>
@@ -36,7 +39,9 @@
   </div>
 
   {#if !app.overview?.sdk.installed}
-    <div class="note card"><Icon name="alert" />T3SDK is not installed, so the game will not load these mods. Install it from the Play page.</div>
+    <div class="note card">
+      <Icon name="alert" />T3SDK is not installed, so the game will not load these mods. Install it from the Play page.
+    </div>
   {/if}
 
   <div class="card">
@@ -45,7 +50,9 @@
         <div class="icon" class:off={!mod.enabled}><Icon name="puzzle" size={18} /></div>
         <div class="grow">
           <h3>{mod.name}</h3>
-          <p class="faint small"><span class="mono">{mod.name}.dll</span> · {bytes(mod.size)} · changed {ago(mod.modified)}</p>
+          <p class="faint small">
+            <span class="mono">{mod.name}.dll</span> · {bytes(mod.size)} · changed {ago(mod.modified)}
+          </p>
         </div>
         <span class="badge" class:ok={mod.enabled}>{mod.enabled ? "Enabled" : "Off"}</span>
         <Toggle checked={mod.enabled} label={`Enable ${mod.name}`} onchange={(on) => set(mod, on)} />
@@ -55,7 +62,11 @@
         <h3>No mods yet</h3>
         <p>Put a mod's DLL into <code>System\mods</code>, or build one from the SDK's example.</p>
         <p class="row center">
-          <button class="btn small" onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/sdk.md#writing-a-mod")}>
+          <button
+            class="btn small"
+            onclick={() =>
+              api.openLink("https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/sdk.md#writing-a-mod")}
+          >
             <Icon name="book" size={14} />Writing a mod
           </button>
         </p>

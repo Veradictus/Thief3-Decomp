@@ -1,7 +1,7 @@
 <script lang="ts">
   // The job queue and each job's live output.
-  import Icon from "../components/Icon.svelte";
-  import { cancel, clearFinished, duration, jobs, type Job } from "../lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import { cancel, clearFinished, duration, jobs, type Job } from "$lib/app.svelte";
 
   let output = $state<HTMLPreElement>();
   let follow = $state(true);
@@ -19,9 +19,19 @@
   }
 
   const label: Record<Job["state"], string> = {
-    queued: "Queued", running: "Running", done: "Done", failed: "Failed", cancelled: "Cancelled",
+    queued: "Queued",
+    running: "Running",
+    done: "Done",
+    failed: "Failed",
+    cancelled: "Cancelled",
   };
-  const tone: Record<Job["state"], string> = { queued: "", running: "info", done: "ok", failed: "err", cancelled: "warn" };
+  const tone: Record<Job["state"], string> = {
+    queued: "",
+    running: "info",
+    done: "ok",
+    failed: "err",
+    cancelled: "warn",
+  };
 
   function copy() {
     if (job) void navigator.clipboard.writeText(job.lines.map((l) => l.line).join("\n"));
@@ -60,12 +70,20 @@
             {#if job.command}<p class="faint mono cmd" title={job.command}>{job.command}</p>{/if}
           </div>
           {#if job.code !== null && job.state !== "done"}<span class="faint small">exit code {job.code}</span>{/if}
-          <button class="btn small ghost" onclick={copy} disabled={!job.lines.length}><Icon name="copy" size={14} />Copy</button>
+          <button class="btn small ghost" onclick={copy} disabled={!job.lines.length}
+            ><Icon name="copy" size={14} />Copy</button
+          >
           {#if job.state === "running" || job.state === "queued"}
-            <button class="btn small danger" onclick={() => cancel(job)}><Icon name="stop" size={14} />Cancel</button>
+            <button
+              class="btn small danger"
+              onclick={() => {
+                cancel(job);
+              }}><Icon name="stop" size={14} />Cancel</button
+            >
           {/if}
         </div>
-        <pre bind:this={output} onscroll={onScroll}>{#each job.lines as l, i (i)}<span class:err={l.stream === "stderr"}>{l.line}
+        <pre bind:this={output} onscroll={onScroll}>{#each job.lines as l, i (i)}<span class:err={l.stream === "stderr"}
+              >{l.line}
 </span>{/each}{#if job.state === "running"}<span class="cursor">▍</span>{/if}</pre>
       {:else}
         <p class="empty">Select a task to see its output.</p>
