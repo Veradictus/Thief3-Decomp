@@ -25,11 +25,26 @@ export function moveBefore(order: string[], id: string, before: string): string[
 }
 
 /**
- * Where a dragged row lands: its index in the new order, from the vertical
- * middles of every row (in order, the dragged one included) and the pointer.
+ * Where a dragged mod lands, in a list or a grid: the index of the cell whose
+ * centre is nearest the pointer (the dragged one's own cell included, which
+ * means "stay"). Dropped on a later cell it goes after that mod, on an
+ * earlier one before it: moveTo(order, id, index) takes the cell's place.
  */
-export function dropIndex(middles: number[], y: number, from: number): number {
-  return middles.filter((mid, i) => i !== from && mid < y).length;
+export function dropIndex(
+  centres: { x: number; y: number }[],
+  pointer: { x: number; y: number },
+  from: number,
+): number {
+  let best = from;
+  let bestDistance = Infinity;
+  centres.forEach((c, i) => {
+    const d = (c.x - pointer.x) ** 2 + (c.y - pointer.y) ** 2;
+    if (d < bestDistance) {
+      best = i;
+      bestDistance = d;
+    }
+  });
+  return best;
 }
 
 const rank: Record<Severity, number> = { error: 0, warning: 1, info: 2 };

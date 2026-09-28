@@ -43,6 +43,13 @@
       border-color 0.15s;
   }
 
+  /* A larger hit area than the switch itself. */
+  .toggle::before {
+    content: "";
+    position: absolute;
+    inset: -6px -4px;
+  }
+
   .toggle.on {
     background: #3a2f18;
     border-color: #8d6c2c;

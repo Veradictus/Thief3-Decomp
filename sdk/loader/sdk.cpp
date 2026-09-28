@@ -18,6 +18,7 @@
 #include <t3sdk/t3sdk.h>
 
 #include <intrin.h>
+#include <tlhelp32.h>
 
 #include <cstdio>
 #include <cstring>
@@ -74,6 +75,36 @@ fs::path ModulePath(HMODULE module) {
     return path;
 }
 
+// Logs who started this process and with which command line. The game
+// restarts for every level change, and this shows which program relaunched it
+// and what it passed along.
+void LogProcessOrigin() {
+    DWORD self = GetCurrentProcessId();
+    DWORD parent = 0;
+    wchar_t parentName[MAX_PATH] = L"?";
+
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot != INVALID_HANDLE_VALUE) {
+        PROCESSENTRY32W entry{};
+        entry.dwSize = sizeof(entry);
+        for (BOOL ok = Process32FirstW(snapshot, &entry); ok; ok = Process32NextW(snapshot, &entry)) {
+            if (entry.th32ProcessID == self) {
+                parent = entry.th32ParentProcessID;
+            }
+        }
+
+        // The parent may already have exited; its name then stays "?".
+        for (BOOL ok = Process32FirstW(snapshot, &entry); ok && parent; ok = Process32NextW(snapshot, &entry)) {
+            if (entry.th32ProcessID == parent) {
+                wcsncpy_s(parentName, entry.szExeFile, _TRUNCATE);
+            }
+        }
+        CloseHandle(snapshot);
+    }
+
+    T3_LOG("process %lu, started by %ls (%lu), command line: %s", self, parentName, parent, GetCommandLineA());
+}
+
 Settings LoadSettings(const fs::path& ini) {
     Settings s;
     const wchar_t* file = ini.c_str();
@@ -90,6 +121,14 @@ Settings LoadSettings(const fs::path& ini) {
     s.display.borderless = GetPrivateProfileIntW(L"Display", L"Borderless", s.display.borderless, file) != 0;
     s.display.widescreenUI = GetPrivateProfileIntW(L"Display", L"WidescreenUI", s.display.widescreenUI, file) != 0;
     s.display.uiLayoutTrace = GetPrivateProfileIntW(L"Display", L"UILayoutTrace", s.display.uiLayoutTrace, file) != 0;
+    s.display.pauseInBackground =
+        GetPrivateProfileIntW(L"Display", L"PauseInBackground", s.display.pauseInBackground, file) != 0;
+    s.display.smoothFrames = GetPrivateProfileIntW(L"Display", L"SmoothFrames", s.display.smoothFrames, file) != 0;
+    s.display.maxFps = int(GetPrivateProfileIntW(L"Display", L"MaxFPS", s.display.maxFps, file));
+    wchar_t scale[32];
+    GetPrivateProfileStringW(L"Display", L"CursorScale", L"0", scale, 32, file);
+    s.display.cursorScale = wcstod(scale, nullptr);
+    s.display.frameStats = GetPrivateProfileIntW(L"Display", L"FrameStats", s.display.frameStats, file) != 0;
     return s;
 }
 
@@ -311,6 +350,7 @@ void Start() {
     g_settings = LoadSettings(g_dir / "T3SDK.ini");
     log::Open(g_dir / "T3SDK.log", g_settings.console);
     T3_LOG("T3SDK %s in %s", T3SDK_VERSION, ModulePath(nullptr).string().c_str());
+    LogProcessOrigin();
 
     engine::Build build = engine::CheckBuild();
     if (!build.supported) {

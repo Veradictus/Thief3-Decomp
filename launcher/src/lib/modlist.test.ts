@@ -38,13 +38,22 @@ describe("load order moves", () => {
     expect(moveBefore(order, "a", "c")).toEqual(["b", "a", "c", "d"]);
     expect(moveBefore(order, "a", "x")).toBe(order);
   });
-  it("finds where a dragged row lands", () => {
-    const middles = [10, 30, 50, 70];
-    expect(dropIndex(middles, 5, 2)).toBe(0);
-    expect(dropIndex(middles, 45, 0)).toBe(1);
-    expect(dropIndex(middles, 65, 0)).toBe(2);
-    expect(dropIndex(middles, 100, 1)).toBe(3);
-    expect(dropIndex(middles, 49, 2)).toBe(2);
+  it("finds the cell a dragged mod lands on, in a list or a grid", () => {
+    const column = [10, 30, 50, 70].map((y) => ({ x: 0, y }));
+    expect(dropIndex(column, { x: 0, y: 5 }, 2)).toBe(0);
+    expect(dropIndex(column, { x: 0, y: 48 }, 0)).toBe(2);
+    expect(dropIndex(column, { x: 0, y: 100 }, 1)).toBe(3);
+    expect(dropIndex([], { x: 0, y: 0 }, 1)).toBe(1);
+    // Two columns, read left to right: a b / c d.
+    const grid = [
+      { x: 100, y: 20 },
+      { x: 300, y: 20 },
+      { x: 100, y: 60 },
+      { x: 300, y: 60 },
+    ];
+    expect(dropIndex(grid, { x: 290, y: 55 }, 0)).toBe(3);
+    expect(dropIndex(grid, { x: 120, y: 25 }, 3)).toBe(0);
+    expect(moveTo(["a", "b", "c", "d"], "a", 3)).toEqual(["b", "c", "d", "a"]);
   });
 });
 

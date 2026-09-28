@@ -3,6 +3,7 @@
 # renamed to dinput8 below so it matches the real DLL it stands in for.
 add_library(t3sdk_loader SHARED
   crash.cpp
+  curtain.cpp
   display.cpp
   dllmain.cpp
   engine.cpp
@@ -14,7 +15,7 @@ add_library(t3sdk_loader SHARED
   mods.cpp
   sdk.cpp
   dinput8.def)
-target_link_libraries(t3sdk_loader PRIVATE minhook t3sdk_headers bcrypt)
+target_link_libraries(t3sdk_loader PRIVATE minhook t3sdk_headers bcrypt dwmapi)
 set_target_properties(t3sdk_loader PROPERTIES
   OUTPUT_NAME dinput8
   RUNTIME_OUTPUT_DIRECTORY ${T3SDK_BIN_DIR})
