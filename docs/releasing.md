@@ -28,14 +28,27 @@ generated notes:
 
 The tag is the version: the build passes it to
 `tools/stage_launcher.py stage --version`, which puts it into the launcher's
-config, so `tauri.conf.json`, `Cargo.toml` and `package.json` keep their
-development version. A tag with a hyphen (`v0.3.0-beta.1`) becomes a
+config. Bump `tauri.conf.json`, `Cargo.toml` (and the launcher's entry in
+`Cargo.lock`) and `package.json` to the same version in a pull request before
+tagging, so a local build reports the version being released. A tag with a hyphen (`v0.3.0-beta.1`) becomes a
 pre-release. The updater never offers pre-releases: it reads
 `releases/latest/download/latest.json`, and GitHub's "latest" is the newest
 full release.
 
 To redo a failed release, delete the release and the tag on GitHub, fix, and
-push the tag again.
+push the tag again:
+
+```sh
+git push origin :refs/tags/v0.2.0      # delete the tag on GitHub
+git tag -d v0.2.0                      # and locally
+git checkout main && git pull
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+`failed to decode secret key: incorrect updater private key password` in the
+launcher build's Build step means `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` does not
+match `TAURI_SIGNING_PRIVATE_KEY` (see the updater key, below): set the
+password the key was generated with and redo the release.
 
 ## The updater key
 

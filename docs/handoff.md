@@ -151,8 +151,9 @@ Later the same day, played by the user:
      `StaticMeshActor__364`), **Save T3 edits**, Repack, Install, New Game,
      Restore. Unknown: whether collision and baked lighting follow a moved
      static mesh.
-   - Install the launcher from a `launcher-windows` build and run setup,
-     Install T3SDK, Play, Remove. Then tag `v0.1.0` for the first release.
+   - Install the launcher from the latest release (v0.1.0 is out; v0.2.0
+     is next, see [releasing.md](releasing.md)) and run setup, Install
+     T3SDK, Play, Remove.
    - Texture packs ([mods.md](mods.md), `textures/`; [assets.md](assets.md),
      section 3): `tools/assets/t3texpack.py --selfcheck` must pass on every
      bundle; note the mip padding rule it prints and any layout statement

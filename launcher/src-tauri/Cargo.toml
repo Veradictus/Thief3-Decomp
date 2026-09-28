@@ -1,6 +1,6 @@
 [package]
 name = "t3sdk-launcher"
-version = "0.1.0"
+version = "0.2.0"
 description = "T3SDK Launcher: play, mod and edit maps for Thief: Deadly Shadows"
 edition = "2021"
 publish = false
@@ -18,7 +18,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sha1 = "0.10"
+sha1 = "0.11"
 # Save backups and the logs zip (saves.rs, diag.rs); mod packages (src/mods):
 # .t3mod zips, overlay hashes, versions and ranges, and the mod index over
 # HTTPS. ureq's native-tls is Windows' own TLS (Schannel) there, so no C code
