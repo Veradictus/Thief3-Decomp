@@ -187,11 +187,14 @@ func build_ui() -> void:
 	_edits_label = Label.new()
 	_edits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_edits_label)
-	_revert_edit = button('Revert', 'Put the actor selected in the list back to its exported state', func():
+	_revert_edit = button('Revert', 'Put the actor selected in the list back to its exported state (a new one is '
+		+ 'deleted; undo brings back a removed one)', func():
 		var sel := _edits.get_selected_items()
 		if not sel.is_empty():
 			var e: Dictionary = changed.get(String(_edits.get_item_metadata(sel[0])), {})
-			if not e.is_empty():
+			if e.get('added', false) and is_instance_valid(e['node']):
+				commit_changes([{'delete': e['node']}], 'Delete new T3 actor %s' % e['node'].name)
+			elif not e.is_empty():
 				revert_actor(e['node']))
 	head.add_child(_revert_edit)
 	_edits = ItemList.new()
@@ -485,7 +488,8 @@ static func add_meta_ops(ur: EditorUndoRedoManager, node: Node, old: Dictionary,
 	else:
 		ur.add_undo_method(node, &'set_meta', Edits.EDITS_META, old)
 
-## Applies T3Edits changes ([{node, transform, gamesys}]) as one undoable action.
+## Applies T3Edits changes (see plan_load(): placements, new and removed
+## actors) as one undoable action.
 func commit_changes(changes: Array, action: String) -> void:
 	if changes.is_empty():
 		return
@@ -493,7 +497,26 @@ func commit_changes(changes: Array, action: String) -> void:
 	var ur := plugin.get_undo_redo()
 	ur.create_action(action, UndoRedo.MERGE_DISABLE, root)
 	for c in changes:
+		if c.has('delete'):
+			var gone: Node = c['delete']
+			ur.add_do_method(gone.get_parent(), &'remove_child', gone)
+			ur.add_undo_method(gone.get_parent(), &'add_child', gone)
+			ur.add_undo_method(gone, &'set_owner', root)
+			ur.add_undo_reference(gone)
+			continue
+
 		var n: Node3D = c['node']
+		if c.has('create'):
+			# Not in the scene yet: placed now, then added (and taken out on undo).
+			n.transform = c['transform']
+			if not (c['gamesys'] as Dictionary).is_empty():
+				n.set_meta(Edits.EDITS_META, c['gamesys'])
+			ur.add_do_method(c['parent'], &'add_child', n)
+			ur.add_do_method(n, &'set_owner', root)
+			ur.add_do_reference(n)
+			ur.add_undo_method(c['parent'], &'remove_child', n)
+			continue
+
 		ur.add_do_property(n, &'transform', c['transform'])
 		ur.add_undo_property(n, &'transform', n.transform)
 		add_meta_ops(ur, n, Edits.gamesys_edits(n), c['gamesys'])
@@ -580,13 +603,15 @@ func save_edits() -> Dictionary:
 		return r
 
 	EditorInterface.get_resource_filesystem().update_file(r['path'])
-	_status.text = 'Saved %d changed actor%s to %s' % [r['actors'], '' if r['actors'] == 1 else 's', r['path']]
+	var counts: Dictionary = r['counts']
+	_status.text = 'Saved %d changed, %d new and %d removed actor%s to %s' % [counts['changed'], counts['added'],
+		counts['removed'], '' if r['actors'] == 1 else 's', r['path']]
 
-	# Duplicated or deleted actors are easy to mistake for saved edits.
+	# Nodes that are not copies of exported actors cannot become actors.
 	var left_out := Edits.not_saved_text(r['not_saved'])
 	if left_out != '':
-		_status.text += ('\nNot saved: %s. Adding and deleting actors is not supported yet: move, rotate '
-			+ 'and scale the existing ones, or change their properties.') % left_out
+		_status.text += ('\nNot saved: %s. A new actor is a copy of an exported one: select it and press '
+			+ 'Ctrl+D.') % left_out
 
 	print('T3 edits: ' + _status.text)
 	for w in r['warnings']:
@@ -608,7 +633,10 @@ func load_edits() -> Dictionary:
 
 	var plan := Edits.plan_load(root, r['doc'])
 	commit_changes(plan['changes'], 'Load T3 edits')
-	_status.text = 'Loaded %d actor%s from %s' % [(plan['changes'] as Array).size(),
+	var made := (plan['changes'] as Array).filter(func(c): return c.has('create')).size()
+	var gone := (plan['changes'] as Array).filter(func(c): return c.has('delete')).size()
+	var moved := (plan['changes'] as Array).size() - made - gone
+	_status.text = 'Loaded %d changed, %d new and %d removed actor%s from %s' % [moved, made, gone,
 		'' if (plan['changes'] as Array).size() == 1 else 's', Edits.edits_path(root)]
 	for w in plan['warnings']:
 		_status.text += '\n' + String(w)

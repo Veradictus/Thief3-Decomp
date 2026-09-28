@@ -55,6 +55,7 @@ func _init() -> void:
 	var saved := test_edits(packed)
 	if not saved.is_empty():
 		test_load(packed, saved)
+	test_load_added(packed)
 	test_speed()
 	test_old_export(packed)
 
@@ -223,7 +224,7 @@ func test_edits(packed: PackedScene) -> Dictionary:
 
 	var src := Edits.source(root)
 	var expected := {
-		'format': 't3-map-edits', 'version': 1, 'level': 'T3EditTest',
+		'format': 't3-map-edits', 'version': 2, 'level': 'T3EditTest',
 		'source': {'file': 'T3EditTest.gmp', 'size': src['size'], 'sha1': src['sha1']},
 		'actors': {
 			'Gimbal_Down': {'rotation': [-16384, -3000, 900]},
@@ -241,7 +242,7 @@ func test_edits(packed: PackedScene) -> Dictionary:
 	if not exact:
 		print('        got      ' + JSON.stringify(got))
 		print('        expected ' + JSON.stringify(expected))
-	check(text.begins_with('{\n  "format": "t3-map-edits",\n  "version": 1,'), 'format and version come first')
+	check(text.begins_with('{\n  "format": "t3-map-edits",\n  "version": 2,'), 'format and version come first')
 	check(text.contains('"rotation": [0, -15384, 0]') and text.contains('"draw_scale": 5.0'),
 		'rotations are written as integers, scales as floats')
 	for key in UNTOUCHED:
@@ -253,21 +254,34 @@ func test_edits(packed: PackedScene) -> Dictionary:
 	var after: Dictionary = Edits.collect(root)['doc']['actors']
 	check(not after.has('Yawed') and after.size() == 6, 'revert removes one actor from the edits')
 
-	# What version 1 cannot save is reported: added and removed actors.
-	var copy := yawed.duplicate()
+	# A copy of Yawed moved a metre is a new actor, and a deleted PlayerStart0 a
+	# removed one; a node that is no T3 actor is not saved, and deleting the
+	# LevelInfo is refused.
+	var copy := yawed.duplicate() as Node3D
 	yawed.get_parent().add_child(copy)
+	copy.position += Vector3(0, 0, 1)
 	var extra := Marker3D.new()
 	extra.name = 'NewMarker'
 	yawed.get_parent().add_child(extra)
-	var gone := actor(root, 'LevelInfo0')
-	gone.get_parent().remove_child(gone)
-	gone.free()
-	var w := '\n'.join(Edits.collect(root)['warnings'])
-	check(w.contains('1 added actor (copies of Yawed)') and w.contains('1 node without T3 metadata (NewMarker)')
-		and w.contains('1 actor removed (LevelInfo0)'), 'added and removed actors are reported')
-	var not_saved = Edits.collect(root)['doc'].get('not_saved')
-	check(Edits.same_json(not_saved, {'added': 2, 'removed': 1}),
-		'the edits file counts what it cannot save: %s' % JSON.stringify(not_saved))
+	for key in ['PlayerStart0', 'LevelInfo0']:
+		var gone := actor(root, key)
+		gone.get_parent().remove_child(gone)
+		gone.free()
+
+	var with_copy := Edits.collect(root)
+	var o := Edits.origin(yawed)
+	var loc: PackedFloat64Array = o['location']
+	var rot: Vector3i = o['rotation']
+	var y := roundf((loc[1] + upm) * 100.0) / 100.0
+	var new_actor := {'copy_of': 'Yawed', 'location': [loc[0], y, loc[2]], 'rotation': [rot.x, rot.y, rot.z]}
+	check(Edits.same_json(with_copy['doc'].get('added'), [new_actor]),
+		'a copy is saved as a new actor %s' % JSON.stringify(with_copy['doc'].get('added')))
+	check(Edits.same_json(with_copy['doc'].get('removed'), ['PlayerStart0']), 'a deleted actor is saved as removed')
+	check(Edits.same_json(with_copy['doc'].get('not_saved'), {'nodes': 1}), 'a node that is no T3 actor is counted, not saved')
+	var w := '\n'.join(with_copy['warnings'])
+	check(w.contains('1 node without T3 metadata (NewMarker)') and w.contains('LevelInfo0: the level needs its LevelInfo'),
+		'the unsaved node and the kept LevelInfo are reported')
+	check(actor(root, 'Yawed') == yawed, 'the original stays the actor, the duplicate is the copy')
 
 	root.free()
 	return got
@@ -289,6 +303,27 @@ func test_load(packed: PackedScene, saved: Dictionary) -> void:
 	check(same, 'the loaded level collects the same edits')
 	if not same:
 		print('        got      ' + JSON.stringify(again))
+	root.free()
+
+## New and removed actors load back: plan_load() makes the copy and deletes
+## the removed actor, and the level then collects the same new and removed actors.
+func test_load_added(packed: PackedScene) -> void:
+	var root := packed.instantiate()
+	var yawed := actor(root, 'Yawed')
+	var o := Edits.origin(yawed)
+	var loc: PackedFloat64Array = o['location']
+	var doc := {'format': 't3-map-edits', 'version': 2, 'level': 'T3EditTest', 'actors': {},
+		'added': [{'copy_of': 'Yawed', 'location': [loc[0] + 64.0, loc[1], loc[2]], 'rotation': [0, 8192, 0]}],
+		'removed': ['PlayerStart0']}
+	var plan := Edits.plan_load(root, doc)
+	check((plan['warnings'] as Array).is_empty() and (plan['changes'] as Array).size() == 2,
+		'plans a new and a removed actor %s' % [plan['warnings']])
+	Edits.apply_changes(plan['changes'])
+	check(actor(root, 'PlayerStart0') == null, 'the removed actor is deleted')
+	var c: Dictionary = Edits.collect(root)['doc']
+	check(Edits.same_json(c.get('added'), doc['added']) and Edits.same_json(c.get('removed'), doc['removed']),
+		'the level collects the same new and removed actors: %s %s' % [JSON.stringify(c.get('added')),
+		JSON.stringify(c.get('removed'))])
 	root.free()
 
 # --- Speed ---

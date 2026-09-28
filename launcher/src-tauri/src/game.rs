@@ -130,11 +130,10 @@ pub struct MapEntry {
     /// <project>/<id>/<id>.tscn exists.
     pub exported: bool,
     pub actors: Option<u64>,
-    /// Actors changed in <id>.edits.json, if it exists.
+    /// Actors changed, added or removed in <id>.edits.json, if it exists.
     pub edited_actors: Option<usize>,
-    /// Actors added or removed in Godot, which the edits file cannot save.
-    pub not_saved_added: usize,
-    pub not_saved_removed: usize,
+    /// Nodes added in Godot that are not T3 actors, which the edits file cannot save.
+    pub not_saved: usize,
     pub edits_time: Option<u64>,
     /// build/assets/patched/<id>.gmp exists.
     pub patched: bool,
@@ -158,22 +157,24 @@ fn export_index(project: &Path) -> serde_json::Map<String, serde_json::Value> {
     index
 }
 
-/// The counts in <id>.edits.json: actors changed, and actors added or removed
-/// in Godot that the file could not save (the map editor plugin's "not_saved").
+/// The counts in <id>.edits.json: actors changed, added and removed, and the
+/// nodes the file could not save (the map editor plugin's "not_saved").
 struct EditsCounts {
     actors: usize,
-    added: usize,
-    removed: usize,
+    not_saved: usize,
 }
 
 fn edits_counts(edits: &Path) -> Option<EditsCounts> {
     let text = std::fs::read_to_string(edits).ok()?;
     let doc: serde_json::Value = serde_json::from_str(&text).ok()?;
-    let not_saved = |key: &str| doc.pointer(&format!("/not_saved/{key}")).and_then(|v| v.as_u64()).unwrap_or(0);
+    let size = |key: &str| match doc.get(key) {
+        Some(serde_json::Value::Object(o)) => o.len(),
+        Some(serde_json::Value::Array(a)) => a.len(),
+        _ => 0,
+    };
     Some(EditsCounts {
-        actors: doc.get("actors").and_then(|a| a.as_object()).map_or(0, |a| a.len()),
-        added: not_saved("added") as usize,
-        removed: not_saved("removed") as usize,
+        actors: size("actors") + size("added") + size("removed"),
+        not_saved: doc.pointer("/not_saved/nodes").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
     })
 }
 
@@ -221,8 +222,7 @@ fn maps(cfg: &Config) -> Vec<MapEntry> {
                 exported: scene.is_some_and(|s| s.is_file()),
                 actors: info.and_then(|m| m.get("actors")).and_then(|v| v.as_u64()),
                 edited_actors: counts.as_ref().map(|c| c.actors),
-                not_saved_added: counts.as_ref().map_or(0, |c| c.added),
-                not_saved_removed: counts.as_ref().map_or(0, |c| c.removed),
+                not_saved: counts.as_ref().map_or(0, |c| c.not_saved),
                 edits_time,
                 patched: patched_time.is_some(),
                 patched_time,

@@ -89,10 +89,10 @@ export interface MapEntry {
   inGame: boolean;
   exported: boolean;
   actors: number | null;
+  /** Actors changed, added or removed in the edits file. */
   editedActors: number | null;
-  /** Actors added or removed in Godot, which the edits file cannot save. */
-  notSavedAdded: number;
-  notSavedRemoved: number;
+  /** Nodes added in Godot that are not T3 actors, which the edits file cannot save. */
+  notSaved: number;
   editsTime: number | null;
   patched: boolean;
   patchedTime: number | null;

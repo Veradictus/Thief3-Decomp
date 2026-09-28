@@ -27,7 +27,7 @@ extends RefCounted
 const FORMAT := 't3-map-edits'
 
 ## The edits file's format version.
-const VERSION := 1
+const VERSION := 2
 
 ## Radians per Unreal rotator unit (65536 units per turn).
 const ROT_UNIT := TAU / 65536.0
@@ -473,8 +473,9 @@ static func summary(edit: Dictionary) -> String:
 # --- The Level ---
 
 ## The level's actor nodes: {actors: {t3_name: node}, copies: [nodes]}.  A
-## t3_name on more than one node (a duplicated actor) maps to the first in
-## scene order; the others are copies, which version 1 cannot save.
+## t3_name on more than one node (a duplicated actor) maps to the node the
+## exporter made (see is_exported_node()), else the first in scene order; the
+## others are copies, saved as new actors.
 static func actor_nodes(root: Node) -> Dictionary:
 	var actors := {}
 	var copies: Array[Node] = []
@@ -483,12 +484,24 @@ static func actor_nodes(root: Node) -> Dictionary:
 			continue
 
 		var key := String(n.get_meta('t3_name'))
-		if actors.has(key):
-			copies.append(n)
-		else:
+		if not actors.has(key):
 			actors[key] = n
+		elif is_exported_node(n) and not is_exported_node(actors[key]):
+			# The node the exporter made is the actor; the one found first is a copy.
+			copies.append(actors[key])
+			actors[key] = n
+		else:
+			copies.append(n)
 
 	return {'actors': actors, 'copies': copies}
+
+## Whether `node` has the name the exporter gives an actor's node: a label,
+## then " #" and the instance number of its object name ("... #1920").  A
+## duplicate (Ctrl+D) is renumbered, which tells a copy from its original.
+static func is_exported_node(node: Node) -> bool:
+	var key := String(node.get_meta('t3_name', ''))
+	var i := key.rfind('__')
+	return i >= 0 and String(node.name).ends_with(' #' + key.substr(i + 2))
 
 ## Nodes added among the actors that are not T3 actors (they are not saved):
 ## children of the scene's folders that are neither actors nor folders.
@@ -516,10 +529,10 @@ static func actor_folders(root: Node) -> Array[Node]:
 
 	return out
 
-## Names of the actors in <Level>.actors.json next to the scene, or [] if it
-## cannot be read (used to name removed actors).
-static func exported_names(root: Node) -> PackedStringArray:
-	var out := PackedStringArray()
+## Classes of the actors in <Level>.actors.json next to the scene, by name,
+## or {} if it is missing.
+static func exported_classes(root: Node) -> Dictionary:
+	var out := {}
 	var path := root.scene_file_path.get_basename() + '.actors.json'
 	if root.scene_file_path == '' or not FileAccess.file_exists(path):
 		return out
@@ -528,12 +541,9 @@ static func exported_names(root: Node) -> PackedStringArray:
 	if doc is Dictionary and doc.get('actors') is Array:
 		for a in doc['actors']:
 			if a is Dictionary and a.has('name'):
-				out.append(String(a['name']))
+				out[String(a['name'])] = String(a.get('cls', ''))
 	return out
 
-## Collects the level's edits: {doc (the edits document), changed: {t3_name:
-## {node, edit, summary}}, warnings: Array[String], actors: int}.  Warns about
-## what version 1 cannot save: added or removed actors, non-uniform scale.
 static func collect(root: Node) -> Dictionary:
 	var upm := units_per_meter(root)
 	var all_enums := enums(root)
@@ -565,62 +575,91 @@ static func collect(root: Node) -> Dictionary:
 		actors[key] = edit
 		changed[key] = {'node': node, 'edit': edit, 'summary': summary(edit)}
 
+	# New actors: copies of exported ones, where they stand and with their own
+	# property edits, in scene order.
+	var added: Array = []
+	for node in found['copies']:
+		if not (node is Node3D):
+			continue
+
+		var key := String(node.get_meta('t3_name'))
+		var o := origin(node)
+		if o.is_empty():
+			no_origin.append(key)
+			continue
+
+		var rec := copy_record(node as Node3D, root, o, upm, all_enums)
+		for w in rec['warnings']:
+			warnings.append('%s (a copy of %s): %s' % [node.name, key, w])
+		added.append(rec['record'])
+		changed['new: %s' % root.get_path_to(node)] = {'node': node, 'edit': rec['record'],
+			'summary': 'new, a copy of %s' % key, 'added': true}
+
 	# A scene exported before the plugin existed: one warning, not one per actor.
 	if not no_origin.is_empty():
 		warnings.push_front('%d actor%s without t3_origin metadata (%s): exported by an older t3map.py, re-export the map'
 			% [no_origin.size(), '' if no_origin.size() == 1 else 's', listed(no_origin)])
 
-	# What this format cannot save yet, counted for the dock and the launcher.
-	var added := 0
-	var removed := 0
+	# Removed actors: exported, and gone from the scene.  The level keeps its LevelInfo.
+	var removed: Array = []
+	var classes := exported_classes(root)
+	for key in classes:
+		if nodes.has(key):
+			continue
+		if String(classes[key]) == 'LevelInfo':
+			warnings.append('%s: the level needs its LevelInfo, so deleting it is not saved' % key)
+			continue
 
-	var copies: Array = found['copies']
-	added += copies.size()
-	if not copies.is_empty():
-		warnings.append('%d added actor%s (copies of %s); adding actors is not supported yet, they are not saved' % [
-			copies.size(), '' if copies.size() == 1 else 's',
-			listed(copies.map(func(n): return String(n.get_meta('t3_name'))))])
+		removed.append(key)
+		changed['removed: %s' % key] = {'node': null, 'edit': {}, 'summary': 'removed'}
+	removed.sort()
 
 	var foreign := foreign_nodes(root)
-	added += foreign.size()
 	if not foreign.is_empty():
-		warnings.append('%d node%s without T3 metadata (%s); adding actors is not supported yet, they are not saved' % [
-			foreign.size(), '' if foreign.size() == 1 else 's', listed(foreign.map(func(n): return String(n.name)))])
-
-	var expected := int(root.get_meta('t3_actor_count', nodes.size()))
-	removed = maxi(expected - nodes.size(), 0)
-	if nodes.size() < expected:
-		var missing: Array = []
-		for key in exported_names(root):
-			if not nodes.has(key):
-				missing.append(key)
-		warnings.append('%d actor%s removed%s; removing actors is not supported yet, the edits file does not record it'
-			% [expected - nodes.size(), '' if expected - nodes.size() == 1 else 's',
-			' (%s)' % listed(missing) if not missing.is_empty() else ''])
+		warnings.append(('%d node%s without T3 metadata (%s): new actors are copies of exported ones (Ctrl+D), '
+			+ 'so these are not saved') % [foreign.size(), '' if foreign.size() == 1 else 's',
+			listed(foreign.map(func(n): return String(n.name)))])
 
 	var doc := {'format': FORMAT, 'version': VERSION, 'level': level_name(root)}
 	var src := source(root)
 	if not src.is_empty():
 		doc['source'] = src
 	doc['actors'] = actors
-	if added > 0 or removed > 0:
-		doc['not_saved'] = {'added': added, 'removed': removed}
+	if not added.is_empty():
+		doc['added'] = added
+	if not removed.is_empty():
+		doc['removed'] = removed
+	if not foreign.is_empty():
+		doc['not_saved'] = {'nodes': foreign.size()}
 	return {'doc': doc, 'changed': changed, 'warnings': warnings, 'actors': nodes.size(),
-		'not_saved': {'added': added, 'removed': removed}}
+		'counts': {'changed': actors.size(), 'added': added.size(), 'removed': removed.size()},
+		'not_saved': {'nodes': foreign.size()}}
+
+## The edits record of a new actor, `node`, a copy of the actor it is named
+## after (origin `o`): {record: {copy_of, location, rotation, draw_scale (only
+## when the copy is scaled), gamesys}, warnings}.
+static func copy_record(node: Node3D, root: Node, o: Dictionary, upm: float, all_enums: Dictionary) -> Dictionary:
+	var p := placement(node, root, o, upm)
+	var loc: PackedFloat64Array = p['location']
+	var rot: Vector3i = p['rotation']
+	var rec := {'copy_of': String(node.get_meta('t3_name')), 'location': [loc[0], loc[1], loc[2]],
+		'rotation': [rot.x, rot.y, rot.z]}
+	if (p['edit'] as Dictionary).has('draw_scale'):
+		rec['draw_scale'] = p['draw_scale']
+
+	var gs: Dictionary = gamesys_changes(node, all_enums)['edit']
+	if not gs.is_empty():
+		rec['gamesys'] = gs
+	return {'record': rec, 'warnings': p['warnings']}
 
 ## What an edits file could not save, from collect()'s not_saved counts:
-## "9 added actors and 1 removed actor", or "" when nothing was left out.
+## "3 nodes that are not T3 actors", or "" when nothing was left out.
 static func not_saved_text(counts: Dictionary) -> String:
-	var parts: PackedStringArray = []
-	var added := int(counts.get('added', 0))
-	var removed := int(counts.get('removed', 0))
+	var nodes := int(counts.get('nodes', 0))
+	if nodes == 0:
+		return ''
 
-	if added > 0:
-		parts.append('%d added actor%s' % [added, '' if added == 1 else 's'])
-	if removed > 0:
-		parts.append('%d removed actor%s' % [removed, '' if removed == 1 else 's'])
-
-	return ' and '.join(parts)
+	return '%d node%s that %s not T3 actors' % [nodes, '' if nodes == 1 else 's', 'is' if nodes == 1 else 'are']
 
 ## Up to MAX_LISTED items of `items`, comma-separated, with "..." if there are more.
 static func listed(items: Array) -> String:
@@ -641,14 +680,17 @@ static func edits_path(root: Node) -> String:
 	return 'res://%s/%s.edits.json' % [level, level]
 
 ## Collects the level's edits and writes them to `path` (default:
-## edits_path()).  Returns {ok, path, actors (number saved), not_saved
-## ({added, removed}), warnings, error}.
+## edits_path()).  Returns {ok, path, actors (number saved: changed, new and
+## removed), counts ({changed, added, removed}), not_saved ({nodes}),
+## warnings, error}.
 static func save(root: Node, path: String = '') -> Dictionary:
 	if path == '':
 		path = edits_path(root)
 
 	var c := collect(root)
-	var result := {'ok': false, 'path': path, 'actors': (c['doc']['actors'] as Dictionary).size(),
+	var counts: Dictionary = c['counts']
+	var result := {'ok': false, 'path': path,
+		'actors': int(counts['changed']) + int(counts['added']) + int(counts['removed']), 'counts': counts,
 		'not_saved': c['not_saved'], 'warnings': c['warnings'], 'error': ''}
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
@@ -668,17 +710,19 @@ static func read(path: String) -> Dictionary:
 	var doc = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not (doc is Dictionary):
 		return {'doc': {}, 'error': '%s is not valid JSON' % path}
-	if doc.get('format') != FORMAT or int(doc.get('version', 0)) != VERSION:
-		return {'doc': {}, 'error': '%s is not a %s version %d file' % [path, FORMAT, VERSION]}
+	if doc.get('format') != FORMAT or not int(doc.get('version', 0)) in [1, VERSION]:
+		return {'doc': {}, 'error': '%s is not a %s file of version 1 to %d' % [path, FORMAT, VERSION]}
 	if not (doc.get('actors') is Dictionary):
 		return {'doc': {}, 'error': '%s has no actors object' % path}
 
 	return {'doc': doc, 'error': ''}
 
-## What loading `doc` into the level changes: {changes: [{node, transform
-## (local), gamesys (the node's new t3_gamesys_edits)}], warnings}.  Every
-## actor listed in the file gets exactly its saved state (keys the file leaves
-## out take their exported values); the other actors are left alone.
+## What loading `doc` into the level changes: {changes, warnings}.  A change
+## is {node, transform (local), gamesys (the node's new t3_gamesys_edits)},
+## with create (the new node), parent and owner for a new actor, or just
+## {delete: node} for a removed one.  Every actor listed in the file gets
+## exactly its saved state (keys the file leaves out take their exported
+## values); the other actors are left alone.
 static func plan_load(root: Node, doc: Dictionary) -> Dictionary:
 	var warnings: Array[String] = []
 	var changes: Array = []
@@ -700,30 +744,34 @@ static func plan_load(root: Node, doc: Dictionary) -> Dictionary:
 			continue
 
 		var node := nodes[key] as Node3D
-		var o := origin(node)
-		if o.is_empty():
+		if origin(node).is_empty():
 			warnings.append('%s has no t3_origin metadata; re-export the map with the current t3map.py' % key)
 			continue
 
-		var p := o.duplicate()
-		if e.get('location') is Array and (e['location'] as Array).size() == 3:
-			var l: Array = e['location']
-			p['location'] = PackedFloat64Array([float(l[0]), float(l[1]), float(l[2])])
-		if e.get('rotation') is Array and (e['rotation'] as Array).size() == 3:
-			var r: Array = e['rotation']
-			p['rotation'] = Vector3i(int(r[0]), int(r[1]), int(r[2]))
-		if e.has('draw_scale'):
-			p['draw_scale'] = float(e['draw_scale'])
+		changes.append({'node': node, 'transform': local_for_level(node, root, saved_transform(node, e, upm)),
+			'gamesys': saved_gamesys(node, e, all_enums)})
 
-		var types := gamesys_types(node)
-		var gs := {}
-		var file_gs = e.get('gamesys', {})
-		if file_gs is Dictionary:
-			for k in file_gs:
-				gs[k] = normalize(String(types.get(k, '')), file_gs[k], all_enums)
+	# New actors: copies of the actor each names, placed as saved.
+	var file_added = doc.get('added', [])
+	for e in (file_added if file_added is Array else []):
+		var key := String(e.get('copy_of', '')) if e is Dictionary else ''
+		if not nodes.has(key) or not (nodes[key] is Node3D) or origin(nodes[key]).is_empty():
+			unknown.append(key)
+			continue
 
-		changes.append({'node': node, 'transform': local_for_level(node, root, placement_transform(p, upm)),
-			'gamesys': gs})
+		var original := nodes[key] as Node3D
+		var copy := original.duplicate() as Node3D
+		copy.name = '%s (copy)' % original.name
+		changes.append({'create': copy, 'parent': original.get_parent(), 'owner': root, 'node': copy,
+			'transform': local_for_level(original, root, saved_transform(original, e, upm)),
+			'gamesys': saved_gamesys(original, e, all_enums)})
+
+	var file_removed = doc.get('removed', [])
+	for key in (file_removed if file_removed is Array else []):
+		if nodes.has(String(key)):
+			changes.append({'delete': nodes[String(key)]})
+		else:
+			unknown.append(String(key))
 
 	if not unknown.is_empty():
 		warnings.append('%d actor%s in the file not found in the scene (%s)' % [unknown.size(),
@@ -731,10 +779,45 @@ static func plan_load(root: Node, doc: Dictionary) -> Dictionary:
 
 	return {'changes': changes, 'warnings': warnings}
 
+## The placement an edits record `e` gives `node` (its location, rotation and
+## scale, else the exported ones), relative to the level.
+static func saved_transform(node: Node3D, e: Dictionary, upm: float) -> Transform3D:
+	var p := origin(node).duplicate()
+	if e.get('location') is Array and (e['location'] as Array).size() == 3:
+		var l: Array = e['location']
+		p['location'] = PackedFloat64Array([float(l[0]), float(l[1]), float(l[2])])
+	if e.get('rotation') is Array and (e['rotation'] as Array).size() == 3:
+		var r: Array = e['rotation']
+		p['rotation'] = Vector3i(int(r[0]), int(r[1]), int(r[2]))
+	if e.has('draw_scale'):
+		p['draw_scale'] = float(e['draw_scale'])
+
+	return placement_transform(p, upm)
+
+## The gamesys edits of record `e`, typed like `node`'s exported properties.
+static func saved_gamesys(node: Node, e: Dictionary, all_enums: Dictionary) -> Dictionary:
+	var types := gamesys_types(node)
+	var gs := {}
+	var file_gs = e.get('gamesys', {})
+	if file_gs is Dictionary:
+		for k in file_gs:
+			gs[k] = normalize(String(types.get(k, '')), file_gs[k], all_enums)
+
+	return gs
+
 ## Applies a plan_load() or revert plan directly (the dock goes through undo/redo instead).
 static func apply_changes(changes: Array) -> void:
 	for c in changes:
+		if c.has('delete'):
+			var gone: Node = c['delete']
+			gone.get_parent().remove_child(gone)
+			gone.free()
+			continue
+
 		var node: Node3D = c['node']
+		if c.has('create'):
+			(c['parent'] as Node).add_child(node)
+			node.owner = c['owner']
 		node.transform = c['transform']
 		if (c['gamesys'] as Dictionary).is_empty():
 			node.remove_meta(EDITS_META)
@@ -786,6 +869,13 @@ static func to_json(v: Variant, indent: String = '') -> String:
 		for k in v:
 			lines.append(inner + JSON.stringify(str(k)) + ': ' + to_json(v[k], inner))
 		return '{\n' + ',\n'.join(lines) + '\n' + indent + '}'
+
+	if v is Array and (v as Array).any(func(x): return x is Dictionary):
+		var inner := indent + '  '
+		var rows := PackedStringArray()
+		for x in v:
+			rows.append(inner + to_json(x, inner))
+		return '[\n' + ',\n'.join(rows) + '\n' + indent + ']'
 
 	if v is Array or v is PackedFloat64Array:
 		var items := PackedStringArray()
