@@ -152,7 +152,7 @@ Later the same day, played by the user:
      `StaticMeshActor__364`), **Save T3 edits**, Repack, Install, New Game,
      Restore. Unknown: whether collision and baked lighting follow a moved
      static mesh.
-   - Install the launcher from the latest release (v0.1.0 is out; v0.2.0
+   - Install the launcher from the latest release (v0.2.0 is out; v0.2.1
      is next, see [releasing.md](releasing.md)) and run setup, Install
      T3SDK, Play, Remove.
    - Texture packs ([mods.md](mods.md), `textures/`; [assets.md](assets.md),

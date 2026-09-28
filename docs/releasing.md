@@ -11,8 +11,8 @@ A release is a tag named `v<semver>`:
 
 ```sh
 git checkout main && git pull          # the commit to release, with a green launcher workflow
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.2.1
+git push origin v0.2.1
 ```
 
 `release.yml` then builds on Windows and publishes a GitHub release with
@@ -39,10 +39,10 @@ To redo a failed release, delete the release and the tag on GitHub, fix, and
 push the tag again:
 
 ```sh
-git push origin :refs/tags/v0.2.0      # delete the tag on GitHub
-git tag -d v0.2.0                      # and locally
+git push origin :refs/tags/v0.2.1      # delete the tag on GitHub
+git tag -d v0.2.1                      # and locally
 git checkout main && git pull
-git tag v0.2.0 && git push origin v0.2.0
+git tag v0.2.1 && git push origin v0.2.1
 ```
 
 `failed to decode secret key: incorrect updater private key password` in the
@@ -105,13 +105,13 @@ What the workflows do with them:
 
    ```json
    {
-     "version": "0.2.0",
-     "notes": "T3SDK Launcher 0.2.0: https://github.com/Veradictus/Thief3-Decomp/releases/tag/v0.2.0",
+     "version": "0.2.1",
+     "notes": "T3SDK Launcher 0.2.1: https://github.com/Veradictus/Thief3-Decomp/releases/tag/v0.2.1",
      "pub_date": "2026-09-28T12:00:00Z",
      "platforms": {
        "windows-x86_64": {
          "signature": "<the contents of the .sig>",
-         "url": "https://github.com/Veradictus/Thief3-Decomp/releases/download/v0.2.0/T3SDK-Launcher_0.2.0_x64-setup.exe"
+         "url": "https://github.com/Veradictus/Thief3-Decomp/releases/download/v0.2.1/T3SDK-Launcher_0.2.1_x64-setup.exe"
        }
      }
    }

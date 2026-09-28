@@ -247,7 +247,7 @@ A release-style build with the bundled tools, SDK and Python (the SDK built
 first with `tools/sdk.py build`):
 
 ```sh
-python tools/stage_launcher.py stage [--version 0.2.0] [--updater-pubkey <public key>]
+python tools/stage_launcher.py stage [--version 0.2.1] [--updater-pubkey <public key>]
 cd launcher && yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json
 python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe dist/portable.zip
 ```
