@@ -36,10 +36,11 @@ import ninja_syntax  # noqa: E402
 import splits as splitslib  # noqa: E402
 import symbols as symbolslib  # noqa: E402
 
-# CRT entry point (docs/target.md; configure.py's CRT_ENTRY when it defines
-# one): functions from here on are mostly library code (CRT, STL, D3DX), which
-# is matched from library objects rather than decompiled, and not queued.
-LIBRARY_START = 0x10D1F7AF
+# Where the libraries linked after the game start (configure.py's LIBRARY_START
+# when it defines one): functions from here on are mostly library code (qhull,
+# CRT, STL, D3DX, Havok), which is matched from library objects or original
+# sources rather than decompiled, and not queued.
+LIBRARY_START = 0x10CFBFB0
 ATTEMPT_CAP = 12
 CLAIM_TTL = 2 * 3600
 PLACEHOLDER = re.compile(r"^(?:[A-Za-z]+_)*(?:FUN|DAT|LAB|PTR|BYTE|WORD|DWORD|QWORD|switchdataD|caseD|s|u|thunk)_"
@@ -240,7 +241,7 @@ class Project:
     def breaks(self) -> Tuple[int, ...]:
         """Addresses no auto unit spans, as configure.py passes them to splits.plan()."""
         cfg = self.configure
-        return tuple(a for a in (getattr(cfg, "CRT_ENTRY", None), *getattr(cfg, "FUNCLETS", ())) if a)
+        return tuple(a for a in (getattr(cfg, "LIBRARY_START", None), *getattr(cfg, "FUNCLETS", ())) if a)
 
     def plan(self, declared: List[splitslib.Unit]) -> List[splitslib.Unit]:
         """Declared plus auto units, exactly as configure.py plans the split."""
@@ -296,17 +297,9 @@ class Project:
         return start, end
 
     def library_start(self) -> int:
-        """The exe's entry point when the exe is present, else LIBRARY_START."""
-        if not hasattr(self, "_library_start"):
-            self._library_start = getattr(self.configure, "CRT_ENTRY", LIBRARY_START)
-            if self.exe and self.exe.is_file():
-                try:
-                    import pe
-                    image = pe.PE(self.exe.read_bytes())
-                    self._library_start = image.image_base + image.entry_rva
-                except (OSError, ValueError):
-                    pass
-        return self._library_start
+        """Where the libraries linked after the game start: configure.py's
+        LIBRARY_START, else this module's."""
+        return getattr(self.configure, "LIBRARY_START", LIBRARY_START)
 
     # -- compiling -------------------------------------------------------------
     def cflags_for(self, address: Optional[int] = None) -> List[str]:

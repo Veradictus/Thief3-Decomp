@@ -32,9 +32,9 @@ difficulty score built from the target's own instructions (roughly:
 instruction count, plus weight for conditional branches, calls, switches,
 an EH frame, and x87 instructions), falling back to plain size when that
 scoring isn't available. It already leaves out EH unwind funclets, import
-thunks, the library region after the CRT entry point, and anything already
-accepted, integrated, deferred or claimed by someone else, so everything it
-offers you is fair game. Add `--unit <name>` to stay within one split unit,
+thunks, the library region (qhull, the C runtime and what follows), and
+anything already accepted, integrated, deferred or claimed by someone else,
+so everything it offers you is fair game. Add `--unit <name>` to stay within one split unit,
 or `--max-size` to skip anything above a byte count.
 
 A claim is exclusive but not permanent: it expires after two hours unless

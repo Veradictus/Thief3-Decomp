@@ -71,11 +71,13 @@ CATEGORIES = {
 }
 
 # Where code comes from, by address, for units without a category. Code before
-# the C runtime's entry point is the game and its engine (with Havok, libjpeg
-# and CppUnit until they are split out); from the entry point on it is mostly
-# the runtime, STL and D3DX. .text$x holds the exception-handling funclets of
-# every function, which the compiler emits with their parents (docs/target.md).
-CRT_ENTRY = 0x10D1F7AF
+# LIBRARY_START is the game and its engine (with some CppUnit and Havok glue).
+# The libraries linked after it start there: qhull, then the static C runtime
+# from 0x10D1EE33 (entry point 0x10D1F7AF), then mostly STL, D3DX, Havok and
+# libjpeg, with a few game objects among them (TimeManager, 0x10D3EB80).
+# .text$x holds the exception-handling funclets of every function, which the
+# compiler emits with their parents (docs/target.md).
+LIBRARY_START = 0x10CFBFB0
 FUNCLETS = (0x10E02DA0, 0x10E3BF77)
 
 
@@ -85,7 +87,7 @@ def unit_categories(unit: splitslib.Unit, category: str = "") -> List[str]:
     if category:
         return [category]
     start = unit.text[0][0] if unit.text else 0
-    return ["main"] if start < CRT_ENTRY or FUNCLETS[0] <= start < FUNCLETS[1] else ["libs"]
+    return ["main"] if start < LIBRARY_START or FUNCLETS[0] <= start < FUNCLETS[1] else ["libs"]
 
 
 def unit_options(config_dir: Path) -> Dict[str, dict]:
@@ -104,7 +106,7 @@ def plan_units(config_dir: Path) -> List[splitslib.Unit]:
     covering every other function in symbols.txt."""
     functions = [s for s in symbolslib.load(config_dir / "symbols.txt") if s.is_function and s.size > 0]
     return splitslib.plan(splitslib.load(config_dir / "splits.txt"), functions, CHUNK_SIZE,
-                          breaks=(CRT_ENTRY, *FUNCLETS))
+                          breaks=(LIBRARY_START, *FUNCLETS))
 
 
 def main() -> None:
@@ -182,7 +184,7 @@ def main() -> None:
     n.rule(
         "model",
         f"$python tools/delink_model.py --exe $exe --sha1 $sha1 --symbols $symbols --splits $splits "
-        f"--chunk-size {CHUNK_SIZE:#x} {' '.join(f'--break {b:#x}' for b in (CRT_ENTRY, *FUNCLETS))} "
+        f"--chunk-size {CHUNK_SIZE:#x} {' '.join(f'--break {b:#x}' for b in (LIBRARY_START, *FUNCLETS))} "
         f"--model $model --groups $groups",
         description="MODEL $model",
     )
