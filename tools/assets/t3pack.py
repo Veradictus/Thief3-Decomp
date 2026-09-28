@@ -54,7 +54,10 @@ BACKUP_DIR = BUILD_DIR / "backup"
 ROUNDTRIP_DIR = BUILD_DIR / "roundtrip"
 
 EDITS_FORMAT = "t3-map-edits"
-EDITS_VERSION = 1
+# 2 adds "added" (new actors, each a copy of one in the map) and "removed";
+# version 1 files, which only change actors, still load.
+EDITS_VERSION = 2
+EDITS_VERSIONS = (1, 2)
 ACTOR_KEYS = ("location", "rotation", "draw_scale", "gamesys")
 
 
@@ -73,11 +76,12 @@ def _is_integral(v: Any) -> bool:
 
 
 def load_edits(source: Union[str, Path, Dict[str, Any]]) -> Dict[str, Any]:
-    """Read and check a map edits document (format "t3-map-edits", version 1)
-    from a path or an already parsed dict.
+    """Read and check a map edits document (format "t3-map-edits", version 1
+    or 2) from a path or an already parsed dict.
 
     Returns a normalised copy: {"format", "version", "level", "source" (a
-    dict, or None when absent), "actors": {export name: {...}}}, with
+    dict, or None when absent), "actors": {export name: {...}}, "added":
+    [{"copy_of": export name, ...}], "removed": [export name]}, with
     location and draw_scale as floats and rotation rounded to ints.  Raises
     EditsError listing every problem.  Unknown top-level keys are ignored;
     an unknown key under an actor is an error."""
@@ -98,8 +102,9 @@ def load_edits(source: Union[str, Path, Dict[str, Any]]) -> Dict[str, Any]:
     if doc.get("format") != EDITS_FORMAT:
         problems.append(f'"format" must be "{EDITS_FORMAT}", not {doc.get("format")!r}')
     ver = doc.get("version")
-    if not _is_integral(ver) or ver != EDITS_VERSION:
-        problems.append(f'"version" {ver!r} is not supported: this tool reads version {EDITS_VERSION}')
+    if not _is_integral(ver) or ver not in EDITS_VERSIONS:
+        problems.append(f'"version" {ver!r} is not supported: this tool reads versions '
+                        f'{", ".join(map(str, EDITS_VERSIONS))}')
     level = doc.get("level")
     if not isinstance(level, str) or not level.strip():
         problems.append('"level" must name the map, e.g. "Inn"')
@@ -131,48 +136,77 @@ def load_edits(source: Union[str, Path, Dict[str, Any]]) -> Dict[str, Any]:
         actors = {}
     out_actors: Dict[str, Dict[str, Any]] = {}
     for name, a in actors.items():
-        label = f"actor {name!r}"
-        if not isinstance(a, dict):
-            problems.append(f"{label}: expected an object")
+        rec = _actor_record(a, f"actor {name!r}", problems)
+        if rec is not None:
+            out_actors[str(name)] = rec
+
+    added = doc.get("added", [])
+    out_added: List[Dict[str, Any]] = []
+    if not isinstance(added, list):
+        problems.append('"added" must be a list of new actors')
+        added = []
+    for i, a in enumerate(added):
+        label = f"added actor {i + 1}"
+        copy_of = a.get("copy_of") if isinstance(a, dict) else None
+        if not isinstance(copy_of, str) or not copy_of.strip():
+            problems.append(f'{label}: "copy_of" must name the actor it copies')
             continue
-        rec: Dict[str, Any] = {}
-        for k, v in a.items():
-            if k == "location":
-                if isinstance(v, list) and len(v) == 3 and all(_is_number(x) and is_finite_f32(x) for x in v):
-                    rec[k] = [float(x) for x in v]
-                else:
-                    problems.append(f"{label}: location must be [x, y, z], three finite numbers (Unreal units)")
-            elif k == "rotation":
-                if (isinstance(v, list) and len(v) == 3 and all(_is_number(x) and math.isfinite(x) for x in v)
-                        and all(-2 ** 31 <= round(x) < 2 ** 31 for x in v)):
-                    rec[k] = [int(round(x)) for x in v]
-                else:
-                    problems.append(f"{label}: rotation must be [pitch, yaw, roll] in Unreal units (65536 = 360 deg)")
-            elif k == "draw_scale":
-                if _is_number(v) and is_finite_f32(v):
-                    rec[k] = float(v)
-                else:
-                    problems.append(f"{label}: draw_scale must be a finite number")
-            elif k == "gamesys":
-                if not isinstance(v, dict):
-                    problems.append(f"{label}: gamesys must be an object of property name: value")
-                    continue
-                rec[k] = {}
-                for pk, pv in v.items():
-                    ok = (_is_number(pv) and math.isfinite(pv)) or isinstance(pv, (bool, str)) or (
-                        isinstance(pv, list) and all(isinstance(x, str) for x in pv))
-                    if ok:
-                        rec[k][pk] = pv
-                    else:
-                        problems.append(f"{label}: gamesys {pk}: {pv!r} is not a number, bool, string or "
-                                        "list of bit names")
-            else:
-                problems.append(f"{label}: unknown key {k!r} (expected {', '.join(ACTOR_KEYS)})")
-        out_actors[str(name)] = rec
+        rec = _actor_record({k: v for k, v in a.items() if k != "copy_of"}, f"{label} ({copy_of})", problems)
+        if rec is not None:
+            out_added.append({"copy_of": copy_of, **rec})
+
+    removed = doc.get("removed", [])
+    if not (isinstance(removed, list) and all(isinstance(r, str) and r.strip() for r in removed)):
+        problems.append('"removed" must be a list of actor names')
+        removed = []
+    for name in sorted(set(removed) & set(out_actors)):
+        problems.append(f"actor {name!r} is both edited and removed")
     if problems:
         raise EditsError(f"{where}:\n  " + "\n  ".join(problems))
-    return {"format": EDITS_FORMAT, "version": EDITS_VERSION, "level": level.strip(), "source": out_src,
-            "actors": out_actors}
+    return {"format": EDITS_FORMAT, "version": int(ver), "level": level.strip(), "source": out_src,
+            "actors": out_actors, "added": out_added, "removed": sorted(set(removed))}
+
+
+def _actor_record(a: Any, label: str, problems: List[str]) -> Optional[Dict[str, Any]]:
+    """One actor's changes (under "actors", or a new actor under "added"),
+    checked and normalised; problems are appended to `problems`."""
+    if not isinstance(a, dict):
+        problems.append(f"{label}: expected an object")
+        return None
+    rec: Dict[str, Any] = {}
+    for k, v in a.items():
+        if k == "location":
+            if isinstance(v, list) and len(v) == 3 and all(_is_number(x) and is_finite_f32(x) for x in v):
+                rec[k] = [float(x) for x in v]
+            else:
+                problems.append(f"{label}: location must be [x, y, z], three finite numbers (Unreal units)")
+        elif k == "rotation":
+            if (isinstance(v, list) and len(v) == 3 and all(_is_number(x) and math.isfinite(x) for x in v)
+                    and all(-2 ** 31 <= round(x) < 2 ** 31 for x in v)):
+                rec[k] = [int(round(x)) for x in v]
+            else:
+                problems.append(f"{label}: rotation must be [pitch, yaw, roll] in Unreal units (65536 = 360 deg)")
+        elif k == "draw_scale":
+            if _is_number(v) and is_finite_f32(v):
+                rec[k] = float(v)
+            else:
+                problems.append(f"{label}: draw_scale must be a finite number")
+        elif k == "gamesys":
+            if not isinstance(v, dict):
+                problems.append(f"{label}: gamesys must be an object of property name: value")
+                continue
+            rec[k] = {}
+            for pk, pv in v.items():
+                ok = (_is_number(pv) and math.isfinite(pv)) or isinstance(pv, (bool, str)) or (
+                    isinstance(pv, list) and all(isinstance(x, str) for x in pv))
+                if ok:
+                    rec[k][pk] = pv
+                else:
+                    problems.append(f"{label}: gamesys {pk}: {pv!r} is not a number, bool, string or "
+                                    "list of bit names")
+        else:
+            problems.append(f"{label}: unknown key {k!r} (expected {', '.join(ACTOR_KEYS)})")
+    return rec
 
 
 def sha1_of(path: Path) -> str:
@@ -343,11 +377,16 @@ def _convert(kind: str, value: Any, key: str, enum: Optional[List[str]]) -> Any:
 @dataclass
 class Patch:
     """Edits applied to a writer.  `expect` lists (export index, what, prop
-    id, value) for verify_patch()."""
+    id, value) for verify_patch(); `added` the new actors' export indices,
+    `removed` the names of actors taken out of the level, and
+    `level_actors` the Level's new actor list when it changed."""
     writer: PackageWriter
     changes: List[str] = field(default_factory=list)
     edited: List[int] = field(default_factory=list)
     expect: List[Tuple[int, str, Optional[int], Any]] = field(default_factory=list)
+    added: List[int] = field(default_factory=list)
+    removed: List[str] = field(default_factory=list)
+    level_actors: Optional[List[int]] = None
 
 
 def _export_index(pkg: Package) -> Dict[str, List[Export]]:
@@ -427,35 +466,61 @@ def _set_gamesys(act: ActorEdit, key: str, value: Any, props: _Props) -> Tuple[i
     return pid, v
 
 
+def _apply_record(act: ActorEdit, rec: Dict[str, Any], props: _Props, label: str,
+                  problems: List[str]) -> List[Tuple[int, str, Optional[int], Any]]:
+    """Set an actor's placement and gamesys values from an edits record;
+    returns what verify_patch() should read back."""
+    index = act.exp.index
+    expect: List[Tuple[int, str, Optional[int], Any]] = []
+    if "location" in rec:
+        act.set_location(rec["location"])
+        expect.append((index, "Location", None, rec["location"]))
+    if "rotation" in rec:
+        act.set_rotation(rec["rotation"])
+        expect.append((index, "Rotation", None, rec["rotation"]))
+    if "draw_scale" in rec:
+        pid = _set_draw_scale(act, rec["draw_scale"], props)
+        expect.append((index, "DrawScale", pid, rec["draw_scale"]))
+    for key, value in rec.get("gamesys", {}).items():
+        try:
+            pid, v = _set_gamesys(act, key, value, props)
+        except (EditsError, LayoutError) as ex:
+            problems.append(f"{label}: {ex}")
+            continue
+        expect.append((index, key, pid, v))
+    return expect
+
+
+def _new_actor_name(writer: PackageWriter, like: str) -> str:
+    """A name for an actor copied from `like` ("StaticMeshActor__1920"):
+    the same stem with the next instance number no name uses yet."""
+    stem = re.sub(r"__\d+$", "", like)
+    pattern = re.compile(re.escape(stem) + r"__(\d+)$", re.I)
+    taken = [int(m.group(1)) for m in (pattern.match(n.text) for n in writer.names) if m]
+    number = max(taken, default=-1) + 1
+    while writer.find_name(f"{stem}__{number}") is not None:
+        number += 1
+    return f"{stem}__{number}"
+
+
 def apply_edits(pkg: Package, edits: Dict[str, Any], names: Optional[PropertyNames] = None) -> Patch:
     """Apply checked edits (see load_edits) to a parsed map.  Call
     patch.writer.write() for the file.  Raises EditsError listing every
-    actor or value that cannot be applied."""
+    actor or value that cannot be applied.
+
+    A new actor copies the object data of the actor it names (as in the
+    file, before any edit to it) under a new name, and joins the Level's
+    actor list.  A removed actor leaves that list: its object stays in the
+    file, but the level does not have it."""
     patch = Patch(PackageWriter(pkg))
     props = _Props(patch.writer, names)
     by_name = _export_index(pkg)
-    problems = []
+    problems: List[str] = []
     for name, rec in edits["actors"].items():
         try:
             exp = _find_actor(pkg, by_name, name)
             act = ActorEdit(patch.writer, exp)
-            expect: List[Tuple[int, str, Optional[int], Any]] = []
-            if "location" in rec:
-                act.set_location(rec["location"])
-                expect.append((exp.index, "Location", None, rec["location"]))
-            if "rotation" in rec:
-                act.set_rotation(rec["rotation"])
-                expect.append((exp.index, "Rotation", None, rec["rotation"]))
-            if "draw_scale" in rec:
-                pid = _set_draw_scale(act, rec["draw_scale"], props)
-                expect.append((exp.index, "DrawScale", pid, rec["draw_scale"]))
-            for key, value in rec.get("gamesys", {}).items():
-                try:
-                    pid, v = _set_gamesys(act, key, value, props)
-                except (EditsError, LayoutError) as ex:
-                    problems.append(f"{name}: {ex}")
-                    continue
-                expect.append((exp.index, key, pid, v))
+            expect = _apply_record(act, rec, props, name, problems)
         except (EditsError, LayoutError) as ex:
             problems.append(f"{name}: {ex}")
             continue
@@ -463,6 +528,57 @@ def apply_edits(pkg: Package, edits: Dict[str, Any], names: Optional[PropertyNam
             patch.edited.append(exp.index)
         patch.changes += [f"{exp.name}: {c}" for c in act.changes]
         patch.expect += expect
+
+    added = edits.get("added", [])
+    removed = edits.get("removed", [])
+    if added or removed:
+        refs = pkg.level_actors()
+        if refs is None:
+            raise EditsError("cannot add or remove actors: the map has no Level object")
+        # The LevelInfo and the builder brush open every level's list.
+        keep = set(refs[:2])
+        gone = set()
+        for name in removed:
+            try:
+                exp = _find_actor(pkg, by_name, name)
+            except EditsError as ex:
+                problems.append(f"removed actor {name!r}: {ex}")
+                continue
+            if exp.index + 1 in keep:
+                problems.append(f"removed actor {name!r}: the level needs its {pkg.export_class(exp)}")
+            elif exp.index + 1 not in refs:
+                problems.append(f"removed actor {name!r}: it is not in the level")
+            else:
+                gone.add(exp.index + 1)
+                patch.removed.append(exp.name)
+                patch.changes.append(f"{exp.name}: removed from the level")
+
+        new_refs = []
+        for i, rec in enumerate(added):
+            label = f"added actor {i + 1} (a copy of {rec['copy_of']})"
+            try:
+                src = _find_actor(pkg, by_name, rec["copy_of"])
+                name = _new_actor_name(patch.writer, src.name)
+                index = patch.writer.add_export(src.index, name, pkg.export_bytes(src))
+                act = ActorEdit(patch.writer, patch.writer.export_view(index))
+                expect = _apply_record(act, rec, props, label, problems)
+            except (EditsError, LayoutError) as ex:
+                problems.append(f"{label}: {ex}")
+                continue
+            act.commit()
+            patch.added.append(index)
+            patch.changes.append(f"{name}: added, a copy of {src.name}")
+            patch.changes += [f"{name}: {c}" for c in act.changes]
+            patch.expect += expect
+            new_refs.append(index + 1)
+
+        if not problems:
+            patch.level_actors = [r for r in refs if r not in gone] + new_refs
+            try:
+                patch.writer.set_level_actors(patch.level_actors)
+            except LayoutError as ex:
+                raise EditsError(f"cannot add or remove actors: {ex}") from ex
+            patch.edited.append(pkg.level().index)
     if problems:
         raise EditsError("cannot apply these edits:\n  " + "\n  ".join(problems))
     return patch
@@ -477,7 +593,9 @@ def _same(got: Any, want: Any) -> bool:
 def verify_patch(orig: Package, new: Package, patch: Patch) -> List[str]:
     """Read the patched package back with upkg: every other object must be
     byte-identical and every edited value must read as requested."""
-    problems = compare_packages(orig, new, patch.edited)
+    problems = compare_packages(orig, new, patch.edited, added=len(patch.added))
+    if patch.level_actors is not None and new.level_actors() != patch.level_actors:
+        problems.append("the Level's actor list does not read back as written")
     for idx, what, pid, want in patch.expect:
         e = new.exports[idx]
         a = new.read_actor(e)
@@ -804,7 +922,7 @@ def cmd_apply(args) -> None:
     print(f"{src.name}: {check_source(edits, src)}")
     if src.stem.lower() != edits["level"].lower():
         print(f"  note: the edits are for level {edits['level']!r}")
-    need_table = any("draw_scale" in a or a.get("gamesys") for a in edits["actors"].values())
+    need_table = any("draw_scale" in a or a.get("gamesys") for a in list(edits["actors"].values()) + edits["added"])
     names = _load_names(game) if need_table else None
     pkg = Package(src)
     patch = apply_edits(pkg, edits, names)
@@ -816,9 +934,10 @@ def cmd_apply(args) -> None:
     if not patch.changes:
         print("  no changes: every value already matches the map")
     size = write_verified(pkg, patch, out, keep=not args.dry_run)
-    added = patch.writer.added_names
-    summary = (f"{_count(len(patch.edited), 'actor')} changed, {_count(len(added), 'name')} added"
-               f"{' (' + ', '.join(added) + ')' if added else ''}; {len(pkg.data):,} -> {size:,} bytes; "
+    names = patch.writer.added_names
+    changed = len([i for i in patch.edited if i < len(pkg.exports) and pkg.exports[i] != pkg.level()])
+    summary = (f"{_count(changed, 'actor')} changed, {len(patch.added)} added, {len(patch.removed)} removed, "
+               f"{_count(len(names), 'name')} added to the table; {len(pkg.data):,} -> {size:,} bytes; "
                "verified: every other object is byte-identical")
     print(f"  {summary}")
     print("dry run: nothing written" if args.dry_run else f"wrote {out}")

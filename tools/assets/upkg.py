@@ -296,6 +296,18 @@ class Package:
     def export_bytes(self, exp: Export) -> bytes:
         return self.data[exp.serial_offset:exp.serial_offset + exp.serial_size]
 
+    def level(self) -> Optional[Export]:
+        """The map's Level object ("MyLevel"), or None in other packages."""
+        return next((e for e in self.exports if e.serial_size and self.export_class(e) == "Level"), None)
+
+    def level_actors(self) -> Optional[List[int]]:
+        """The export refs (index + 1) in the Level's actor list: the actors
+        that make up the map, in its order; None without a Level object."""
+        lvl = self.level()
+        if lvl is None:
+            return None
+        return [ref for ref, _ in level_actor_list(self.export_bytes(lvl))[0]]
+
     # --- tagged properties -------------------------------------------------
 
     def read_properties(self, r: Reader, end: int, depth: int = 0) -> List[Property]:
@@ -465,6 +477,29 @@ class Package:
 
 
 # --- property helpers ----------------------------------------------------------
+
+# The Level object's data starts with 13 bytes of unknown meaning (the same in
+# every shipped map), then its actor list, as stock Unreal Engine 2's
+# ULevelBase serialises it after them: the count twice, then one object ref
+# per actor; the level's URL follows.
+LEVEL_ACTORS_AT = 13
+
+
+def level_actor_list(data: bytes) -> Tuple[List[Tuple[int, bytes]], int, int]:
+    """The actor list in a Level object's data: ([(export ref, its encoded
+    bytes)], where the refs start, where they end).  Raises ValueError when
+    the data does not have that shape."""
+    r = Reader(data, LEVEL_ACTORS_AT)
+    count, again = r.u32(), r.u32()
+    if count != again or count > len(data):
+        raise ValueError(f"no actor list at +{LEVEL_ACTORS_AT} of the Level object ({count}, {again})")
+    start = r.pos
+    refs = []
+    for _ in range(count):
+        at = r.pos
+        refs.append((r.index(), data[at:r.pos]))
+    return refs, start, r.pos
+
 
 def prop_value(props: List[Property], name: str, default: Any = None, index: int = 0) -> Any:
     for p in props:
