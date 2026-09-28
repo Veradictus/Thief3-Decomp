@@ -1,0 +1,69 @@
+name: Bug report
+description: Something in the launcher, the SDK, a mod tool or the docs does not work.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The quickest way to give us everything is the launcher's
+        **Collect logs** button: it saves a zip with `T3SDK.log`, your settings and the mod list,
+        with your user name and home folder removed. Please attach it below.
+
+        Do not attach game files (maps, textures, the game's executable) or saves you want to keep private.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Launcher
+        - SDK in the game (crash, fix, setting)
+        - Mods (installing, load order, a mod package)
+        - Map Studio / asset tools
+        - Decompilation tooling
+        - Documentation
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the launcher, go to ...
+        2. Click ...
+        3. The game ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Launcher / SDK version
+      description: Shown in the launcher's Settings, or the first lines of T3SDK.log.
+      placeholder: 0.2.0
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game version
+      options:
+        - Steam
+        - GOG
+        - Retail (disc)
+        - Not sure
+  - type: input
+    id: others
+    attributes:
+      label: Other mods and patches
+      description: Sneaky Upgrade, d3d8 wrappers (dgVoodoo2, DXVK, d3d8to9), widescreen fixes, other T3SDK mods.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Attach the Collect logs zip, or paste the end of `System/T3SDK.log`.
+      render: text

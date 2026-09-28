@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest something the launcher, the SDK or the tools should do.
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Launcher
+        - SDK / mod API
+        - Mods and the mod index
+        - Map Studio / asset tools
+        - Decompilation tooling
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The problem or the goal, rather than a particular solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Other mods or tools that do something similar, engine functions involved, links.

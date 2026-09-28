@@ -36,6 +36,9 @@ the matching source, and notes on how the game works (addresses, structure
 layouts, file formats) with the evidence for them. Building the matching
 source, like using the SDK, needs your own copy of the game.
 
+Contributions are accepted under the repository's [MIT license](LICENSE).
+Report security problems privately ([SECURITY.md](SECURITY.md)).
+
 ## Commit messages
 
 We use [Conventional Commits](https://www.conventionalcommits.org/):
