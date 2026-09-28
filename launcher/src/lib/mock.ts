@@ -32,6 +32,8 @@ let config: Config = {
   setupComplete: !firstRun,
   savesDir: null,
   backupBeforeLaunch: false,
+  autoUpdateCheck: null,
+  lastUpdateCheck: null,
 };
 
 const mods: ModEntry[] = [
@@ -180,6 +182,21 @@ function backup(created: number, label: string | null, saves: number): Backup {
     size,
     bytes: Math.round(size * 0.62),
   };
+}
+
+function fakeInstall() {
+  const total = 9_400_000;
+  for (let i = 1; i <= 10; i++) {
+    setTimeout(() => {
+      emit("update-progress", { downloaded: (total * i) / 10, total, finished: false });
+    }, 150 * i);
+  }
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      emit("update-progress", { downloaded: 0, total: null, finished: true });
+      resolve(null);
+    }, 1700),
+  );
 }
 
 function emit(name: string, payload: unknown) {
@@ -345,6 +362,21 @@ const commands: Record<string, (args: Args) => unknown> = {
   },
   open_saves_folder: () => null,
   collect_logs: (args) => ({ path: text(args, "path"), files: 11, bytes: 182_000 }),
+  updater_status: () => ({ enabled: true, portable: false, version: "0.1.0", lastCheck: config.lastUpdateCheck }),
+  // `?update` makes the check find a new version.
+  check_update: () => {
+    config.lastUpdateCheck = Math.floor(Date.now() / 1000);
+    const update = params.has("update")
+      ? {
+          version: "0.2.0",
+          currentVersion: "0.1.0",
+          notes: "T3SDK Launcher 0.2.0: https://github.com/Veradictus/Thief3-Decomp/releases/tag/v0.2.0",
+          date: now - 7200,
+        }
+      : null;
+    return { checked: true, update };
+  },
+  install_update: fakeInstall,
 };
 
 export async function mockCall(cmd: string, args: Args = {}): Promise<unknown> {

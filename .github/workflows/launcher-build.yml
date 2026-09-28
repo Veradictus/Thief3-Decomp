@@ -10,6 +10,13 @@ on:
         description: launcher version (semver, a leading "v" is dropped); empty for a development build
         type: string
         default: ""
+    # The updater key (docs/releasing.md). Without it, or without the
+    # T3_UPDATER_PUBKEY variable, the launcher is built without the updater.
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: false
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
 
 permissions:
   contents: read
@@ -98,7 +105,14 @@ jobs:
       - name: Stage the tools, the SDK and Python
         env:
           VERSION: ${{ steps.version.outputs.version }}
-        run: python tools/stage_launcher.py stage ${VERSION:+--version "$VERSION"}
+          # The in-app updater needs both halves of the key: the public one
+          # (a repository variable) and the private one (a secret, absent in
+          # forks and in pull requests from them).
+          UPDATER_PUBKEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && vars.T3_UPDATER_PUBKEY || '' }}
+          UPDATER_ENDPOINT: ${{ github.server_url }}/${{ github.repository }}/releases/latest/download/latest.json
+        run: |
+          python tools/stage_launcher.py stage ${VERSION:+--version "$VERSION"} \
+            ${UPDATER_PUBKEY:+--updater-pubkey "$UPDATER_PUBKEY" --updater-endpoint "$UPDATER_ENDPOINT"}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -110,6 +124,11 @@ jobs:
           workspaces: launcher/src-tauri
       - name: Build
         working-directory: launcher
+        env:
+          # Signs the installer for the updater (its .sig) when the staged
+          # config asks for updater artifacts; unused otherwise.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           yarn install --immutable
           yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json
@@ -117,6 +136,11 @@ jobs:
         run: |
           mkdir -p dist
           cp launcher/src-tauri/target/release/bundle/nsis/*-setup.exe "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_x64-setup.exe"
+          # The updater's signature of the installer, when it was signed: it
+          # signs the bytes, so it stays valid next to the renamed file.
+          for sig in launcher/src-tauri/target/release/bundle/nsis/*-setup.exe.sig; do
+            if [ -f "$sig" ]; then cp "$sig" "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_x64-setup.exe.sig"; fi
+          done
           python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe \
             "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_portable.zip"
       - uses: actions/upload-artifact@v4

@@ -23,7 +23,7 @@ Python, and shows their output live.
 | Saves | The game's saves folder (how many saves, their size, the newest), **Back up now** with an optional label, and the backups: restore (after a confirmation, and not while the game runs), delete, open the folder. A switch backs the saves up whenever the launcher starts the game. See Saves below. |
 | SDK settings | `System/T3SDK.ini` as switches. The list, order and descriptions come from the comments in the SDK's own `sdk/T3SDK.ini`, so new settings appear without launcher changes. Values are edited in place; the file's comments and line endings are kept. |
 | Tasks | The job queue. Jobs run one at a time, in order; a job that depends on another (the import after an export) is skipped when that one fails. Output streams live and can be copied; a running job can be cancelled (its whole process tree on Windows). |
-| Settings | The paths again, plus the Godot project folder (default `build/assets/godot` in the T3SDK folder) and the saves folder (default: found automatically). **Collect logs** and **Report a problem**. |
+| Settings | The paths again, plus the Godot project folder (default `build/assets/godot` in the T3SDK folder) and the saves folder (default: found automatically). **Updates**: the launcher's version, **Check now**, the start-up check switch, and a found update with its notes. **Collect logs** and **Report a problem**. |
 
 The launcher's own settings are `launcher.json` in the per-user config folder
 (`%APPDATA%\org.t3sdk.launcher\` on Windows); save backups go to `saves\` in
@@ -90,6 +90,18 @@ With **Back up the saves when the launcher starts the game** on, Play makes a
 backup. The launcher keeps the ten newest automatic backups of each kind and
 never deletes the ones made with **Back up now**.
 
+## Updates
+
+Release builds made with the updater key check
+`https://github.com/Veradictus/Thief3-Decomp/releases/latest/download/latest.json`
+at start-up, at most once a day (**Settings → Updates** has a switch and
+**Check now**). A newer version shows "Update available" in the sidebar;
+**Update and restart** downloads the installer, checks its signature, and
+runs it without questions (a progress bar), after which the new launcher
+starts. The portable zip does not update itself: it links to the releases
+page. Builds without the key (development builds, forks) do not check at all.
+How the key and the release files fit together: [releasing.md](releasing.md).
+
 ## Collect logs
 
 **Collect logs** (Play page and Settings) asks where to save a zip for a bug
@@ -137,6 +149,7 @@ GitHub release (both call `launcher-build.yml`):
 | `T3SDK-Launcher_<version>_x64-setup.exe` | NSIS installer (per user, no admin rights) |
 | `T3SDK-Launcher_<version>_portable.zip` | the same files, to unzip and run |
 | `T3SDK_<version>_x86.zip` | the SDK alone (`dinput8.dll`, mods, `T3SDK.ini`), for `System/` by hand |
+| `latest.json`, the installer's `.sig` | for the launcher's updater, when the updater key is set up ([releasing.md](releasing.md)) |
 
 A release launcher is self-contained. `tools/stage_launcher.py stage` puts
 three things next to it (its resource folder), and setup picks them first:
@@ -173,10 +186,13 @@ A release-style build with the bundled tools, SDK and Python (the SDK built
 first with `tools/sdk.py build`):
 
 ```sh
-python tools/stage_launcher.py stage [--version 0.2.0]
+python tools/stage_launcher.py stage [--version 0.2.0] [--updater-pubkey <public key>]
 cd launcher && yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json
 python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe dist/portable.zip
 ```
+
+`--updater-pubkey` builds the updater in; `tauri build` then needs the private
+key in `TAURI_SIGNING_PRIVATE_KEY` ([releasing.md](releasing.md)).
 
 `yarn dev` serves the UI alone in a browser. Outside Tauri, `src/lib/mock.ts`
 answers the commands with made-up data, so the UI can be worked on, tested and
@@ -191,7 +207,7 @@ screen).
 | TypeScript 6, strict (`noUncheckedIndexedAccess`, unused checks) | `yarn typecheck` runs svelte-check over `.ts` and `.svelte` |
 | ESLint 10 flat config: typescript-eslint strict + stylistic (type-checked), eslint-plugin-svelte | `yarn lint` |
 | Prettier 3 with the Svelte plugin, 120 columns | `yarn format`, `yarn format:check` |
-| Vitest | `yarn test`: display helpers (`src/lib/format.ts`), the report's task log (`diag.ts`), and the job queue, run against the mock with fake timers |
+| Vitest | `yarn test`: display helpers (`src/lib/format.ts`), the report's task log (`diag.ts`), and the job queue and the update flow, run against the mock with fake timers |
 | Vite 8 + Svelte 5 (runes) | `yarn dev`, `yarn build`; imports use the `$lib/` and `$components/` aliases |
 
 `yarn verify` runs typecheck, lint, format check and tests, as CI does.

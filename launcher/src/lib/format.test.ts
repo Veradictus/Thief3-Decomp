@@ -5,9 +5,11 @@ import {
   bytes,
   dateTime,
   elapsed,
+  firstLink,
   isKeySetting,
   isSwitch,
   keyName,
+  percent,
   settingDescription,
   settingLabel,
 } from "./format";
@@ -81,6 +83,25 @@ describe("settings", () => {
     expect(keyName(" 0x7b ")).toBe("F12");
     expect(keyName("0")).toBe("Off");
     expect(keyName("0x41")).toBe("");
+  });
+});
+
+describe("updates", () => {
+  it("shows download progress only when the size is known", () => {
+    expect(percent(0, null)).toBeNull();
+    expect(percent(5, 0)).toBeNull();
+    expect(percent(0, 200)).toBe(0);
+    expect(percent(99, 200)).toBe(49);
+    expect(percent(250, 200)).toBe(100);
+  });
+  it("finds the release link in the notes", () => {
+    expect(firstLink(null)).toBeNull();
+    expect(firstLink("no link here")).toBeNull();
+    expect(firstLink("T3SDK Launcher 0.2.0: https://github.com/o/r/releases/tag/v0.2.0")).toBe(
+      "https://github.com/o/r/releases/tag/v0.2.0",
+    );
+    expect(firstLink("See (https://example.org/notes).")).toBe("https://example.org/notes");
+    expect(firstLink("http://insecure.example first, then https://ok.example/x.")).toBe("https://ok.example/x");
   });
 });
 

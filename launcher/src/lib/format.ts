@@ -62,3 +62,15 @@ export function keyName(code: string): string {
 export function dateTime(seconds: number | null): string {
   return seconds ? dateTimeFormat.format(seconds * 1000) : "";
 }
+
+/** How much of a download is done, 0-100, or null while its size is unknown. */
+export function percent(done: number, total: number | null): number | null {
+  if (!total || total <= 0) return null;
+  return Math.max(0, Math.min(100, Math.floor((done / total) * 100)));
+}
+
+/** The first https link in a text (release notes), without trailing punctuation. */
+export function firstLink(text: string | null): string | null {
+  const match = text ? /https:\/\/[^\s<>()"'\]]+/.exec(text) : null;
+  return match ? match[0].replace(/[.,;:!?]+$/, "") : null;
+}

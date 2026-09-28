@@ -10,6 +10,7 @@ mod ini;
 mod proc;
 mod saves;
 mod tasks;
+mod update;
 
 use std::sync::Mutex;
 
@@ -27,6 +28,7 @@ pub fn run() {
         .setup(|app| {
             let config = config::load(app.handle());
             app.manage(AppState { config: Mutex::new(config), tasks: tasks::Tasks::default() });
+            update::setup(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -58,6 +60,9 @@ pub fn run() {
             saves::delete_save_backup,
             saves::open_saves_folder,
             diag::collect_logs,
+            update::updater_status,
+            update::check_update,
+            update::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("the launcher failed to start");
