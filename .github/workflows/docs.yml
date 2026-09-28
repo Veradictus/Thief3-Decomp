@@ -1,0 +1,74 @@
+# Builds the documentation site (site/, from the pages in docs/) whenever it
+# or what it is generated from changes. On main it also publishes the site,
+# with the mod index, to GitHub Pages: https://veradictus.github.io/Thief3-Decomp/
+# Pages must be set to the source "GitHub Actions" (docs/site.md).
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "site/**"
+      - "sdk/include/**"
+      - "modindex/**"
+      - "tools/modindex.py"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "site/**"
+      - "sdk/include/**"
+      - "modindex/**"
+      - "tools/modindex.py"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Yarn (Corepack, the version pinned in site/package.json)
+        run: corepack enable
+      - name: Site (types, API reference up to date, build without dead links)
+        working-directory: site
+        run: |
+          yarn install --immutable
+          yarn typecheck
+          yarn docs:build
+      - name: Mod index
+        run: |
+          if [ -f tools/modindex.py ]; then python3 tools/modindex.py build -o site/.vitepress/dist/modindex/index.json; fi
+      - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      - uses: actions/upload-pages-artifact@v4
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        with:
+          path: site/.vitepress/dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

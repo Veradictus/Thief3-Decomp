@@ -63,5 +63,15 @@ Thumbs.db
 /launcher/src-tauri/gen/
 /launcher/src-tauri/bundle/
 
+# Docs site build output and caches (VitePress); Yarn keeps only its config
+/site/node_modules/
+/site/.yarn/*
+!/site/.yarn/patches/
+!/site/.yarn/plugins/
+!/site/.yarn/releases/
+/site/.pnp.*
+/site/.vitepress/dist/
+/site/.vitepress/cache/
+
 # Agent worktrees
 /.claude/worktrees/

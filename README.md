@@ -2,12 +2,17 @@
 
 [![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hdAXH73tEG)
 [![Download the launcher](https://img.shields.io/github/v/release/Veradictus/Thief3-Decomp?include_prereleases&label=Download&style=for-the-badge)](https://github.com/Veradictus/Thief3-Decomp/releases/latest)
+[![Documentation](https://img.shields.io/badge/Documentation-read%20the%20guides-d6ab52?style=for-the-badge)](https://veradictus.github.io/Thief3-Decomp/)
 
 **T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
 It fixes the PC version's display problems, loads mods into your installed
 copy of the game, and gives them access to the engine. The goal is mods as
 large as multiplayer. It comes with a launcher, tools to edit maps in Godot,
 and the workbench for a matching decompilation of the game.
+
+**Documentation**: <https://veradictus.github.io/Thief3-Decomp/>, with the
+player guide, the mod author guide, the API reference and the engineering
+notes (the same pages as in [docs/](docs/)).
 
 **What do you want to do?**
 
@@ -168,7 +173,9 @@ complete example, and [sdk/include/t3sdk/unreal.hpp](sdk/include/t3sdk/unreal.hp
 has the engine's memory layouts for direct access. Build it as a 32-bit DLL
 with any compiler, or along with the SDK (see [Build from source](#build-from-source)).
 The settings, the fixes, the API's lifecycle and threading rules are in
-[docs/sdk.md](docs/sdk.md).
+[docs/sdk.md](docs/sdk.md). The site's
+[mod author guide](https://veradictus.github.io/Thief3-Decomp/modding/first-mod)
+goes from the mod template to a published `.t3mod` package.
 
 ## Build from source
 
@@ -181,6 +188,7 @@ publishes them as a release. To build locally:
 | SDK (`dinput8.dll`, example mod) | Windows, Python 3.10+, Visual Studio 2022+ with "Desktop development with C++" | see below |
 | Launcher | Node 20+ (with `corepack enable`, for Yarn 4), Rust (stable); Linux also [Tauri's prerequisites](https://tauri.app/start/prerequisites/) | `cd launcher`, `yarn install`, `yarn tauri dev` |
 | Map tools | Python 3.10+, Godot 4.7+ | `python tools/assets/t3map.py --all`, then `godot --path build/assets/godot` |
+| Documentation site | Node 22.18+ (with `corepack enable`) | `cd site`, `yarn install`, `yarn docs:dev` ([docs/site.md](docs/site.md)) |
 
 The SDK, from the repository's folder:
 
@@ -260,6 +268,7 @@ tools/                   split/diff pipeline and binary tools
 src/, include/           the matching decompilation
 config/PC_20040610/      symbols.txt, splits.txt
 docs/                    engine notes, SDK and launcher guides, formats, matching, current status
+site/                    the documentation site (VitePress) built from docs/
 orig/PC_20040610/        your copy of T3Main.exe for the workbench (never committed)
-.github/workflows/       CI: launcher and SDK builds, releases, the decomp.dev report
+.github/workflows/       CI: launcher and SDK builds, releases, the decomp.dev report, the docs site
 ```
