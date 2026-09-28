@@ -216,8 +216,11 @@ Later the same day, played by the user:
    curtain helper works in the same scaled coordinates. Making both
    DPI-aware needs a tester with a scaled display.
 10. **Map editor** (see `docs/assets.md`, sections 6 and 8):
-    - skins and other struct values in `t3pack.py`, then adding and removing
-      actors;
+    - skins and other struct values in `t3pack.py`; adding (copies) and
+      removing actors works in the tools and the plugin, but no patched map
+      has been loaded in the game yet: check that one with new and removed
+      actors loads, and that a copy moved far from its original is lit and
+      drawn (it keeps the original's zone and BSP leaf);
     - some materials show a noise texture as their colour: the exporter's
       choice of texture stage needs a look;
     - characters, animation, physics hulls, particles and sounds are not

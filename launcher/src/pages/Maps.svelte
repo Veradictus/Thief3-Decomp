@@ -32,13 +32,10 @@
     if (hasGodot) enqueue({ kind: "import" }, "Import into Godot", job);
   }
 
-  // Actors added or removed in Godot, which the edits file cannot save
-  // ("9 added actors"), or "" when there are none.
+  // Nodes added in Godot that are not T3 actors, which the edits file cannot
+  // save ("2 nodes"), or "" when there are none.
   function notSaved(m: MapEntry): string {
-    const parts = [];
-    if (m.notSavedAdded) parts.push(`${m.notSavedAdded} added actor${m.notSavedAdded > 1 ? "s" : ""}`);
-    if (m.notSavedRemoved) parts.push(`${m.notSavedRemoved} removed actor${m.notSavedRemoved > 1 ? "s" : ""}`);
-    return parts.join(" and ");
+    return m.notSaved ? `${m.notSaved} node${m.notSaved > 1 ? "s" : ""}` : "";
   }
 
   function stage(m: MapEntry): { label: string; kind: "" | "ok" | "warn" | "info" } {
@@ -161,8 +158,7 @@
               {sel.editedActors} actor{sel.editedActors > 1 ? "s" : ""} changed · saved {ago(sel.editsTime)}
               {#if notSaved(sel)}<span class="warn-text"> · {notSaved(sel)} not saved</span>{/if}
             {:else}
-              Move, rotate and scale actors, or change their properties, then save (Ctrl+S). Adding and deleting actors
-              is not supported yet.
+              Move, rotate, scale, duplicate (Ctrl+D) or delete actors, or change their properties, then save (Ctrl+S).
             {/if}
           </p>
         </div>
@@ -188,8 +184,8 @@
             {:else if sel.exported && sel.editedActors === null}
               Nothing to repack yet: no edits saved in Godot.
             {:else if sel.editedActors === 0 && notSaved(sel)}
-              <span class="warn-text">Nothing to repack: {notSaved(sel)} are not saved.</span> Adding and deleting actors
-              is not supported yet; move, rotate and scale existing ones.
+              <span class="warn-text">Nothing to repack: {notSaved(sel)} added in Godot are not T3 actors.</span> A new actor
+              is a copy of one in the map: select it and press Ctrl+D.
             {:else if sel.editedActors === 0}
               Nothing to repack: the saved edits change no actors.
             {:else}

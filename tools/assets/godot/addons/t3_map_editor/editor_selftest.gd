@@ -128,6 +128,26 @@ func run(plugin: EditorPlugin, scene_path: String) -> void:
 	doc = JSON.parse_string(FileAccess.get_file_as_string(edits_path))
 	check(doc is Dictionary and Edits.same_json(doc.get('actors'), want), 'saving the scene saves the T3 edits too')
 
+	# A duplicate (Ctrl+D) saves as a new actor; loading the file into a scene
+	# without it makes the copy again, and undo takes it away.
+	var copy := crate.duplicate() as Node3D
+	crate.get_parent().add_child(copy)
+	copy.owner = root
+	copy.position += Vector3(3, 0, 0)
+	r = dock.save_edits()
+	doc = JSON.parse_string(FileAccess.get_file_as_string(String(r.get('path', ''))))
+	var added: Array = doc.get('added', []) if doc is Dictionary else []
+	check(added.size() == 1 and String(added[0].get('copy_of')) == 'StaticMeshActor0',
+		'a duplicate is saved as a new actor: %s' % JSON.stringify(added))
+	copy.get_parent().remove_child(copy)
+	copy.free()
+	dock.load_edits()
+	var copies: Array = Edits.actor_nodes(root)['copies']
+	check(copies.size() == 1, 'Load T3 edits makes the new actor again')
+	history.undo()
+	dock.refresh()
+	check((Edits.actor_nodes(root)['copies'] as Array).is_empty(), 'and undo takes it away')
+
 	finish()
 
 ## Opens `path` once the editor has started up (it opens the main scene or the

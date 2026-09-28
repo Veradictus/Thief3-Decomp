@@ -2,9 +2,8 @@
 
 Specific, small edits to an existing map, on top of the general
 export/edit/repack workflow in [Map editing](../maps.md). This covers what
-is currently supported: moving, rotating and scaling something already in
-the map, and changing its properties. Adding or removing actors does not
-work yet.
+is currently supported: moving, rotating, scaling, duplicating and deleting
+something already in the map, and changing its properties.
 
 ## Move, rotate or scale an actor
 
@@ -61,9 +60,12 @@ none of that restriction and can go into a content pack's own
 
 ## Watch out for
 
-- **Not supported yet:** adding or removing actors. The dock also warns
-  about duplicated actor nodes and nodes missing their T3 metadata; neither
-  is written to the edits file.
+- **New actors are copies.** Duplicate an actor (Ctrl+D) to add one: the
+  repacked map gets a new actor with the original's mesh and properties,
+  and your placement. A node you add any other way (a new Node3D, a scene
+  dragged in) has no T3 metadata and is not saved; the dock warns about it.
+- **Deleting** takes an actor out of the level; the map's LevelInfo cannot
+  be deleted.
 - **This is experimental.** It has been tested on synthetic maps, not
   confirmed on retail ones; keep a backup, and remember `Restore original`
   always works as long as the map's install itself is intact.

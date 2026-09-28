@@ -2,8 +2,9 @@
 
 Maps can be exported to [Godot](https://godotengine.org/), edited there, and
 written back into the game. This is experimental: it has been tested on
-synthetic maps. Moving, rotating and scaling what is already in a map, and
-changing its properties, works. Adding and removing things does not yet.
+synthetic maps and repacked from real ones. You can move, rotate, scale,
+duplicate and delete what is already in a map, and change its properties; a
+new actor is always a copy of one in the map.
 
 ## In the launcher
 
@@ -12,9 +13,10 @@ changing its properties, works. Adding and removing things does not yet.
 2. Open **Map Studio**, pick a map and click **Export**.
 3. Click **Edit in Godot**. Move, rotate and scale things with Godot's tools,
    or change their properties in the **T3 Map** dock (below the Inspector).
-   Then save the scene (Ctrl+S): that also saves the T3 edits (the dock's
-   **Save T3 edits** button does the same). Adding and deleting actors is
-   not supported yet: such changes are not saved.
+   Duplicate an actor (Ctrl+D) to add another like it, or delete one. Then
+   save the scene (Ctrl+S): that also saves the T3 edits (the dock's **Save
+   T3 edits** button does the same). Nodes you add some other way are not
+   T3 actors and are not saved.
 4. Back in Map Studio, click **Repack**, then **Install**, and play the map.
 5. **Restore original** puts the unmodified map back. Every original map is
    backed up once, before it is first replaced.

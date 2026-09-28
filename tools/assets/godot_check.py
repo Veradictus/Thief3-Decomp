@@ -45,6 +45,7 @@ from gltf import GLTFBuilder  # noqa: E402
 from t3common import BUILD_DIR, run_cli  # noqa: E402
 from t3map import ActorRecord, ensure_project, update_index, write_tscn  # noqa: E402
 from t3mesh import DEFAULT_SCALE  # noqa: E402
+from t3pack import EDITS_VERSION  # noqa: E402
 
 EDIT_TEST_LEVEL = "T3EditTest"
 
@@ -191,7 +192,7 @@ def check_edits_file(path: Path) -> List[str]:
             problems.append(f"{what}: {got!r}, expected {want!r}")
 
     expect("format", doc.get("format"), "t3-map-edits")
-    expect("version", doc.get("version"), 1)
+    expect("version", doc.get("version"), EDITS_VERSION)
     expect("level", doc.get("level"), EDIT_TEST_LEVEL)
     expect("source keys", sorted(doc.get("source", {})), ["file", "sha1", "size"])
     expect("source size", doc.get("source", {}).get("size"), len(b"synthetic T3EditTest map, not game data"))

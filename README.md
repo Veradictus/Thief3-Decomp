@@ -59,9 +59,10 @@ takes T3SDK out again and leaves the game as it was. More in
 
 ## Edit maps
 
-Experimental: tested on synthetic maps; moving, rotating and scaling what is
-already in a map and changing its properties works, adding and removing things
-does not yet.
+Experimental: tested on synthetic maps and repacked from real ones, not yet
+confirmed in the game. You can move, rotate, scale, duplicate (Ctrl+D) and
+delete what is in a map, and change its properties; new kinds of objects and
+new geometry are not possible yet.
 
 1. Install [Godot 4.7 or newer](https://godotengine.org/download/). The
    launcher usually finds it; otherwise set it under **Settings**.
