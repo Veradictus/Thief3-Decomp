@@ -1,6 +1,6 @@
 # Thief: Deadly Shadows modding SDK
 
-[![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hdAXH73tEG)
+[![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/eaJkC5C6WJ)
 [![Download the launcher](https://img.shields.io/github/v/release/Veradictus/Thief3-Decomp?include_prereleases&label=Download&style=for-the-badge)](https://github.com/Veradictus/Thief3-Decomp/releases/latest)
 [![Documentation](https://img.shields.io/badge/Documentation-read%20the%20guides-d6ab52?style=for-the-badge)](https://veradictus.github.io/Thief3-Decomp/)
 
@@ -272,7 +272,7 @@ your own copy of `T3Main.exe` and writes its results into ignored folders.
 ## Contributing
 
 Questions, ideas, or want to help? Come to the
-[Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG).
+[Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ).
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages follow
 Conventional Commits, and there are hard rules about what may enter the

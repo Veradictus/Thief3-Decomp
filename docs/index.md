@@ -44,5 +44,5 @@ T3SDK works with the Steam release of Thief: Deadly Shadows (patch 1.1). It
 contains nothing from the game: it changes your own copy, in memory, while it
 runs. If you don't own the game yet, [buy it on Steam](https://store.steampowered.com/app/6980/).
 
-Questions and help: the [Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG).
+Questions and help: the [Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ).
 Source code, releases and issues: [GitHub](https://github.com/Veradictus/Thief3-Decomp).

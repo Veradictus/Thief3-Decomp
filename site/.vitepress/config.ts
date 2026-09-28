@@ -187,7 +187,7 @@ export default defineConfig({
     },
     socialLinks: [
       { icon: "github", link: repo },
-      { icon: "discord", link: "https://discord.gg/hdAXH73tEG" },
+      { icon: "discord", link: "https://discord.gg/eaJkC5C6WJ" },
     ],
     footer: {
       message:
