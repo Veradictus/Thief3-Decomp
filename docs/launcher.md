@@ -17,18 +17,78 @@ Python, and shows their output live.
 | Screen | What it does |
 |---|---|
 | Setup | First run: finds the game (installer registry entry, Steam libraries, `T3_GAME_DIR`), Godot (`GODOT`, `PATH`, common folders), Python (the bundled one, the T3SDK `.venv`, the `py` launcher, `PATH`) and the T3SDK folder (the bundled one, or a checkout found by walking up from the launcher). Each path is checked: the game's `T3Main.exe` SHA-1, `godot --version` (4.7+), Python 3.10+, the tools. |
-| Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it from a checkout (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log`. |
+| Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it from a checkout (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log`. The Game box says when the saves were last backed up. |
 | Map Studio | Per map: export to Godot (then a headless Godot import), open it in the Godot editor or the viewer, repack the saved edits into a patched `.gmp`, install it into the game, restore the original. Also a byte-exact round-trip check of the unchanged map. |
 | Mods | Lists `System/mods/*.dll`. Turning a mod off moves its `.dll` (and `.pdb`/`.ini`) into `System/mods/disabled/`, which the SDK does not load. |
+| Saves | The game's saves folder (how many saves, their size, the newest), **Back up now** with an optional label, and the backups: restore (after a confirmation, and not while the game runs), delete, open the folder. A switch backs the saves up whenever the launcher starts the game. See Saves below. |
 | SDK settings | `System/T3SDK.ini` as switches. The list, order and descriptions come from the comments in the SDK's own `sdk/T3SDK.ini`, so new settings appear without launcher changes. Values are edited in place; the file's comments and line endings are kept. |
 | Tasks | The job queue. Jobs run one at a time, in order; a job that depends on another (the import after an export) is skipped when that one fails. Output streams live and can be copied; a running job can be cancelled (its whole process tree on Windows). |
-| Settings | The paths again, plus the Godot project folder (default `build/assets/godot` in the T3SDK folder). |
+| Settings | The paths again, plus the Godot project folder (default `build/assets/godot` in the T3SDK folder) and the saves folder (default: found automatically). |
 
 The launcher's own settings are `launcher.json` in the per-user config folder
-(`%APPDATA%\org.t3sdk.launcher\` on Windows). Nothing is written to the
-repository, and the game folder is written only by the SDK install, the mod
-switches, `T3SDK.ini` edits and map installs (which back up the original
-first; see [assets.md](assets.md)).
+(`%APPDATA%\org.t3sdk.launcher\` on Windows); save backups go to `saves\` in
+the per-user local data folder (`%LOCALAPPDATA%\org.t3sdk.launcher\saves\`).
+Nothing is written to the repository, and the game folder is written only by
+the SDK install, the mod switches, `T3SDK.ini` edits and map installs (which
+back up the original first; see [assets.md](assets.md)). The saves folder is
+written only when a backup is restored.
+
+## Saves
+
+The game reads its save folder from the `SaveGamePath` value of its registry
+key (`HKLM\SOFTWARE\Ion Storm\Thief - Deadly Shadows`, under `WOW6432Node` on
+64-bit Windows) and keeps the saves in `SaveGames` inside it: one folder per
+save, plus `Current Save`, the game's copy of the save being played. The
+original installer sets `SaveGamePath` to the installing user's
+`My Documents\Thief - Deadly Shadows`. Where the saves really end up differs
+by version and Windows version, according to players' reports:
+
+| Version | Reported location of `SaveGames` |
+|---|---|
+| CD/DVD (2004), Windows XP | `My Documents\Thief - Deadly Shadows\` of the user who installed the game (the registry value) |
+| Unpatched game on Vista and later | a path in a user's own Documents is diverted to Public Documents: `C:\Users\Public\Documents\Thief - Deadly Shadows\` (also reachable as `C:\ProgramData\Documents\…`, a compatibility link to it) |
+| GOG | its `goglog.ini` names the user's Documents, but saves were found in Public Documents (Windows 10) |
+| Steam | the user's `Documents\Thief - Deadly Shadows\`, or `save\` in the game folder (`…\steamapps\common\Thief Deadly Shadows\save\SaveGames`) |
+| Sneaky Upgrade (unofficial patch) | uses `SaveGamePath` as it is (no diversion); prefers Public Documents when saves are already there. Thief 3 Gold keeps its own save folder |
+
+Sources: the GOG forum
+([one](https://www.gog.com/forum/thief_series/thief_3_deadly_shadows_save_file_location),
+[two](https://www.gog.com/forum/thief_series/cant_find_save_file_for_thief_deadly_shadows)),
+the [Steam forum](https://steamcommunity.com/app/6980/discussions/0/1458455461497313510/),
+[SaveGame.Pro](https://savegame.pro/pc-thief-deadly-shadows-savegame/), and the
+Sneaky Upgrade 1.1.12 notes on
+[ModDB](https://www.moddb.com/mods/thief-3-sneaky-upgrade/news/sneaky-upgrade-1112-released)
+and the [registry value](https://forums.whirlpool.net.au/archive/1013354) as
+quoted by search results (both pages refuse automated readers, as does
+[PCGamingWiki](https://www.pcgamingwiki.com/wiki/Thief:_Deadly_Shadows), whose
+table is worth a look). None of this was checked on a real install yet.
+
+So `src-tauri/src/saves.rs` looks at every candidate: `SaveGamePath\SaveGames`
+from the registry, `Thief - Deadly Shadows\SaveGames` in the user's Documents
+and in Public Documents (both through the Windows known-folder API), and
+`save\SaveGames` in the game folder, each also in `%LOCALAPPDATA%\VirtualStore`
+when it lies under Program Files or ProgramData (where Windows redirects an
+old 32-bit program's writes). The existing folder with the newest file wins.
+**Settings → Saves folder** overrides all of this.
+
+A backup is a zip of the whole folder, named `<YYYY-MM-DD_HHMMSS>[ <label>].zip`
+(a second one in the same second gets ` (2)`), written under a temporary name
+first. Its `.t3sdk-backup.json` entry records the time, the label, the number
+of saves, files and bytes, and the folder it came from. Files keep their
+modification times.
+
+Restoring refuses while `T3Main.exe` runs. It first backs up the current
+saves ("before restore"; skipped when the newest backup already holds exactly
+these saves), then unpacks the backup next to the folder
+(`SaveGames.t3sdk-restore`), moves the current folder aside
+(`SaveGames.t3sdk-old`), moves the new one in, and deletes the old one. If a
+step fails, the current saves stay (or are moved back). Entries that would
+land outside the folder are refused.
+
+With **Back up the saves when the launcher starts the game** on, Play makes a
+"before launch" backup first, unless the saves are unchanged since the newest
+backup. The launcher keeps the ten newest automatic backups of each kind and
+never deletes the ones made with **Back up now**.
 
 ## Map files the launcher reads
 

@@ -16,6 +16,9 @@ export interface Config {
   sdkRoot: string | null;
   projectDir: string | null;
   setupComplete: boolean;
+  /** The game's SaveGames folder; null: found automatically. */
+  savesDir: string | null;
+  backupBeforeLaunch: boolean;
 }
 
 export interface Candidate {
@@ -140,6 +143,45 @@ export interface TaskExit {
   cancelled: boolean;
 }
 
+export interface SavesFolder {
+  path: string;
+  source: string;
+  exists: boolean;
+}
+
+export interface SavesSummary {
+  count: number;
+  files: number;
+  size: number;
+  newest: number | null;
+}
+
+export interface SavesInfo {
+  folder: SavesFolder | null;
+  exists: boolean;
+  summary: SavesSummary;
+  candidates: SavesFolder[];
+}
+
+export interface Backup {
+  file: string;
+  label: string | null;
+  created: number;
+  saves: number | null;
+  size: number | null;
+  bytes: number;
+}
+
+export interface BackupList {
+  dir: string;
+  backups: Backup[];
+}
+
+export interface Restored {
+  before: Backup | null;
+  summary: SavesSummary;
+}
+
 /** Before the real config loads (the UI waits for it, so this is rarely seen). */
 export const emptyConfig: Config = {
   gameDir: null,
@@ -148,6 +190,8 @@ export const emptyConfig: Config = {
   sdkRoot: null,
   projectDir: null,
   setupComplete: false,
+  savesDir: null,
+  backupBeforeLaunch: false,
 };
 
 export type Location = "game" | "system" | "mods" | "log" | "project" | "sdk" | "patched" | "backup";
@@ -179,6 +223,12 @@ export const api = {
   openLink: (url: string) => call<null>("open_link", { url }),
   startTask: (spec: TaskSpec) => call<TaskStarted>("start_task", { spec }),
   cancelTask: (id: number) => call<null>("cancel_task", { id }),
+  savesInfo: (path: string | null = null) => call<SavesInfo>("saves_info", { path }),
+  listSaveBackups: () => call<BackupList>("list_save_backups"),
+  createSaveBackup: (label: string | null) => call<Backup>("create_save_backup", { label }),
+  restoreSaveBackup: (file: string) => call<Restored>("restore_save_backup", { file }),
+  deleteSaveBackup: (file: string) => call<null>("delete_save_backup", { file }),
+  openSavesFolder: (which: "saves" | "backups") => call<null>("open_saves_folder", { which }),
 };
 
 /** The launcher's version ("preview" outside Tauri). */

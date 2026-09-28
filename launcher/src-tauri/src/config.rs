@@ -23,6 +23,10 @@ pub struct Config {
     pub project_dir: Option<PathBuf>,
     /// The first-run setup was finished (or skipped).
     pub setup_complete: bool,
+    /// The game's SaveGames folder; unset or empty: found automatically (saves.rs).
+    pub saves_dir: Option<PathBuf>,
+    /// Back up the saves before the launcher starts the game.
+    pub backup_before_launch: bool,
     /// Where the tools write, when not <sdk_root>/build (see `resolve`).
     #[serde(skip)]
     pub data_dir: Option<PathBuf>,

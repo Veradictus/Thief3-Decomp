@@ -84,7 +84,7 @@ fn sdk_status(cfg: &Config) -> SdkStatus {
     status
 }
 
-fn game_running() -> bool {
+pub(crate) fn game_running() -> bool {
     if !cfg!(windows) {
         return false;
     }
@@ -413,17 +413,20 @@ pub async fn read_sdk_log(state: State<'_, AppState>, lines: usize) -> Result<Ve
 #[tauri::command]
 pub async fn launch_game(app: AppHandle, state: State<'_, AppState>) -> Result<String, String> {
     let game = config(&state).game()?;
+    // Settings' "back up saves before launching"; a note for the message, if any.
+    let saved =
+        crate::saves::before_launch(app.clone(), config(&state)).await.map(|n| format!(" {n}")).unwrap_or_default();
     if detect::is_steam_install(&game) {
         // What Steam's Play button does: Steam starts the game through its launchers.
         app.opener().open_url(format!("steam://rungameid/{STEAM_APP_ID}"), None::<&str>).map_err(|e| e.to_string())?;
-        return Ok("Asked Steam to start the game.".into());
+        return Ok(format!("Asked Steam to start the game.{saved}"));
     }
     let system = game.join("System");
     std::process::Command::new(system.join("T3Main.exe"))
         .current_dir(&system)
         .spawn()
         .map_err(|e| format!("cannot start T3Main.exe: {e}"))?;
-    Ok("Started T3Main.exe.".into())
+    Ok(format!("Started T3Main.exe.{saved}"))
 }
 
 /// Opens the exported project in the Godot editor (optionally on one map's

@@ -7,6 +7,7 @@ mod detect;
 mod game;
 mod ini;
 mod proc;
+mod saves;
 mod tasks;
 
 use std::sync::Mutex;
@@ -49,6 +50,12 @@ pub fn run() {
             game::open_link,
             tasks::start_task,
             tasks::cancel_task,
+            saves::saves_info,
+            saves::list_save_backups,
+            saves::create_save_backup,
+            saves::restore_save_backup,
+            saves::delete_save_backup,
+            saves::open_saves_folder,
         ])
         .run(tauri::generate_context!())
         .expect("the launcher failed to start");

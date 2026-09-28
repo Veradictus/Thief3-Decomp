@@ -1,11 +1,13 @@
 <script lang="ts">
   // Home: start the game, and the state of the SDK, mods and maps at a glance.
   import Icon from "$components/Icon.svelte";
-  import { api } from "$lib/api";
+  import { api, type Backup } from "$lib/api";
   import { app, enqueue, guard, refresh, running, toast } from "$lib/app.svelte";
+  import { ago } from "$lib/format";
 
   let log = $state<string[]>([]);
   let launching = $state(false);
+  let lastBackup = $state<Backup | null | undefined>(undefined);
 
   const o = $derived(app.overview);
   const game = $derived(o?.game ?? null);
@@ -18,6 +20,10 @@
   $effect(() => {
     void app.revision;
     if (app.config?.gameDir) void loadLog();
+    void api.listSaveBackups().then(
+      (l) => (lastBackup = l.backups[0] ?? null),
+      () => (lastBackup = undefined),
+    );
   });
 
   async function play() {
@@ -75,9 +81,17 @@
       {:else}
         <span class="badge err"><span class="dot"></span>Not set</span>
       {/if}
+      {#if lastBackup !== undefined}
+        <p class="muted small">
+          {lastBackup ? `Saves backed up ${ago(lastBackup.created)}` : "Saves not backed up yet"}
+        </p>
+      {/if}
       <div class="row tile-actions">
         <button class="btn small" onclick={() => guard(api.openLocation("game"))} disabled={!game}
           ><Icon name="folder" size={14} />Folder</button
+        >
+        <button class="btn small ghost" onclick={() => (app.page = "saves")}
+          ><Icon name="archive" size={14} />Saves</button
         >
       </div>
     </div>

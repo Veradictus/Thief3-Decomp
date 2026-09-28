@@ -2,6 +2,7 @@
 import type { Setting } from "./api";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
+const dateTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 /** "just now", "5 min ago", "3 h ago", else the date. `seconds` is a Unix time. */
 export function ago(seconds: number | null, now = Date.now()): string {
@@ -55,4 +56,9 @@ const KEY_NAMES: Record<string, string> = {
 /** The name of a virtual-key code as T3SDK.ini writes it ("0x79" -> "F10"), or "". */
 export function keyName(code: string): string {
   return KEY_NAMES[code.trim().toLowerCase()] ?? "";
+}
+
+/** A Unix time as date and time in the user's locale, or "". */
+export function dateTime(seconds: number | null): string {
+  return seconds ? dateTimeFormat.format(seconds * 1000) : "";
 }
