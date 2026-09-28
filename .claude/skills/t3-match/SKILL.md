@@ -94,6 +94,24 @@ Then claim the next function.
   Don't try to work around it; put what you need in `needs`.
 - Don't raise the attempt cap or replace someone else's accepted function.
 
+## Names need evidence
+
+`config/PC_20040610/symbols.txt` is the project's name database, and
+integration copies your names into it. So name only what the context shows:
+the name `symbols.txt` or a header gives, a class an accepted function
+established, a string the function uses, what its callees are known to do.
+Without evidence, keep placeholders:
+
+- a free function keeps its placeholder name: `void FUN_10926680();`
+- a member of an unidentified class goes into a class named after the
+  class's vtable when the code shows it (a constructor storing `0x10E6BBCC`
+  at `[this]` is in `Class_10E6BBCC`), else after the function
+  (`Class_10926680`), and keeps its placeholder method name;
+- a field gets a name when the code shows what it holds (`Flags`, `Parent`),
+  else its offset (`Unknown34`).
+
+A wrong name misleads every reader after you; a placeholder costs nothing.
+
 ## Systemic blockers: recognise them, then defer
 
 - The same register-allocation or instruction-order difference survives
