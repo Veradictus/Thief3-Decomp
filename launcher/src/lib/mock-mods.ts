@@ -138,6 +138,43 @@ const indexRows: IndexRow[] = [
       { version: "2.0.1", size: 880000, released: "2026-07-02", api: null, requires: {}, conflicts: ["hd-ui"] },
     ],
   },
+  ...(
+    [
+      [
+        "fov-control",
+        "FOV Control",
+        "Hor+ field of view for wide screens.",
+        "Lens",
+        ["graphics", "fixes"],
+        "1.5.0",
+        true,
+      ],
+      ["stealth-meter", "Stealth Meter", "The light gem as a number, too.", "Shade", ["ui"], "2.0.0", true],
+      ["loot-tally", "Loot Tally", "Shows the loot total on the map screen.", "Fence", ["ui"], "1.1.0", true],
+      ["quicksave-slots", "Quicksave Slots", "Ten rotating quicksave slots.", "Keeper", ["gameplay"], "0.9.2", true],
+      [
+        "subtitles-plus",
+        "Subtitles Plus",
+        "Subtitles for every conversation.",
+        "Scribe",
+        ["ui", "audio"],
+        "1.2.0",
+        true,
+      ],
+      ["city-ambience", "City Ambience", "Restored night sounds in the City.", "Ambience", ["audio"], "1.0.3", false],
+      ["hd-water", "HD Water", "Sharper water and ripples in every level.", "Glyph", ["textures"], "0.4.0", false],
+      ["keeper-lore", "Keeper Lore", "Twenty new Keeper glyph books to find.", "Scribe", ["maps"], "1.0.0", false],
+    ] satisfies [string, string, string, string, string[], string, boolean][]
+  ).map(([id, name, description, author, tags, version, code]) => ({
+    id,
+    name,
+    description,
+    authors: [author],
+    homepage: null,
+    license: "MIT",
+    tags,
+    versions: [{ version, size: 64000, released: "2026-09-12", api: code ? 1 : null, requires: {}, conflicts: [] }],
+  })),
   {
     id: "quiet-city",
     name: "Quiet City",
@@ -204,8 +241,23 @@ export function mockMods(emit: Emit) {
       ...code("coop-prototype"),
       enabled: false,
     }),
+    ...(
+      [
+        ["fov-control", "FOV Control", "1.4.1", ["Lens"], "Hor+ field of view for wide screens.", true, 0],
+        ["stealth-meter", "Stealth Meter", "2.0.0", ["Shade"], "The light gem as a number, too.", true, 0],
+        ["loot-tally", "Loot Tally", "1.1.0", ["Fence"], "Shows the loot total on the map screen.", true, 0],
+        ["quicksave-slots", "Quicksave Slots", "0.9.2", ["Keeper"], "Ten rotating quicksave slots.", true, 0],
+        ["clean-fonts", "Clean Fonts", "2.0.1", ["Typesetter"], "Sharper menu and journal fonts.", true, 3],
+        ["city-ambience", "City Ambience", "1.0.3", ["Ambience"], "Restored night sounds in the City.", false, 64],
+        ["subtitles-plus", "Subtitles Plus", "1.2.0", ["Scribe"], "Subtitles for every conversation.", true, 0],
+      ] satisfies [string, string, string, string[], string, boolean, number][]
+    ).map(([id, name, version, authors, description, enabled, files]) =>
+      pkg({ id, name, version, authors, description, enabled, ...(files ? { files } : code(id)) }),
+    ),
   ];
   const loose: LooseMod[] = [
+    { name: "ai_senses_log", enabled: false, size: 41984, modified: now - 12 * DAY },
+    { name: "debug_camera", enabled: true, size: 30720, modified: now - 20 * DAY },
     { name: "hello", enabled: true, size: 14336, modified: now - 3 * DAY },
     { name: "old_experiment", enabled: false, size: 188416, modified: now - 40 * DAY },
   ];

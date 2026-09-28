@@ -113,6 +113,7 @@
   }
 
   .profiles :global(svg) {
+    flex: none;
     color: var(--accent-2);
   }
 

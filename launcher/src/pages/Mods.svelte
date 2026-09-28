@@ -31,18 +31,15 @@
 
 <div class="page">
   <div class="page-head">
-    <div>
-      <h1>Mods</h1>
-      <p>
-        Changes apply as you make them: switching, reordering or installing a mod updates the load order and the game's
-        files at once, and code mods load the next time the game starts. Drop <code>.t3mod</code> files anywhere on this window
-        to install them.
-      </p>
-    </div>
+    <h1>Mods</h1>
     <div class="row">
       <button class="btn primary" onclick={install} disabled={mods.busy}><Icon name="download" />Install mod…</button>
       <button class="btn" onclick={() => guard(api.openLocation("mods"))}><Icon name="folder" />Open folder</button>
     </div>
+    <p>
+      Changes apply at once: the load order and the game's files follow every switch, and code mods load when the game
+      next starts. Drop <code>.t3mod</code> files onto the window to install them.
+    </p>
   </div>
 
   <div class="tabs" role="tablist">
@@ -78,7 +75,7 @@
   .tabs {
     display: flex;
     gap: 4px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     border-bottom: 1px solid var(--line);
   }
 
@@ -86,8 +83,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    height: 38px;
-    padding: 0 14px;
+    height: 34px;
+    padding: 0 12px;
     border: 0;
     border-bottom: 2px solid transparent;
     background: none;

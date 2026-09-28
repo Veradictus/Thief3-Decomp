@@ -15,22 +15,26 @@ decompilation** worked mostly by Claude agents under the strict gate in
 
 ## State of the machine
 
-- The game is **closed**. The SDK build from before this round is deployed
-  in `System/` (manifest `build/sdk/deployed.json`), with `T3SDK.ini` at its
-  defaults. `System/T3SDK.log` is appended to on every run.
+- The game is **closed**. `System/` holds an SDK build from before frame
+  pacing and the loading-screen curtain (manifest `build/sdk/deployed.json`):
+  deploy the current build before testing those. `System/T3SDK.log` is
+  appended to on every run.
 - GitHub: `Veradictus/Thief3-Decomp`, Conventional Commits (see
-  [CONTRIBUTING.md](../CONTRIBUTING.md)); the user decides what is merged.
-  This round's work is on branch `claude/keen-ramanujan-g6qnld` (PR #1).
-  Commits and PRs carry no session links.
+  [CONTRIBUTING.md](../CONTRIBUTING.md)). Agents commit on `main` and never
+  push: the user pushes. Commits and PRs carry no session links.
 - The Ghidra database in `ghidra/` is analysed and has the names from
   `symbols.txt` applied (the export round-trips byte for byte).
 - The asset exporter turns all 32 maps into a Godot 4.7 project in
-  `build/assets/godot/`, tested against the user's Godot 4.7.2. Maps
-  exported before this round lack the editor plugin's metadata: re-export.
-- None of this round's work has touched the real install yet: the launcher,
-  the map writer, the editor plugin and the matching harness were tested on
-  placeholder installs, synthetic maps and synthetic target objects (see Next
-  steps 1).
+  `build/assets/godot/`, tested against the user's Godot 4.7.2. Inn has been
+  re-exported with the editor plugin; the other maps predate it: re-export
+  them (Map Studio, or `t3map.py`) before editing.
+- On the real install: `t3pack.py roundtrip --all` reports all 55 packages
+  identical, and `apply` works on Inn (a dry run moved and scaled one fence;
+  every other object stayed byte-identical). No patched map has been loaded
+  in the game yet. The launcher builds and runs on Windows (`yarn tauri
+  dev`); it needs Rust's MSVC toolchain, which `yarn tauri` selects on its
+  own (see [launcher.md](launcher.md)). The matching harness has only run on
+  synthetic target objects.
 
 ## What exists
 
@@ -42,17 +46,18 @@ decompilation** worked mostly by Claude agents under the strict gate in
 | Mod loading: `System/mods/load-order.txt` (packages), then `System/mods/*.dll` | `sdk/loader/mods.cpp` | loose DLLs work; the load order is not yet built or run (see Next steps 1) |
 | Crash reporter (vectored handler, logs location/registers/stack) | `sdk/loader/crash.cpp` | works |
 | Fixes: skip intro movies | `sdk/loader/fixes.cpp` | works |
-| Display: native resolutions, borderless window, widescreen UI | `sdk/loader/display.cpp` | works (details below) |
+| Display: native resolutions, borderless window (cursor, VSync, focus, running in the background), frame pacing, widescreen UI | `sdk/loader/display.cpp` | works (details below); frame pacing and VSync not yet tried in the game |
+| Level-change curtain (keeps the loading screen up while the game restarts) | `sdk/loader/curtain.cpp` | a black version worked; the loading-screen version is not yet tried in the game |
 | Main-menu version label, menu input diagnostics | `sdk/loader/menu.cpp` | works |
 | Public C API (`T3SdkApi` v1), C++ engine header | `sdk/include/t3sdk/` | |
 | Example mod | `sdk/mods/hello/hello.cpp` | works |
 | Build/deploy/run/screenshot/click/keys/close tool | `tools/sdk.py` | works |
 | Ghidra scripts: Decompile, Disassemble, ImportNames, ExportSymbols | `tools/ghidra/` | work |
 | Map and asset export to Godot 4.7; Godot map viewer | `tools/assets/`, `tools/assets/godot/` | works for all 32 maps (static geometry, lights, actor data) |
-| Godot editor plugin: move/rotate/scale actors, edit gamesys values, save `<Level>.edits.json` | `tools/assets/godot/addons/t3_map_editor/` | headless tests pass; not tried on a real map |
-| Map writer: byte-exact round trip, apply edits, install/restore with backup | `tools/assets/upkgwrite.py`, `t3pack.py` | synthetic tests pass; not run on real maps |
+| Godot editor plugin: move/rotate/scale actors, edit gamesys values, save `<Level>.edits.json` | `tools/assets/godot/addons/t3_map_editor/` | headless tests pass; not yet used by hand on a real map |
+| Map writer: byte-exact round trip, apply edits, install/restore with backup | `tools/assets/upkgwrite.py`, `t3pack.py` | round trip identical on the real install; `apply` checked on Inn; no patched map loaded in the game yet |
 | Texture packs: `.ibt` writer, DDS to texture resource, list/check/apply/restore with backup, `--selfcheck` | `tools/assets/ibtwrite.py`, `t3texpack.py` | synthetic tests pass; not run on real bundles |
-| Launcher (Tauri): setup, play, SDK install, mods, `T3SDK.ini`, Map Studio, task queue | `launcher/`, [launcher.md](launcher.md) | runs (tested under Xvfb on Linux); Windows build green in CI, not yet run on Windows |
+| Launcher (Tauri): setup, play, SDK install, mods, `T3SDK.ini`, Map Studio, task queue | `launcher/`, [launcher.md](launcher.md) | runs on Windows (`yarn tauri dev`) and under Xvfb on Linux; Windows build green in CI |
 | Mod manager: `.t3mod` install/upgrade/remove, load order, profiles, checks, `files/` overlay, texture-pack tasks, mod index browser | `launcher/src-tauri/src/mods.rs`, `launcher/src/pages/Mods.svelte`, [mods.md](mods.md) | Rust tests on temporary game folders and UI tests pass; not run on Windows or a real install |
 | Release bundle (tools, prebuilt SDK, embeddable Python) | `tools/stage_launcher.py` | builds in CI |
 | Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | 14 synthetic tests pass with the real MSVC 7.1 via wibo; not run on the real exe |
@@ -79,7 +84,28 @@ touching the user's mouse: the main menu reacts to posted clicks.
   frame: LEFT and absolute positions +106, RIGHT -106, full-width windows with
   an x offset +106, centered windows unchanged. The HUD is not modal and keeps
   its screen-edge anchors. Verified on the main menu and the options screen.
-  `UILayoutTrace=1` logs every window's placement.
+  `UILayoutTrace=1` logs every window's placement. Two exceptions: windows
+  flush against the left or right edge (`Pos_X` 0, like the main menu's
+  version line) stay at the screen edge, and the Inputs key table's
+  `[KeyboardLayoutWindow]` width ratios are scaled back to the 640-wide frame.
+- **Running in the background**: `UWindowsViewport::ViewportWndProc` is
+  hooked; after its `WM_ACTIVATEAPP(FALSE)` handling the SDK sets
+  `GIsAppActive` again and restores the saved pause state
+  (`PauseInBackground=1` keeps the game's own pause).
+- **Cursor**: the device's cursor calls and user32's `ShowCursor`/`SetCursor`
+  are hooked; the game's cursor image becomes one scaled Windows cursor, rebuilt
+  only when the image changes.
+- **Level changes**: `ShellExecuteExA` (the call that starts `Ion Launcher.exe`
+  in `RelaunchForLevelChange`) raises the curtain: the outgoing game copies its
+  monitor, which shows the next level's loading screen, into a section a
+  `rundll32` helper inherits and shows topmost. The incoming game's
+  `LoadingScreen::Begin` hook lifts it with a posted message, and the helper
+  hands that game the foreground. Fallbacks: the new game's window covering
+  the monitor for 3 s, a click or key, 20 s.
+- **Frame pacing**: `SmoothFrames` patches the TimeManager constructor's
+  minimum step from 10 ms to 1 ms (see [engine.md](engine.md), Clock). With
+  VSynch on, the windowed device uses `COPY_VSYNC`. `MaxFPS` waits before
+  `Present` (a high-resolution waitable timer, then a short spin).
 
 ## Test results (2026-09-27, `tools/sdk.py run`)
 
@@ -91,18 +117,35 @@ touching the user's mouse: the main menu reacts to posted clicks.
   same way; the crash reporter puts the fault at `0x1098A466` (reads address 0
   during shutdown).
 
+Later the same day, played by the user:
+
+- The scaled cursor replaced the tiny, flickering one (confirmed by the user).
+- Losing focus no longer pauses the game (log: "focus lost; the game keeps
+  running").
+- After New Game the next game window came to the front on its own; the
+  first, black curtain covered the gap. The loading-screen curtain replaced
+  it and has not been tried yet.
+- `FrameStats`: 200 to 1255 fps in the menu, about 180 in Inn, `Present`
+  0.3 ms. The user found the game choppy "as if stuck at 60 fps", which led
+  to the TimeManager's 10 ms minimum step (`SmoothFrames`; not tried yet).
+
 ## Next steps
 
-1. **Verify this round on the real install** (ask the user; close the game
-   after each test):
-   - `tools/assets/t3pack.py roundtrip --all`: every package `identical`;
-     note what it says about the summary DWORD at 0x24.
-   - Re-export a small map, open it in Godot: "Changed actors: 0" with no
-     warnings. Move one visible prop, **Save T3 edits**, `t3pack.py apply`,
-     `install`, load the map in the game, `restore`.
-   - Install the launcher from the PR's `launcher-windows` artifact and run
-     setup, Install T3SDK, Play, Remove. Then tag `v0.1.0` for the first
-     release.
+1. **Verify on the real install** (ask the user before deploying or
+   launching; close the game after each test):
+   - Deploy the current SDK. New Game should go from the menu straight to
+     Inn's loading screen with no black gap. `FrameStats=1` should show
+     about the monitor's refresh rate with VSynch on, and motion should be
+     smooth. Watch for anything that behaves differently with more than 100
+     world updates a second (physics objects, jumping, mantling, rope
+     arrows); `SmoothFrames=0` turns it off.
+   - The map edit: in Map Studio, open Inn in Godot, move a prop near the
+     New Game start (`PlayerStart__1`, for example the iron fence
+     `StaticMeshActor__364`), **Save T3 edits**, Repack, Install, New Game,
+     Restore. Unknown: whether collision and baked lighting follow a moved
+     static mesh.
+   - Install the launcher from a `launcher-windows` build and run setup,
+     Install T3SDK, Play, Remove. Then tag `v0.1.0` for the first release.
    - Texture packs ([mods.md](mods.md), `textures/`; [assets.md](assets.md),
      section 3): `tools/assets/t3texpack.py --selfcheck` must pass on every
      bundle; note the mip padding rule it prints and any layout statement
@@ -138,8 +181,8 @@ touching the user's mouse: the main menu reacts to posted clicks.
 4. **SDK generator** (roadmap 2 below): the class layouts it emits are what
    matching agents most need (wrong offsets are the top failure in every
    published agent decomp).
-5. **Ask the user to confirm** real alt-tab and clicks on another monitor,
-   then check the HUD in a level.
+5. **Check the HUD in a level** on a wide screen (alt-tab and clicks on other
+   monitors are confirmed).
 6. **SDK options in the game's settings** (user request). The launcher's SDK
    settings page covers it outside the game; in-game leads: the options names
    table `0x10E6ED70`, the A/V row refresh `0x10B72DD0`, `T3UI.ini`
@@ -151,8 +194,10 @@ touching the user's mouse: the main menu reacts to posted clicks.
    engineered.
 8. **Shutdown crash** at `0x1098A466` (vanilla bug): fix it, so the game exits
    cleanly.
-9. **Background behaviour**: borderless keeps the game running when it loses
-   focus. The user may want a pause-on-focus-loss option.
+9. **High-DPI displays**: the game is DPI-unaware, so on a monitor scaled
+   above 100% Windows stretches the borderless window (blurry), and the
+   curtain helper works in the same scaled coordinates. Making both
+   DPI-aware needs a tester with a scaled display.
 10. **Map editor** (see `docs/assets.md`, sections 6 and 8):
     - skins and other struct values in `t3pack.py`, then adding and removing
       actors;

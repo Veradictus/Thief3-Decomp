@@ -44,13 +44,7 @@
 
 <div class="page">
   <div class="page-head">
-    <div>
-      <h1>Map Studio</h1>
-      <p>
-        Export a map to Godot, move things around, then repack it and try it in the game. Originals are backed up before
-        anything is replaced.
-      </p>
-    </div>
+    <h1>Map Studio</h1>
     <div class="row">
       <button class="btn" onclick={() => guard(api.openGodot(null, true))} disabled={!hasGodot}>
         <Icon name="edit" />Open project in Godot
@@ -63,14 +57,11 @@
         disabled={busy}><Icon name="download" />Export all</button
       >
     </div>
+    <p>
+      Export a map to Godot, move things around, then repack it and try it in the game. Originals are backed up before
+      anything is replaced.
+    </p>
   </div>
-
-  <ol class="steps">
-    <li><span>1</span>Export<em>map → Godot scene</em></li>
-    <li><span>2</span>Edit<em>Godot, then "Save T3 edits"</em></li>
-    <li><span>3</span>Repack<em>edits → patched .gmp</em></li>
-    <li><span>4</span>Install<em>into the game, original kept</em></li>
-  </ol>
 
   <div class="split">
     <div class="list card">
@@ -83,7 +74,7 @@
           {@const s = stage(m)}
           <button class="map" class:active={m.id === selectedId} onclick={() => (selectedId = m.id)}>
             <div class="grow names">
-              <span class="name">{m.title ?? m.id}</span>
+              <span class="name" title={m.title ?? m.id}>{m.title ?? m.id}</span>
               <span class="faint mono">{m.id}.gmp</span>
             </div>
             {#if s.label}<span class="badge {s.kind}">{s.label}</span>{/if}
@@ -98,7 +89,7 @@
       {#if sel}
         <div class="detail-head">
           <div class="grow">
-            <h2>{sel.title ?? sel.id}</h2>
+            <h2 class="clip" title={sel.title ?? sel.id}>{sel.title ?? sel.id}</h2>
             <p class="muted">
               <span class="mono">{sel.id}.gmp</span>
               {#if sel.size}
@@ -117,39 +108,31 @@
           </button>
         </div>
 
+        <!-- Each step: its name and buttons on one line, what it does below. -->
         <div class="stage" class:done={sel.exported}>
           <div class="num">1</div>
-          <div class="grow">
-            <h3>Export to Godot</h3>
-            <p class="muted">
-              {sel.exported ? "Exported: scene, meshes, textures, lights and every actor's data." : "Not exported yet."}
-            </p>
+          <h3>Export to Godot</h3>
+          <div class="row actions">
+            <button
+              class="btn"
+              class:primary={!sel.exported}
+              onclick={() => {
+                exportMap(sel.id);
+              }}
+              disabled={busy || !sel.inGame}
+            >
+              <Icon name="download" />{sel.exported ? "Re-export" : "Export"}
+            </button>
           </div>
-          <button
-            class="btn"
-            class:primary={!sel.exported}
-            onclick={() => {
-              exportMap(sel.id);
-            }}
-            disabled={busy || !sel.inGame}
-          >
-            <Icon name="download" />{sel.exported ? "Re-export" : "Export"}
-          </button>
+          <p class="muted">
+            {sel.exported ? "Exported: scene, meshes, textures, lights and every actor's data." : "Not exported yet."}
+          </p>
         </div>
 
         <div class="stage" class:done={!!sel.editedActors}>
           <div class="num">2</div>
-          <div class="grow">
-            <h3>Edit</h3>
-            <p class="muted">
-              {#if sel.editedActors}
-                {sel.editedActors} actor{sel.editedActors > 1 ? "s" : ""} changed · saved {ago(sel.editsTime)}
-              {:else}
-                Move, rotate and scale actors, or change their properties, then use <em>Save T3 edits</em>.
-              {/if}
-            </p>
-          </div>
-          <div class="row">
+          <h3>Edit</h3>
+          <div class="row actions">
             <button
               class="btn"
               class:primary={sel.exported && !sel.editedActors}
@@ -164,45 +147,43 @@
               <Icon name="eye" />View
             </button>
           </div>
+          <p class="muted">
+            {#if sel.editedActors}
+              {sel.editedActors} actor{sel.editedActors > 1 ? "s" : ""} changed · saved {ago(sel.editsTime)}
+            {:else}
+              Move, rotate and scale actors, or change their properties, then use <em>Save T3 edits</em>.
+            {/if}
+          </p>
         </div>
 
         <div class="stage" class:done={sel.patched && !sel.stale}>
           <div class="num">3</div>
-          <div class="grow">
-            <h3>Repack</h3>
-            <p class="muted">
-              {#if sel.stale}
-                <span class="warn-text">The edits changed after the last repack.</span>
-              {:else if sel.patched}
-                Patched map built {ago(sel.patchedTime)}.
-              {:else}
-                Writes a patched copy of the map; the game folder is not touched.
-              {/if}
-            </p>
+          <h3>Repack</h3>
+          <div class="row actions">
+            <button
+              class="btn"
+              class:primary={!!sel.editedActors && (!sel.patched || sel.stale)}
+              onclick={() => enqueue({ kind: "repack", level: sel.id }, `Repack ${sel.id}`)}
+              disabled={busy || !sel.editedActors}
+            >
+              <Icon name="box" />Repack
+            </button>
           </div>
-          <button
-            class="btn"
-            class:primary={!!sel.editedActors && (!sel.patched || sel.stale)}
-            onclick={() => enqueue({ kind: "repack", level: sel.id }, `Repack ${sel.id}`)}
-            disabled={busy || !sel.editedActors}
-          >
-            <Icon name="box" />Repack
-          </button>
+          <p class="muted">
+            {#if sel.stale}
+              <span class="warn-text">The edits changed after the last repack.</span>
+            {:else if sel.patched}
+              Patched map built {ago(sel.patchedTime)}.
+            {:else}
+              Writes a patched copy of the map; the game folder is not touched.
+            {/if}
+          </p>
         </div>
 
         <div class="stage" class:done={sel.installed}>
           <div class="num">4</div>
-          <div class="grow">
-            <h3>Install</h3>
-            <p class="muted">
-              {#if sel.installed}
-                The game uses the patched map. The original is backed up.
-              {:else}
-                Copies the patched map into the game, after backing up the original once.
-              {/if}
-            </p>
-          </div>
-          <div class="row">
+          <h3>Install</h3>
+          <div class="row actions">
             {#if sel.installed}
               <button
                 class="btn danger"
@@ -221,6 +202,13 @@
               <Icon name="upload" />{sel.installed ? "Reinstall" : "Install"}
             </button>
           </div>
+          <p class="muted">
+            {#if sel.installed}
+              The game uses the patched map. The original is backed up.
+            {:else}
+              Copies the patched map into the game, after backing up the original once.
+            {/if}
+          </p>
         </div>
 
         <div class="row foot">
@@ -250,56 +238,21 @@
 </div>
 
 <style>
-  .steps {
-    list-style: none;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    padding: 0;
-    margin: 0 0 16px;
-  }
-
-  .steps li {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 10px;
-    align-items: center;
-    padding: 10px 14px;
-    border: 1px dashed var(--line-2);
-    border-radius: var(--radius);
-    font-weight: 600;
-  }
-
-  .steps span {
-    grid-row: span 2;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: #2a2416;
-    color: var(--accent-2);
-    font-family: var(--serif);
-  }
-
-  .steps em {
-    font-style: normal;
-    font-weight: 400;
-    color: var(--muted);
-    font-size: 12.5px;
-  }
-
+  /* The rest of the page: the list scrolls inside its card, the steps fit beside it. */
   .split {
+    flex: 1 1 0;
+    min-height: 280px;
     display: grid;
-    grid-template-columns: minmax(260px, 340px) 1fr;
+    grid-template-columns: clamp(230px, 32%, 320px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: 12px;
-    align-items: start;
   }
 
   .list {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     overflow: hidden;
-    position: sticky;
-    top: 0;
   }
 
   .search {
@@ -311,6 +264,11 @@
     color: var(--faint);
   }
 
+  .search:focus-within {
+    border-bottom-color: var(--accent);
+    color: var(--accent-2);
+  }
+
   .search input {
     border: 0;
     background: transparent;
@@ -320,7 +278,8 @@
   }
 
   .rows {
-    max-height: calc(100vh - 330px);
+    flex: 1;
+    min-height: 0;
     overflow: auto;
     padding: 6px;
   }
@@ -330,7 +289,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
+    padding: 7px 10px;
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
     background: none;
@@ -356,42 +315,68 @@
     font-weight: 600;
   }
 
+  .names span,
+  .clip {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
   .names .mono {
     font-size: 11.5px;
   }
 
   .detail {
-    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 18px;
   }
 
   .detail-head {
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
 
   .detail-head p {
-    margin-top: 3px;
+    margin-top: 2px;
   }
 
   .stage {
-    display: flex;
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "num title actions"
+      "num text text";
+    column-gap: 12px;
     align-items: center;
-    gap: 14px;
-    padding: 14px 0;
+    padding: 10px 0;
     border-top: 1px solid var(--line);
   }
 
+  .stage h3 {
+    grid-area: title;
+  }
+
+  .actions {
+    grid-area: actions;
+  }
+
   .stage p {
+    grid-area: text;
     margin-top: 2px;
     font-size: 13px;
   }
 
   .num {
+    grid-area: num;
+    align-self: start;
+    margin-top: 1px;
     width: 30px;
     height: 30px;
-    flex: none;
     border-radius: 50%;
     display: grid;
     place-items: center;
@@ -411,8 +396,10 @@
   }
 
   .foot {
+    margin-top: auto;
     border-top: 1px solid var(--line);
-    padding-top: 12px;
+    padding-top: 10px;
     flex-wrap: wrap;
+    row-gap: 4px;
   }
 </style>

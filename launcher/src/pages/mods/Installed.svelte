@@ -1,13 +1,14 @@
 <script lang="ts">
-  // The installed packages in load order (drag the handle, or use the arrows),
-  // their switches, what they hold, and the checks' issues with their fixes.
-  // Loose DLLs load after them, in name order.
+  // The installed packages in load order, left to right (drag a mod onto
+  // another's place, or use the arrows), their switches, what they hold, and
+  // the checks' issues with their fixes. Loose DLLs load after them, in name
+  // order. The list scrolls inside its own panel.
   import Icon from "$components/Icon.svelte";
   import Toggle from "$components/Toggle.svelte";
   import { api, type Issue, type ModPackage } from "$lib/api";
   import { app } from "$lib/app.svelte";
   import { ago, bytes } from "$lib/format";
-  import { badges, dropIndex, issuesFor, listText, meta, moveBy, moveTo, worst } from "$lib/modlist";
+  import { badges, dropIndex, issuesFor, listText, meta, moveBy, moveTo } from "$lib/modlist";
   import {
     fix,
     mods,
@@ -27,25 +28,33 @@
   const texturesBusy = $derived(textureJobs().length > 0);
 
   let confirming = $state<string | null>(null);
-  let drag = $state<{ id: string; from: number; to: number; y0: number; dy: number } | null>(null);
-  let listElement = $state<HTMLElement>();
+  let drag = $state<{ id: string; from: number; to: number; x0: number; y0: number; dx: number; dy: number } | null>(
+    null,
+  );
+  let panel = $state<HTMLElement>();
 
   function grab(e: PointerEvent, id: string, index: number) {
     if (e.button !== 0 || mods.busy) return;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    drag = { id, from: index, to: index, y0: e.clientY, dy: 0 };
+    drag = { id, from: index, to: index, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 };
   }
 
   function follow(e: PointerEvent) {
     if (!drag) return;
-    drag.dy = e.clientY - drag.y0;
-    // The lifted row's own middle is left out by dropIndex, so its offset does not matter.
-    const rows = [...(listElement?.querySelectorAll<HTMLElement>(":scope > .mod") ?? [])];
-    const middles = order.map((_, i) => {
-      const box = rows[i]?.getBoundingClientRect();
-      return box ? box.top + box.height / 2 : Infinity;
+    const d = drag;
+    d.dx = e.clientX - d.x0;
+    d.dy = e.clientY - d.y0;
+    // Cells where they sit in the grid; the lifted one is only drawn moved.
+    const cells = [...(panel?.querySelectorAll<HTMLElement>(":scope > .mod.package") ?? [])];
+    const centres = cells.map((cell, i) => {
+      const box = cell.getBoundingClientRect();
+      const lifted = i === d.from;
+      return {
+        x: box.left + box.width / 2 - (lifted ? d.dx : 0),
+        y: box.top + box.height / 2 - (lifted ? d.dy : 0),
+      };
     });
-    drag.to = dropIndex(middles, e.clientY, drag.from);
+    d.to = dropIndex(centres, { x: e.clientX, y: e.clientY }, d.from);
   }
 
   function drop() {
@@ -56,24 +65,17 @@
   }
 
   function nudge(e: KeyboardEvent, id: string) {
-    const delta = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0;
-    if (!delta) return;
+    const back = e.key === "ArrowUp" || e.key === "ArrowLeft";
+    const forward = e.key === "ArrowDown" || e.key === "ArrowRight";
+    if (!back && !forward) return;
     e.preventDefault();
-    void setOrder(moveBy(order, id, delta));
-  }
-
-  function marker(index: number): "" | "above" | "below" {
-    if (!drag || drag.to === drag.from || index !== drag.to) return "";
-    return drag.to < drag.from ? "above" : "below";
+    void setOrder(moveBy(order, id, back ? -1 : 1));
   }
 
   const icon = (issue: Issue) => (issue.severity === "info" ? "copy" : "alert");
 
-  function status(p: ModPackage): { label: string; kind: string } {
-    if (p.error) return { label: "Broken", kind: "err" };
-    if (!p.enabled) return { label: "Off", kind: "" };
-    if (!p.active) return { label: "Not loaded", kind: "err" };
-    return { label: "On", kind: "ok" };
+  function tooltip(p: ModPackage): string {
+    return [p.name, p.description, p.homepage].filter(Boolean).join("\n");
   }
 </script>
 
@@ -93,15 +95,13 @@
   {#if mods.notice}
     <div class="note err card">
       <Icon name="alert" />
-      <div class="grow">
-        <strong>{mods.notice.title}</strong>
-        <ul>
-          {#each mods.notice.lines as line, i (i)}<li class="mono">{line}</li>{/each}
-        </ul>
+      <div class="grow notice">
+        <strong>{mods.notice.title}:</strong>
+        {#each mods.notice.lines as line, i (i)}<span class="mono">{line}</span>{/each}
       </div>
-      <button class="btn small ghost" onclick={() => (mods.notice = null)} aria-label="Dismiss"
-        ><Icon name="x" size={14} /></button
-      >
+      <button class="btn small ghost" onclick={() => (mods.notice = null)} aria-label="Dismiss">
+        <Icon name="x" size={14} />
+      </button>
     </div>
   {/if}
   {#if list.textures.bundles.length || list.textures.needed}
@@ -110,7 +110,7 @@
       <span class="grow">
         {#if list.textures.bundles.length}
           {list.textures.bundles.length} game bundle{list.textures.bundles.length > 1 ? "s wait" : " waits"} for the texture
-          packs to be taken off first ({list.textures.bundles[0]}{list.textures.bundles.length > 1 ? ", …" : ""}).
+          packs to come off first ({list.textures.bundles[0]}{list.textures.bundles.length > 1 ? ", …" : ""}).
         {:else if list.textures.mods.length}
           The texture packs changed: {listText(list.textures.mods)} go into the game's bundles as a task.
         {:else}
@@ -132,107 +132,103 @@
     <div class="note card {issue.severity}"><Icon name={icon(issue)} />{issue.message}</div>
   {/each}
 
-  <div class="card list" class:dragging={drag !== null} bind:this={listElement}>
+  <!-- Load order, left to right and top to bottom; loose DLLs after the packages. -->
+  <div class="list card" class:dragging={drag !== null} bind:this={panel}>
     {#each list.packages as p, i (p.id)}
       {@const issues = issuesFor(list, p.id)}
-      {@const s = status(p)}
       <div
-        class="mod {marker(i)}"
+        class="mod package"
         class:off={!p.enabled}
         class:lifted={drag?.id === p.id}
-        style:transform={drag?.id === p.id ? `translateY(${drag.dy.toString()}px)` : undefined}
-        data-id={p.id}
+        class:target={drag !== null && drag.to !== drag.from && drag.to === i}
+        style:transform={drag?.id === p.id ? `translate(${drag.dx.toString()}px, ${drag.dy.toString()}px)` : undefined}
       >
-        <button
-          class="grip"
-          title="Drag to change the load order (or use the arrow keys)"
-          aria-label={`Move ${p.name} in the load order`}
-          disabled={mods.busy}
-          onpointerdown={(e) => {
-            grab(e, p.id, i);
-          }}
-          onpointermove={follow}
-          onpointerup={drop}
-          onpointercancel={() => (drag = null)}
-          onkeydown={(e) => {
-            nudge(e, p.id);
-          }}
-        >
-          <svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor" aria-hidden="true">
-            {#each [3, 9, 15] as y (y)}<circle cx="3.5" cy={y} r="1.5" /><circle cx="8.5" cy={y} r="1.5" />{/each}
-          </svg>
-        </button>
-        <span class="pos faint mono">{i + 1}</span>
-        <div class="icon" class:dim={!p.active}><Icon name={p.code ? "puzzle" : "box"} size={18} /></div>
-        <div class="grow body">
-          <div class="title">
-            <h3>{p.name}</h3>
-            {#if p.version}<span class="mono faint">{p.version}</span>{/if}
-            {#each badges(p) as b (b.key)}<span class="badge kind {b.key}" title={b.title}>{b.label}</span>{/each}
-            {#if worst(issues) === "error" || p.error}<span class="badge {s.kind}">{s.label}</span>{/if}
-          </div>
-          <p class="faint small">
-            {meta(p.authors.length > 0 && `by ${listText(p.authors)}`, p.id, bytes(p.size))}
-            {#if p.homepage}
-              <span class="sep">·</span><button class="link" onclick={() => p.homepage && api.openLink(p.homepage)}
-                >homepage</button
-              >
-            {/if}
-          </p>
-          {#if p.description}<p class="muted small desc">{p.description}</p>{/if}
-          {#each issues as issue, k (k)}
-            <div class="issue {issue.severity}">
-              <Icon name={icon(issue)} size={14} />
-              <span class="grow">{issue.message}</span>
-              {#if issue.fix}
-                {@const action = issue.fix.action}
-                <button class="btn small" disabled={mods.busy} onclick={() => fix(action)}>{issue.fix.label}</button>
-              {/if}
+        <div class="main">
+          <button
+            class="grip"
+            title="Drag onto another mod's place to change the load order (or use the arrow keys)"
+            aria-label={`Move ${p.name} in the load order`}
+            disabled={mods.busy}
+            onpointerdown={(e) => {
+              grab(e, p.id, i);
+            }}
+            onpointermove={follow}
+            onpointerup={drop}
+            onpointercancel={() => (drag = null)}
+            onkeydown={(e) => {
+              nudge(e, p.id);
+            }}
+          >
+            <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+              {#each [3, 8, 13] as y (y)}<circle cx="2.5" cy={y} r="1.4" /><circle cx="7.5" cy={y} r="1.4" />{/each}
+            </svg>
+          </button>
+          <div class="icon" class:dim={!p.active} title={`Load order: ${(i + 1).toString()}`}>{i + 1}</div>
+          <div class="grow body">
+            <div class="title" title={tooltip(p)}>
+              <h3>{p.name}</h3>
+              {#if p.version}<span class="mono faint version">{p.version}</span>{/if}
             </div>
-          {/each}
-        </div>
-        <div class="actions">
-          <button
-            class="btn small ghost arrow up"
-            aria-label={`Load ${p.name} earlier`}
-            title="Load earlier"
-            disabled={mods.busy || i === 0}
-            onclick={() => setOrder(moveBy(order, p.id, -1))}><Icon name="chevron" size={14} /></button
-          >
-          <button
-            class="btn small ghost arrow down"
-            aria-label={`Load ${p.name} later`}
-            title="Load later"
-            disabled={mods.busy || i === list.packages.length - 1}
-            onclick={() => setOrder(moveBy(order, p.id, 1))}><Icon name="chevron" size={14} /></button
-          >
-          <Toggle
-            checked={p.enabled}
-            label={`Enable ${p.name}`}
-            disabled={mods.busy || !!p.error}
-            onchange={(on) => setPackageEnabled(p.id, on)}
-          />
+            <p class="faint small">
+              {#each badges(p) as b (b.key)}<span class="kind {b.key}" title={b.title}>{b.label}</span>{/each}
+              {meta(p.authors.length > 0 && listText(p.authors), bytes(p.size))}
+            </p>
+          </div>
           {#if confirming === p.id}
-            <span class="confirm small">Remove?</span>
-            <button
-              class="btn small danger"
-              disabled={mods.busy}
-              onclick={() => {
-                confirming = null;
-                void removeMod(p.id);
-              }}>Remove</button
-            >
-            <button class="btn small ghost" onclick={() => (confirming = null)}>Keep</button>
+            <div class="actions">
+              <span class="confirm small">Remove?</span>
+              <button
+                class="btn small danger"
+                disabled={mods.busy}
+                onclick={() => {
+                  confirming = null;
+                  void removeMod(p.id);
+                }}>Remove</button
+              >
+              <button class="btn small ghost" onclick={() => (confirming = null)}>Keep</button>
+            </div>
           {:else}
-            <button
-              class="btn small ghost danger"
-              aria-label={`Remove ${p.name}`}
-              title="Remove"
-              disabled={mods.busy}
-              onclick={() => (confirming = p.id)}><Icon name="trash" size={14} /></button
-            >
+            <div class="actions">
+              <button
+                class="btn small ghost arrow up"
+                aria-label={`Load ${p.name} earlier`}
+                title="Load earlier"
+                disabled={mods.busy || i === 0}
+                onclick={() => setOrder(moveBy(order, p.id, -1))}><Icon name="chevron" size={13} /></button
+              >
+              <button
+                class="btn small ghost arrow down"
+                aria-label={`Load ${p.name} later`}
+                title="Load later"
+                disabled={mods.busy || i === list.packages.length - 1}
+                onclick={() => setOrder(moveBy(order, p.id, 1))}><Icon name="chevron" size={13} /></button
+              >
+              <Toggle
+                checked={p.enabled}
+                label={`Enable ${p.name}`}
+                disabled={mods.busy || !!p.error}
+                onchange={(on) => setPackageEnabled(p.id, on)}
+              />
+              <button
+                class="btn small ghost danger arrow"
+                aria-label={`Remove ${p.name}`}
+                title="Remove"
+                disabled={mods.busy}
+                onclick={() => (confirming = p.id)}><Icon name="trash" size={13} /></button
+              >
+            </div>
           {/if}
         </div>
+        {#each issues as issue, k (k)}
+          <div class="issue {issue.severity}">
+            <Icon name={icon(issue)} size={13} />
+            <span class="grow">{issue.message}</span>
+            {#if issue.fix}
+              {@const action = issue.fix.action}
+              <button class="btn small" disabled={mods.busy} onclick={() => fix(action)}>{issue.fix.label}</button>
+            {/if}
+          </div>
+        {/each}
       </div>
     {:else}
       <div class="empty">
@@ -250,43 +246,42 @@
         </p>
       </div>
     {/each}
-  </div>
 
-  {#if list.loose.length}
-    <h2 class="section">Loose DLLs</h2>
-    <p class="muted small section-note">
-      DLLs put straight into <code>System\mods</code>. They load after the packages, in name order; switching one off
-      moves it to <code>System\mods\disabled</code>.
-    </p>
-    <div class="card list">
+    {#if list.loose.length}
+      <div class="group faint small">
+        <strong>Loose DLLs</strong> · straight in <code>System\mods</code>; they load after the packages, in name order,
+        and switching one off moves it to <code>System\mods\disabled</code>.
+      </div>
       {#each list.loose as m (m.name)}
         <div class="mod" class:off={!m.enabled}>
-          <div class="icon" class:dim={!m.enabled}><Icon name="puzzle" size={18} /></div>
-          <div class="grow body">
-            <div class="title">
-              <h3>{m.name}</h3>
-              <span class="badge kind loose">Loose DLL</span>
+          <div class="main">
+            <span class="grip-space"></span>
+            <div class="icon" class:dim={!m.enabled}><Icon name="puzzle" size={16} /></div>
+            <div class="grow body">
+              <div class="title" title={`${m.name}.dll`}><h3>{m.name}</h3></div>
+              <p class="faint small">
+                <span class="kind loose">Loose DLL</span>{meta(
+                  bytes(m.size),
+                  m.modified && `changed ${ago(m.modified)}`,
+                )}
+              </p>
             </div>
-            <p class="faint small">
-              <span class="mono">{m.name}.dll</span> · {bytes(m.size)} · changed {ago(m.modified)}
-            </p>
-          </div>
-          <div class="actions">
-            <Toggle
-              checked={m.enabled}
-              label={`Enable ${m.name}`}
-              disabled={mods.busy}
-              onchange={(on) => setLooseEnabled(m.name, on)}
-            />
+            <div class="actions">
+              <Toggle
+                checked={m.enabled}
+                label={`Enable ${m.name}`}
+                disabled={mods.busy}
+                onchange={(on) => setLooseEnabled(m.name, on)}
+              />
+            </div>
           </div>
         </div>
       {/each}
-    </div>
-  {/if}
+    {/if}
+  </div>
 
   <div class="row foot">
-    <span class="faint small mono">{list.dir}</span>
-    <span class="grow"></span>
+    <span class="faint small mono path" title={list.dir}>{list.dir}</span>
     {#if list.textures.mods.length}
       <button
         class="btn small ghost"
@@ -310,66 +305,68 @@
 {/if}
 
 <style>
+  /* As tall as its mods, and no taller than the window: then it scrolls.
+     Two columns where they fit. */
   .list {
-    overflow: hidden;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+    align-content: start;
   }
 
   .list.dragging {
     user-select: none;
   }
 
+  /* Rules above and to the left of each mod; the card clips those of the
+     first row and column. */
   .mod {
     position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 13px 16px 13px 8px;
-    border-top: 1px solid var(--line);
+    min-width: 0;
+    padding: 10px 14px 10px 6px;
+    box-shadow:
+      0 -1px 0 var(--line),
+      -1px 0 0 var(--line);
     background: var(--panel);
-  }
-
-  .mod:first-child {
-    border-top: 0;
   }
 
   .mod.lifted {
     z-index: 2;
-    box-shadow: 0 10px 28px #000a;
-    border-radius: var(--radius-sm);
     background: var(--panel-2);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 10px 28px #000a;
   }
 
-  .mod.above::before,
-  .mod.below::after {
-    content: "";
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    height: 2px;
-    background: var(--accent);
-    border-radius: 2px;
+  .mod.target {
+    box-shadow: inset 0 0 0 2px var(--accent);
   }
 
-  .mod.above::before {
-    top: -1px;
-  }
-
-  .mod.below::after {
-    bottom: -1px;
+  .main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
   }
 
   .mod.off .body {
     opacity: 0.62;
   }
 
+  .grip,
+  .grip-space {
+    flex: none;
+    width: 16px;
+  }
+
   .grip {
-    align-self: center;
     display: grid;
     place-items: center;
-    width: 22px;
-    height: 34px;
+    height: 30px;
+    padding: 0;
     border: 0;
-    border-radius: 5px;
+    border-radius: 4px;
     background: none;
     color: var(--faint);
     cursor: grab;
@@ -386,21 +383,18 @@
     cursor: grabbing;
   }
 
-  .pos {
-    align-self: center;
-    width: 18px;
-    text-align: right;
-  }
-
   .icon {
     flex: none;
-    width: 38px;
-    height: 38px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     display: grid;
     place-items: center;
     background: #2a2416;
     color: var(--accent-2);
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
   }
 
   .icon.dim {
@@ -410,54 +404,108 @@
 
   .title {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .title h3,
+  .body p {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .version {
+    flex: none;
+    font-size: 11.5px;
   }
 
   .small {
     font-size: 12.5px;
-    margin-top: 2px;
   }
 
-  .desc {
-    margin-top: 4px;
-    max-width: 80ch;
+  .body p {
+    margin-top: 1px;
   }
 
-  .badge.kind {
-    height: 19px;
+  .kind {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 0 6px;
+    border-radius: 99px;
+    border: 1px solid var(--line-2);
     font-size: 11px;
-    letter-spacing: 0.02em;
+    line-height: 16px;
+    vertical-align: 1px;
   }
 
-  .badge.code {
+  .kind.code {
     color: #c9a2ef;
     border-color: #4a3560;
     background: #1d1626;
   }
 
-  .badge.content {
+  .kind.content {
     color: var(--info);
     border-color: #2f4560;
     background: #121b26;
   }
 
-  .badge.textures {
+  .kind.textures {
     color: #86c2b4;
     border-color: #2d5249;
     background: #13211d;
   }
 
+  .kind.loose {
+    color: var(--muted);
+  }
+
+  .actions {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .actions :global(.toggle) {
+    margin: 0 4px;
+  }
+
+  .arrow {
+    width: 26px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .arrow.up :global(svg) {
+    transform: rotate(-90deg);
+  }
+
+  .arrow.down :global(svg) {
+    transform: rotate(90deg);
+  }
+
+  .confirm {
+    color: #f4a595;
+    margin-right: 4px;
+  }
+
   .issue {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 7px;
-    padding: 5px 8px 5px 10px;
+    gap: 7px;
+    margin: 6px 0 0 26px;
+    padding: 3px 4px 3px 8px;
     border-radius: var(--radius-sm);
-    font-size: 12.5px;
+    font-size: 12px;
+    line-height: 1.35;
     border: 1px solid var(--line-2);
+  }
+
+  .issue :global(svg) {
+    flex: none;
   }
 
   .issue.error {
@@ -476,57 +524,26 @@
     color: var(--muted);
   }
 
-  .actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    align-self: center;
+  .group {
+    grid-column: 1 / -1;
+    padding: 12px 16px 8px;
+    box-shadow: 0 -1px 0 var(--line);
   }
 
-  .arrow {
-    width: 28px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .arrow.up :global(svg) {
-    transform: rotate(-90deg);
-  }
-
-  .arrow.down :global(svg) {
-    transform: rotate(90deg);
-  }
-
-  .sep {
-    margin: 0 3px 0 1px;
-  }
-
-  .confirm {
-    color: #f4a595;
-    margin: 0 2px;
-  }
-
-  .link {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--accent-2);
-    text-decoration: underline;
-    cursor: pointer;
-    font-size: inherit;
+  .group strong {
+    color: var(--text);
   }
 
   .note {
     display: flex;
     gap: 10px;
-    align-items: flex-start;
-    padding: 11px 16px;
-    margin-bottom: 12px;
+    align-items: center;
+    padding: 8px 14px;
+    margin-bottom: 10px;
   }
 
   .note :global(svg) {
     flex: none;
-    margin-top: 2px;
   }
 
   .note.warn,
@@ -547,22 +564,22 @@
     color: var(--info);
     border-color: #2f4560;
     background: #111821;
-    align-items: center;
   }
 
-  .note ul {
-    margin: 6px 0 0;
-    padding-left: 18px;
+  .notice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    max-height: 64px;
+    overflow: auto;
+  }
+
+  .notice .mono {
     color: var(--muted);
   }
 
-  .section {
-    margin: 26px 0 4px;
-    font-size: 17px;
-  }
-
-  .section-note {
-    margin-bottom: 10px;
+  .empty {
+    grid-column: 1 / -1;
   }
 
   .center {
@@ -571,6 +588,14 @@
   }
 
   .foot {
-    margin-top: 14px;
+    margin-top: 10px;
+  }
+
+  .path {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 </style>

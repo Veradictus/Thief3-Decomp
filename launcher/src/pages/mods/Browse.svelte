@@ -62,14 +62,6 @@
 {/if}
 
 {#if index}
-  <p class="faint small source">
-    {meta(
-      index.url,
-      generated && `updated ${generated}`,
-      index.skipped > 0 && `${index.skipped.toString()} entries this launcher cannot read were left out`,
-    )}
-  </p>
-
   <div class="entries">
     {#each shown as m (m.id)}
       {@const v = versionOf(m)}
@@ -142,6 +134,13 @@
       </p>
     {/each}
   </div>
+  <p class="faint small source" title={index.url}>
+    {meta(
+      index.url,
+      generated && `updated ${generated}`,
+      index.skipped > 0 && `${index.skipped.toString()} entries this launcher cannot read were left out`,
+    )}
+  </p>
 {:else if mods.indexLoading}
   <p class="empty">Reading the mod index…</p>
 {/if}
@@ -150,7 +149,7 @@
   .toolbar {
     display: flex;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .search {
@@ -174,7 +173,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .chip {
@@ -210,18 +209,33 @@
   }
 
   .source {
-    margin-bottom: 10px;
+    margin-top: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
+  /* The results scroll here, under the search; two columns where they fit. */
   .entries {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: auto;
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+    align-content: start;
     gap: 10px;
   }
 
   .entry {
-    padding: 14px 18px;
+    min-width: 0;
+    padding: 12px 16px;
     display: grid;
-    gap: 6px;
+    gap: 5px;
+    align-content: start;
+  }
+
+  .entry > * {
+    min-width: 0;
   }
 
   .head {
@@ -244,7 +258,11 @@
   }
 
   .desc {
-    max-width: 90ch;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .version {

@@ -129,19 +129,79 @@ in the Steam install.
 | `GIsCriticalError` (set by the error handler) | `0x10F46D70` | verified |
 | `GIsRunning` (main loop condition) | `0x10F46D7C` | verified |
 | `GIsRequestingExit` (`appRequestExit`, `WM_QUIT`) | `0x10F46D84` | verified |
+| `GIsAppActive` (byte; 0 while another program has the focus) | `0x10F01150` | verified |
+| `GEngine` (`UEngine*`): `MainLoop` calls its `Tick` (vtable `+0x7C`); `+0x38` is the client, whose `+0x30` holds the viewports | `0x10F34AD0` | static |
 | intro-movie player (`PlayIntroMovies`) | `0x10A50C30` | verified: returning at once skips the logo movies |
+| `MainLoop`: per frame `TimeManager::BeginFrame`, `GEngine->Tick(game delta)` (vtable `+0x7C`), `PumpMessages`, `TimeManager::EndFrame`; while inactive it waits in `GetMessageA` | `0x10C95BE0` | static |
+| `PumpMessages(wait, active, window)`: `PeekMessageA`, or `GetMessageA` when waiting | `0x10AEB350` | static |
+| `appRequestExit(Force)`: logs `appRequestExit(%i)`; Force calls `ForceExit`, else `PostQuitMessage` and `GIsRequestingExit` | `0x10AEA960` | verified (hooked: Force is 1 at level changes) |
+| `ForceExit`: releases input, `RelaunchForLevelChange`, shuts the renderer down, `TerminateProcess(-1)` | `0x10906D80` | static |
+| `RelaunchForLevelChange` (below); with no next level it restores the display mode | `0x10901D60` | verified (its `ShellExecuteExA` is hooked) |
+| `GNextLevelURL` (`char[0x400]`), followed by the extra arguments passed on | `0x10F34AD8` / `0x10F34ED8` | static |
+| `appLaunchURL` (`ShellExecuteA`) | `0x10AEBC40` | static |
 
 - Functions calling `PeekMessageA` (IAT `0x10E4734C`): `0x10A50C30` (intro
   movies), `0x10AEB350`, `0x10C83450` (`UD3DRenderDevice::Lock`, its
   device-lost wait), `0x10C84070`. Decompiled output: `build/re_mainloop.c`
   (regenerate with `Decompile.java refs:0x10e4734c`).
-- The game exits through `TerminateProcess` on itself (called from `0x10906D80`
-  and `0x10901D60`; the latter looks like the error handler) or through CRT
+- The game exits through `TerminateProcess` on itself (`ForceExit`, and
+  `RelaunchForLevelChange` when the launcher does not answer) or through CRT
   `exit` (IAT: `TerminateProcess` `0x10E47184`, `ExitProcess` `0x10E47268`).
+- **Level changes restart the game** (New Game, entering and leaving a
+  mission). `appRequestExit(1)` runs `RelaunchForLevelChange`: three black
+  frames, `LoadingScreen::Begin` with the next level's URL, three frames of
+  that loading screen, then `ShellExecuteExA` on `Ion Launcher.exe` (next to
+  the exe) with `T3MAIN.exe <display or "window"> "dummy" <URL> <arguments>`.
+  It waits for the launcher's event (`0x10EFE8B0`) and window (class and title
+  `Ion Launcher`), sends it `WM_USER` with a duplicated handle of itself, and
+  ends. The launcher (log: `Documents\Thief - Deadly Shadows\Launcher.log`)
+  waits for the game to end (about 1.1 s), restores the display mode, waits
+  one second, starts `T3Main.EXE -display \\.\DISPLAYn WxH <URL>` (for New
+  Game `Inn?-LoadTravel?-LoadSave?-ObjectFilter=0?DestTeleporter="Inn"`) and
+  waits for the new game to signal exclusive mode (about 3 s). The player
+  starts at the `PlayerStart` whose `TeleportDestName` matches
+  `DestTeleporter`.
 - Closing the window crashes during shutdown, with the SDK or without: exit
   code `0xC0000005`. The SDK's crash reporter places the fault at `0x1098A466`
   (reading address 0). Not analysed yet.
-- Not found yet: `UObject::GObjInitialized`, `GEngine`.
+- Not found yet: `UObject::GObjInitialized`.
+
+## Clock (`TimeManager`)
+
+Ion Storm's game clock: a singleton `MainLoop` brackets every frame with, and
+the source of each frame's game delta.
+
+| What | Address | Status |
+|---|---|---|
+| `TimeManager::Instance()` (creates it on first use) / `TimeManager::GSingleton` | `0x10D3EBE0` / `0x10FFCC8C` | verified (called by the SDK) |
+| `TimeManager::TimeManager`: time scale 1, min step 0.01 s (`MOV [ESI+4], 0x3C23D70A` at `0x10D3EB9E`), max step 0.1 s | `0x10D3EB80` | verified (the SDK patches the min step) |
+| `BeginFrame` (frame-start TSC) / `EndFrame` (advances game time) | `0x10D3EDD0` / `0x10D3EDF0` | static |
+| `GetGameTime` / `SetGameTime` (double) | `0x10D3EC80` / `0x10D3EC90` | static |
+| `SetMaxStep` / `SetMinStep` | `0x10D3ECA0` / `0x10D3ECD0` | static |
+| `SetPaused(bool)`, `__thiscall` (events `0x74`/`0x75` through `0x10F46DA0`) / `IsPaused` | `0x10D3ED00` / `0x10D3ED40` | verified (called by the SDK) |
+| `GetTimeScale` / `SetTimeScale` / `GetDeltaTime` | `0x10D3ED70` / `0x10D3ED80` / `0x10D3EDB0` | static |
+| console command `SIMTIME` (`SCALE`, `SETMIN`, `SETMAX`, `PAUSE`, `UNPAUSE`, `TOGGLEPAUSE`, `STEP`) | `0x10D3EF30` | static |
+
+Fields: `+0x00` time scale, `+0x04` min step, `+0x08` max step, `+0x0C` real
+time not applied this frame, `+0x10` the frame's game delta, `+0x14` pause
+countdown, `+0x18` game time (double), `+0x20` game time at frame start,
+`+0x28` time carried to the next frame, `+0x2C` frame-start TSC, `+0x34` TSC
+ticks per second (64-bit), `+0x3E` paused, `+0x40` frame count.
+
+`EndFrame` scales the frame's real time by the time scale and adds the carried
+time. Above the max step it clamps (the game runs slower); below the min step
+it advances nothing and carries the time over. `MainLoop` passes the result
+to `GEngine->Tick`, so with the 10 ms minimum the world updates at most 100
+times a second: above 100 fps it moves on every second or third frame, which
+looks choppy. The SDK's `SmoothFrames` lowers the minimum to 1 ms. Only the
+constructor and `SIMTIME SETMIN` set it.
+
+The player's physics controller (constructor `0x10B8C4D0`, vtable
+`0x10E896A8`) reads `[Physics] PlayerControllerFPSrate` (60) into `+0x128` as
+1/60 s. Vtable slot 21 (`0x10B8C690`) returns `min(dt, +0x128)`: it caps the
+step size, not the update rate. The `AIControllerFPSrate_*` values are stored
+as 1/rate at `0x10FF65F0` (Running, 30), `0x10FF65F4` (Basic, 15),
+`0x10FF65F8` (Minimal, 5) and `0x10FF65FC` (Off, 2).
 
 ## Configuration (Ion Storm's INI layer)
 
@@ -227,7 +287,16 @@ returned pointer: a detour must return it.
 | `UWindowsViewport::EndFullscreen` (logs "EndFullscreen") | `0x10C86630` | verified (log) |
 | `UWindowsViewport::ToggleFullscreen` (logs "AttemptFullscreen") | `0x10C87560` | static |
 | `UD3DRenderDevice::Lock` (logs "TestCooperativeLevel failed", "BeginScene failed") | `0x10C83450` | verified (log) |
+| `UD3DRenderDevice::SetRes`: present parameters (fullscreen interval ONE with VSynch, else IMMEDIATE; none when windowed), creates or resets the device, then `LoadingScreen::Begin` for the current map | `0x10C84070` | static |
+| VSynch as `SetRes` reads it (`Options::ApplyVideo` writes it) | render device `+0x40DC` | static |
+| `LoadingScreen::Begin(device, map, flag)`, `__cdecl`: `<[Paths] DynamicTextures>\<map>.dds` (else `Loading1.dds`) as the background, the `[LoadingScreen]` logo and caption textures; draws and presents | `0x109E1FC0` | verified (hooked) |
+| `LoadingScreen::LoadLayout` (`[LoadingScreen]` positions and sizes) | `0x109DFBA0` | static |
 | `UpdateWindowTitle` (localised "Thief - Deadly Shadows") | `0x10C872C0` | static |
+
+The menu cursor is a Direct3D hardware cursor: a 32x32 `A8R8G8B8` image with
+its hot spot at 0,0. Every frame the game calls the device's
+`SetCursorProperties` and `ShowCursor` (vtable slots 10 and 12) and user32's
+`ShowCursor` and `SetCursor` (counted with the SDK's `FrameStats`).
 
 On `WM_ACTIVATEAPP(FALSE)` the window procedure resets the device to the
 creation parameters at `0x10F2C86C` (the call at `0x10C8BF6B`) unless
@@ -236,6 +305,12 @@ fullscreen device always is lost by then, so vanilla never makes that call. A
 windowed (borderless) device is not; the reset fails, and `Lock` then sleeps in
 10 ms steps waiting for the device, so the game freezes. The SDK skips that one
 reset (verified: focus loss and exit both pass through it).
+
+The same handler releases the mouse and DirectInput, saves
+`TimeManager::IsPaused` to `GPausedBeforeDeactivation` (`0x10FF71BC`), pauses
+the game and clears `GIsAppActive`; `MainLoop` then waits in `GetMessageA`
+until the game is active again. Setting the flag back and restoring the saved
+pause state after the handler keeps the game running (verified).
 
 ## Other anchors
 
