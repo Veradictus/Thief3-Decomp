@@ -1,8 +1,10 @@
 # Builds the matching decompilation and uploads the objdiff report that
 # decomp.dev reads (artifact <version>_report, from pushes to the default
 # branch). The build needs T3Main.exe, which never enters this repository: it
-# comes from a private container image (docs/decomp-dev.md). The job is skipped
-# until the repository variable T3_BUILD_IMAGE names that image.
+# comes from a private container image (docs/decomp-dev.md) that the repository
+# variable T3_BUILD_IMAGE names. Until it is set, the baseline job publishes a
+# report with nothing matched instead, built from symbols.txt alone, so the
+# project can be registered on decomp.dev.
 name: build
 
 on:
@@ -41,6 +43,24 @@ jobs:
           python3 -m pip install -r requirements.txt
           python3 configure.py --version ${{ matrix.version }}
           ninja all_source build/${{ matrix.version }}/report.json progress
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.version }}_report
+          path: build/${{ matrix.version }}/report.json
+          if-no-files-found: error
+
+  baseline:
+    if: vars.T3_BUILD_IMAGE == ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [PC_20040610]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Baseline report (nothing matched)
+        run: python3 tools/baseline_report.py --version ${{ matrix.version }} -o build/${{ matrix.version }}/report.json
       - name: Upload report
         uses: actions/upload-artifact@v4
         with:
