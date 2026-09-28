@@ -28,11 +28,11 @@ jobs:
       matrix:
         version: [PC_20040610]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Original files
         run: cp -a /orig .
       - name: Cache tools and build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             build/tools
@@ -44,7 +44,7 @@ jobs:
           python3 configure.py --version ${{ matrix.version }}
           ninja all_source build/${{ matrix.version }}/report.json progress
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.version }}_report
           path: build/${{ matrix.version }}/report.json
@@ -58,11 +58,11 @@ jobs:
       matrix:
         version: [PC_20040610]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Baseline report (nothing matched)
         run: python3 tools/baseline_report.py --version ${{ matrix.version }} -o build/${{ matrix.version }}/report.json
       - name: Upload report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.version }}_report
           path: build/${{ matrix.version }}/report.json
