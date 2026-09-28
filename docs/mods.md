@@ -176,26 +176,45 @@ through `entry`, so it shows up in the load order and in crash reports.
 
 ### Content: textures/ (experimental)
 
-`textures/<name>.dds` replaces the texture resource named `<name>` inside the
-game's `.ibt` bundles (the level bundles and the `Kernel_*` ones), for players
-without Sneaky Upgrade. `tools/assets/t3texpack.py` does the work:
+`textures/<name>.dds` replaces every texture resource named `<name>`
+(case-insensitively) inside the game's `.ibt` bundles (the level bundles and
+the `Kernel_*` and `MainMenu_*` ones), for players without Sneaky Upgrade.
+`tools/assets/t3texpack.py` does the work:
 
 ```sh
-python tools/assets/t3texpack.py list [<map or .ibt>]            # texture names, formats, sizes
+python tools/assets/t3texpack.py list [<map or .ibt>] [--json]   # texture names, formats, sizes, bundles
 python tools/assets/t3texpack.py check --pack <dir> [--pack <dir> ...]   # names exist, formats fit
 python tools/assets/t3texpack.py apply --pack <dir> [--pack <dir> ...]   # later packs win
 python tools/assets/t3texpack.py restore                         # original bundles back
 ```
 
-`apply` rewrites each affected bundle once from its backup (in the tools'
-build folder, like map installs), so applying again, or with fewer packs,
-never stacks changes; with no packs it is the same as `restore`. The DDS must
-be DXT1, DXT3, DXT5, A8R8G8B8 or X8R8G8B8, with power-of-two sides and a full
-or partial mip chain. The texture's usage values are kept from the original.
+A `<dir>` is an installed mod's folder (`System/mods/<id>/`, whose
+`textures/` is used) or a folder of DDS files. `apply` rewrites each affected
+bundle once from its backup (in the tools' build folder, like map installs),
+so applying again, or with fewer packs, never stacks changes; with no packs
+it is the same as `restore`. The DDS must be DXT1, DXT3, DXT5, A8R8G8B8 or
+X8R8G8B8, with power-of-two sides and a full or partial mip chain. The
+texture's usage values are kept from the original. `apply` and `restore`
+take `--dry-run`; the game folder comes from `T3_GAME_DIR` (or
+`--game-dir`). Exit status: 0 done (warnings allowed), 1 a problem was
+reported, 2 a bad command line; the last line of output is a one-line
+summary.
+
+After every sync of `files/`, the launcher runs `apply` with the enabled
+mods that have `textures/`, in load order (with none, `apply` restores every
+bundle it patched before). A `files/` mod can place a whole `.ibt`, so
+before a sync that places or removes an `.ibt` the launcher runs `restore`
+first: the texture packs then apply on top of the placed bundle, and the
+sync never moves a patched bundle into `originals/`. A bundle that changed
+since `apply` wrote it (neither the original nor the patched file) is left
+alone and reported.
 
 It is experimental because the engine may check the 20-byte values in the
 bundle's header and table ([assets.md](assets.md), section 3); the tool keeps
-them, and it has not yet been confirmed in the game.
+them, and it has not yet been confirmed in the game. The alignment of the
+mip data inside a texture resource is also inferred from the bundles
+themselves; `t3texpack.py --selfcheck` checks it and the rest of the format
+on the retail files.
 
 ## Loose DLLs
 

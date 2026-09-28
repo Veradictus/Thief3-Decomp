@@ -5,6 +5,8 @@ Builds a tiny Flesh-style Unreal package, a map-like package and a tiny .ibt
 block file in build/assets/selftest/, then checks that the parsers, the
 texture and mesh converters, the glTF writer, the coordinate conversion, the
 package writer and the map edits (t3pack.py) agree with what was written.
+selftest_texpack.py then checks the block-file writer and texture packs
+(ibtwrite.py, t3texpack.py) in a stand-in game folder.
 Run: python tools/assets/selftest.py
 """
 
@@ -30,6 +32,7 @@ from t3props import PropertyNames, parse_declarations, parse_enums  # noqa: E402
 from t3texture import decode_rgba, parse_material, parse_texture, to_dds  # noqa: E402
 from upkg import Package, prop_value, struct_fields  # noqa: E402
 from upkgwrite import PackageWriter, enc_index, first_difference  # noqa: E402
+import selftest_texpack  # noqa: E402
 
 OUT = BUILD_DIR / "selftest"
 
@@ -523,6 +526,7 @@ def main() -> None:
     test_writer()
     test_ibt()
     test_math_and_props()
+    selftest_texpack.main()
     print("all self-tests passed")
 
 

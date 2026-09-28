@@ -51,6 +51,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
 | Map and asset export to Godot 4.7; Godot map viewer | `tools/assets/`, `tools/assets/godot/` | works for all 32 maps (static geometry, lights, actor data) |
 | Godot editor plugin: move/rotate/scale actors, edit gamesys values, save `<Level>.edits.json` | `tools/assets/godot/addons/t3_map_editor/` | headless tests pass; not tried on a real map |
 | Map writer: byte-exact round trip, apply edits, install/restore with backup | `tools/assets/upkgwrite.py`, `t3pack.py` | synthetic tests pass; not run on real maps |
+| Texture packs: `.ibt` writer, DDS to texture resource, list/check/apply/restore with backup, `--selfcheck` | `tools/assets/ibtwrite.py`, `t3texpack.py` | synthetic tests pass; not run on real bundles |
 | Launcher (Tauri): setup, play, SDK install, mods, `T3SDK.ini`, Map Studio, task queue | `launcher/`, [launcher.md](launcher.md) | runs (tested under Xvfb on Linux); Windows build green in CI, not yet run on Windows |
 | Release bundle (tools, prebuilt SDK, embeddable Python) | `tools/stage_launcher.py` | builds in CI |
 | Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | 14 synthetic tests pass with the real MSVC 7.1 via wibo; not run on the real exe |
@@ -101,6 +102,14 @@ touching the user's mouse: the main menu reacts to posted clicks.
    - Install the launcher from the PR's `launcher-windows` artifact and run
      setup, Install T3SDK, Play, Remove. Then tag `v0.1.0` for the first
      release.
+   - Texture packs ([mods.md](mods.md), `textures/`; [assets.md](assets.md),
+     section 3): `tools/assets/t3texpack.py --selfcheck` must pass on every
+     bundle; note the mip padding rule it prints and any layout statement
+     marked NO. Then make a one-texture pack with an obvious change (a
+     `list` name used in a small level), `check` and `apply` it, load the
+     level and look at the texture, and `restore`. A level that fails to
+     load or shows the old texture means the engine checks the 20-byte
+     values (or reads the padding differently).
 2. **decomp.dev**: registration works as soon as the baseline report (nothing
    matched, from `symbols.txt`) is on `main`; the private build image and the
    `T3_BUILD_IMAGE` variable switch CI to the real report, needed before

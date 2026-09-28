@@ -8,9 +8,9 @@ for a Godot 4 map editor built on them.
 > legally owned copy of the game so that you can mod it. Extracted and
 > converted assets (everything under `build/assets/`) are copyrighted game
 > content: do not redistribute them and never commit them. The tools read
-> the install; only `t3pack.py install` and `restore` write to it (a patched
-> map, after backing up the original once). They do not touch DRM and do not
-> launch the game.
+> the install; only `t3pack.py install` and `restore` and `t3texpack.py apply`
+> and `restore` write to it (a patched map or bundle, after backing up the
+> original once). They do not touch DRM and do not launch the game.
 
 Status at a glance:
 
@@ -25,10 +25,13 @@ Status at a glance:
   check), and rendered views look like the game. The exported project opens
   as a map viewer, with a map picker, a fly camera and an actor inspector
   (section 6).
-- **Works on synthetic data, untested on real maps.** Editing: an editor
-  plugin records moved, rotated and scaled actors and changed gamesys values
-  in the Godot editor (section 6), and `t3pack.py` writes them into a patched
-  copy of the map and installs it, backing up the original (section 8).
+- **Works on synthetic data, untested on real maps.**
+  - Editing: an editor plugin records moved, rotated and scaled actors and
+    changed gamesys values in the Godot editor (section 6), and `t3pack.py`
+    writes them into a patched copy of the map and installs it, backing up
+    the original (section 8).
+  - Texture replacement: `t3texpack.py` rebuilds `.ibt` bundles with
+    textures from DDS files, for texture packs (section 3).
 - **Not decoded yet.**
   - Skeletal meshes, animations, Havok physics shapes, trigger scripts,
     particle emitters, sounds.
@@ -268,14 +271,17 @@ Fields, one part each:
 - Mip count.
 - u32 usage: 0 diffuse, 1 normal, 2 specular, 5 emissive, 6 environment, ...
 - u32 usage detail.
-- Width and height, then width and height again.
+- Width and height, then width and height again (0 for some environment
+  maps).
 - Total mip bytes.
-- Two bytes.
+- Two bytes (the second is 1 for render targets).
 - Per mip: level, width, height, size, an alignment-padding part, and the
   data part.
 
-`t3texture.py` writes a DDS directly and decodes DXT1/3/5 in pure Python to
-PNG.
+The fields before the first mip take 39 bytes. `t3texture.py` writes a DDS
+directly and decodes DXT1/3/5 in pure Python to PNG; `texture_parts()` writes
+a parsed texture back part for part, and `parse_dds()` reads DDS files for
+texture replacement (below).
 
 ### Material (type 10)
 
@@ -327,6 +333,139 @@ Positions are in Unreal units and axes. Triangles are front-facing when
 
 Faces using the material `BF` (category "ignored", placeholder texture) are
 not drawn by the game; the exporter drops them.
+
+### Writing block files
+
+`ibtwrite.py` re-serialises a block file read by `ibt.py`. An unchanged file
+comes out byte-identical, and resources can be given new parts:
+
+- **Kept as they are**: the header's magic, alignment and 20-byte value, and
+  in every entry the 20-byte value, the type, the whole 263-byte name field
+  (anything after the NUL included) and the load filter. The writer does not
+  know what the 20-byte values are and never recomputes them. If the engine
+  checks them against the data, a rebuilt bundle will not load.
+- **Rewritten**: the header's data start, data size, largest resource size,
+  largest part size and part count; each entry's offset, size, padding,
+  first part and part count; the part table.
+- The data area is copied verbatim apart from the replaced resources.
+  Resources keep their order in the file, and when one changes size
+  everything after it moves by a multiple of the alignment.
+
+What the writer assumes, taken from the reader's view of the format:
+
+- Offsets are absolute file offsets, and data start + data size is the file
+  size.
+- A resource's padding is the smallest that makes size + padding a multiple
+  of 0x800; its bytes are zero, and the next resource starts right after it.
+- The data start is the size of the header and tables rounded up to 0x800,
+  and the bytes before it are zero. When the part table grows past that
+  boundary, the data start and every offset move up to the next multiple of
+  0x800.
+- The two "largest" header fields are the largest resource and the largest
+  part. The writer keeps them in step with the data, since a loader may size
+  a buffer by them. A value that does not match (none is expected) is kept,
+  and only raised when the new data needs more.
+- Part ranges follow the table order. The writer only needs them not to
+  overlap; entries that share their data are replaced together.
+
+Irregular files still round-trip: gaps and non-zero padding are copied, and
+an empty resource's offset follows its neighbour. `t3texpack.py --selfcheck`
+(below) tests each assumption on the retail bundles and prints any that does
+not hold.
+
+### Replacing textures
+
+`t3texpack.py` replaces texture resources by name with DDS files. It serves
+the `textures/` folder of a mod package ([mods.md](mods.md)):
+
+```
+t3texpack.py list [<map or .ibt>] [--json]         names, format, size, mips, usage, bundles
+t3texpack.py check --pack <dir> [--pack <dir> ...]
+t3texpack.py apply --pack <dir> [--pack <dir> ...] [--dry-run]
+t3texpack.py restore [--dry-run]
+t3texpack.py --selfcheck [<map or .ibt> ...]
+```
+
+**Encoding** turns a DDS into a type-8 resource, the inverse of
+`t3texture.parse_texture()`:
+
+- The DDS must be DXT1, DXT3 or DXT5 (by FourCC), or 32-bit A8R8G8B8 or
+  X8R8G8B8 (by the pixel-format masks; BGRA bytes). It needs power-of-two
+  sides and a full or partial mip chain from the top level. DX10 headers,
+  DXT2/DXT4, other masks, luminance formats, cube maps, volumes and trailing
+  bytes are refused with the reason.
+- Taken from the DDS: format, width, height, the mip count and the mip data.
+- Kept from the original resource: version, usage, usage detail and the two
+  bytes. The second width and height follow the first when they were equal
+  in the original, and are kept otherwise (the zeros of environment maps).
+- Derived, as assumptions:
+  - mip levels are numbered from 0;
+  - "total mip bytes" is the sum of the mip data sizes;
+  - padding parts are zero bytes.
+- **The padding rule is not known** from the engine. The candidates are
+  "align each mip's data to N bytes" (N a power of two up to 4096), counted
+  from the start of the resource or from the first mip header (byte 39).
+  Every mip of a full chain constrains the rule, so the textures of a bundle
+  pin it down. For each bundle the tool takes the rule that explains the
+  most textures; a tie (a bundle of single-mip textures) goes to the rule
+  that explains the most textures in all the bundles. A texture whose own
+  original does not follow the rule is not replaced. If the engine computes
+  the padding itself rather than using the part table, a wrong rule would
+  make it read the wrong bytes, so the selfcheck prints the rule and how
+  many textures it explains.
+
+**Packs.** A pack is a mod folder with a `textures/` folder, or a folder of
+DDS files. Each `<name>.dds` replaces every texture resource named `<name>`
+(case-insensitively) in every bundle of `Content/T3/Maps`, the level bundles
+and the `Kernel_*` and `MainMenu_*` ones. Later packs win. `check` reports
+unknown names, unreadable DDS files, names given twice and textures whose
+layout cannot be rebuilt as errors. It warns when a texture's format or
+aspect ratio differs from the original's, or when it is larger. `list` and
+`check` read a patched bundle's original from its backup.
+
+**Apply and restore** write into the game; everything else stays under
+`build/assets/`:
+
+- Each affected bundle is backed up once to `build/assets/backup/` and
+  rebuilt from that original, never from a patched file. The rebuild is read
+  back before it is installed: `ibtwrite.compare_bundles()` checks every
+  other resource, and each new texture must parse and read back as the DDS.
+  The game's file is replaced through a temporary file.
+- `build/assets/backup/t3texpack.json` records each patched bundle: the
+  original's and the installed file's size and SHA-256, the recipe (pack
+  file hashes, the padding rule and the encoder version), and which pack
+  file replaced each texture. A bundle whose recipe and file are unchanged is
+  skipped, so running `apply` again does nothing.
+- A bundle patched before and no longer affected is restored. With no packs,
+  `apply` is `restore`. A restored bundle's record and backup are removed.
+- The record is saved before the game's file is replaced, and the file the
+  game held is remembered until the new one is in place, so an interrupted
+  run is recognised next time.
+- A bundle that is neither the original nor the file `apply` installed was
+  changed by something else (a game update, another tool). It is left alone
+  and reported. Deleting its backup accepts it as the new original.
+- The record names the game folder. Another install is refused until the
+  first one is restored (or that folder is gone).
+- Exit status: 0 done (warnings allowed), 1 a problem was reported, 2 a bad
+  command line. The last line is a one-line summary, for the launcher's live
+  output.
+
+**`--selfcheck`** is the proof on real data. For each bundle (a patched
+bundle's backup) it:
+
+1. tests the writer's layout assumptions (above);
+2. writes the bundle back unchanged, which must be identical;
+3. finds the mip padding rule;
+4. decodes every texture, exports it to DDS, reads it back and re-encodes it
+   with the original as the template. The result must equal the original
+   part for part; a difference names the first field that differs (for
+   example "total mip bytes" or "mip padding (length)"). It also counts the
+   textures whose second size equals the first, is zero, or is something
+   else (a replacement keeps that last kind as it was);
+5. puts every texture that matched back through the writer, which must give
+   the identical file;
+6. replaces one texture with a smaller and a larger one and checks that
+   every other resource is intact.
 
 ## 4. Loose formats
 
@@ -707,9 +846,10 @@ From least to most work:
    install, and our understanding of T3D for Flesh actors.
 4. **New resources.** For new meshes and textures, either use Sneaky Upgrade's
    loose-file overrides (`DynamicallyLoaded`) or write `.ibt` files. The
-   container is fully understood; the 20-byte per-entry value and the
-   header value are unknown, and we must check whether the engine validates
-   them.
+   container is fully understood, and `ibtwrite.py` writes it (section 3);
+   `t3texpack.py` uses it to replace textures. The 20-byte per-entry value
+   and the header value are unknown, and we must check whether the engine
+   validates them.
 
 **The package writer** (`upkgwrite.py`) re-serialises a package read by
 `upkg.py`. An unchanged package comes out byte-identical.
@@ -873,7 +1013,15 @@ package identical. Then move one visible prop in a small map, `apply`,
 - The per-skin flags and the mesh flags of static meshes. The numeric field
   in the `StaticMesh` proxy objects.
 - Whether the 20-byte values in `.ibt` headers and entries are checked, and
-  how they are computed.
+  how they are computed. A texture replaced with `t3texpack.py` and seen in
+  the game answers the first half.
+- The rule behind the mip padding parts of texture resources. `t3texpack.py`
+  infers it per bundle, and `--selfcheck` prints it. The same run shows
+  whether mip levels count from 0, whether "total mip bytes" is the sum of
+  the mip sizes, and whether the block-file layout assumptions of
+  `ibtwrite.py` hold (section 3).
+- Whether the loader relies on the `.ibt` header's largest resource and part
+  sizes (the writer keeps them in step).
 - The native tail of `Entry.gmp` actors (licensee 107).
 - The header "triangle count" that disagrees with the index count in a few
   meshes.
@@ -883,7 +1031,8 @@ package identical. Then move one visible prop in a small map, `apply`,
 All tools live in `tools/assets/` and use the standard library only. They
 find the game with `--game-dir`, then `$T3_GAME_DIR`, then the installer's
 registry value. They write only under `build/assets/`, except
-`t3pack.py install` and `restore`, which replace maps in the game folder.
+`t3pack.py install` and `restore`, which replace maps in the game folder,
+and `t3texpack.py apply` and `restore`, which replace `.ibt` bundles.
 
 | Tool | Purpose |
 |---|---|
@@ -898,6 +1047,8 @@ registry value. They write only under `build/assets/`, except
 | `t3map.py <map>\|--all [--json-only] [--scale S]` | Level to JSON + Godot scene |
 | `t3pack.py roundtrip\|apply\|install\|restore` | Write maps back: round-trip check, edits file to a patched `.gmp`, install with a backup, restore (section 8) |
 | `upkgwrite.py` | Package writer and actor editing, used by `t3pack.py` |
+| `t3texpack.py list\|check\|apply\|restore`, `--selfcheck` | Texture packs: replace textures inside `.ibt` bundles with DDS files, with a backup and a record; restore. `--selfcheck` checks the writer and the encoder on the retail bundles (section 3) |
+| `ibtwrite.py` | Block-file writer (byte-exact round trip, resource replacement), used by `t3texpack.py` |
 | `godot_check.py [--godot EXE] [--viewer [MAP]] [--viewer-shot PNG] [--render ...] [--editor-selftest [DIR]]` | Import and check the Godot project, run the viewer self-test, save preview frames, test the editor plugin on a synthetic level |
 | `godot/viewer/*.gd` | The map viewer (picker, fly camera, HUD, help, inspector), installed into the project by `t3map.py` |
-| `selftest.py` | Checks the parsers and writers against synthetic data only (no game files needed) |
+| `selftest.py` | Checks the parsers and writers against synthetic data only (no game files needed); runs `selftest_texpack.py` |
