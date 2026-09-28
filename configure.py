@@ -88,6 +88,25 @@ def unit_categories(unit: splitslib.Unit, category: str = "") -> List[str]:
     return ["main"] if start < CRT_ENTRY or FUNCLETS[0] <= start < FUNCLETS[1] else ["libs"]
 
 
+def unit_options(config_dir: Path) -> Dict[str, dict]:
+    """UNITS, plus the per-unit options tools/agent/integrate.py records in
+    units.json (categories); UNITS wins where both set one."""
+    options = {source: dict(opts) for source, opts in UNITS.items()}
+    units_json = config_dir / "units.json"
+    if units_json.is_file():
+        for source, opts in json.loads(units_json.read_text(encoding="utf-8")).items():
+            options[source] = {**opts, **options.get(source, {})}
+    return options
+
+
+def plan_units(config_dir: Path) -> List[splitslib.Unit]:
+    """The translation units: those declared in splits.txt, plus auto chunks
+    covering every other function in symbols.txt."""
+    functions = [s for s in symbolslib.load(config_dir / "symbols.txt") if s.is_function and s.size > 0]
+    return splitslib.plan(splitslib.load(config_dir / "splits.txt"), functions, CHUNK_SIZE,
+                          breaks=(CRT_ENTRY, *FUNCLETS))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", default=DEFAULT_VERSION, choices=sorted(VERSIONS))
@@ -108,19 +127,13 @@ def main() -> None:
     exe = Path("orig") / version / info["exe"]
     symbols_txt = config_dir / "symbols.txt"
     splits_txt = config_dir / "splits.txt"
-    # Per-unit options that tools/agent/integrate.py records (categories), under
-    # anything set in UNITS above.
-    units_json = config_dir / "units.json"
-    if units_json.is_file():
-        for source, opts in json.loads(units_json.read_text(encoding="utf-8")).items():
-            UNITS[source] = {**opts, **UNITS.get(source, {})}
+    options = unit_options(config_dir)
 
     if not exe.is_file():
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
 
-    functions = [s for s in symbolslib.load(symbols_txt) if s.is_function and s.size > 0]
-    units = splitslib.plan(splitslib.load(splits_txt), functions, CHUNK_SIZE, breaks=(CRT_ENTRY, *FUNCLETS))
-    for source in UNITS:
+    units = plan_units(config_dir)
+    for source in options:
         if not any(u.source == source for u in units):
             sys.exit(f"UNITS entry {source} is not declared in {splits_txt}")
 
@@ -223,7 +236,7 @@ def main() -> None:
     base_objs: List[str] = []
     unit_json = []
     for u in units:
-        opts = UNITS.get(u.source, {})
+        opts = options.get(u.source, {})
         source = Path("src") / u.source
         base = None
         if not u.auto and source.is_file():

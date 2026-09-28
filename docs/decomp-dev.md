@@ -19,8 +19,14 @@ reports, how other projects feed CI the original binary) are in
 4. The report is uploaded as the artifact `PC_20040610_report`. decomp.dev
    takes the newest one from a completed push run on the default branch.
 
-The job is skipped until the repository variable `T3_BUILD_IMAGE` names the
-image, so the workflow is harmless before the setup below.
+Until the repository variable `T3_BUILD_IMAGE` names that image, the build
+job is skipped and a **baseline** job runs instead: `tools/baseline_report.py`
+writes a report with the same units and categories from `symbols.txt` alone,
+every function unmatched (data is left unmeasured), and uploads it under the
+same artifact name. That is enough to register the project on decomp.dev,
+which refuses a repository without a report ("No workflow runs containing
+reports found"). It never shows progress: matched code counts only once the
+real build runs.
 
 Progress categories (set in `configure.py`): **main** "Game & engine" is the
 headline, with **game** and **engine** under it; **libs** is the MSVC runtime,
@@ -29,6 +35,12 @@ category from `UNITS` or, failing that, from their address (before the CRT
 entry point `0x10D1F7AF` and the `.text$x` funclets: main; after: libs).
 
 ## One-time setup (repository owner)
+
+**Register first** (no exe needed): once `build.yml` with the baseline job is
+on the default branch and a push to it has run the workflow (Actions tab, a
+green "build" run with a `PC_20040610_report` artifact), do step 4. Steps 1-3
+switch the report from the baseline to the real build; they are needed before
+matched code can show as progress.
 
 1. **The build image.** Create a *private* repository, for example
    `<owner>/t3-build`, from
@@ -53,7 +65,7 @@ entry point `0x10D1F7AF` and the `.text$x` funclets: main; after: libs).
    *Read* role.
 3. **The variable.** In this repository: Settings → Secrets and variables →
    Actions → Variables, add `T3_BUILD_IMAGE` = `ghcr.io/<owner>/t3-build:main`.
-   The next push builds the report.
+   The next push builds the real report, and the baseline job stops.
 4. **decomp.dev.** Sign in at <https://decomp.dev/manage/new> with a GitHub
    account that is an admin of this repository, pick the repository, platform
    *Windows (win32)*, and set the default category to **main**. Installing the
