@@ -134,11 +134,12 @@ in the Steam install.
 | intro-movie player (`PlayIntroMovies`) | `0x10A50C30` | verified: returning at once skips the logo movies |
 | `MainLoop`: per frame `TimeManager::BeginFrame`, `GEngine->Tick(game delta)` (vtable `+0x7C`), `PumpMessages`, `TimeManager::EndFrame`; while inactive it waits in `GetMessageA` | `0x10C95BE0` | static |
 | `PumpMessages(wait, active, window)`: `PeekMessageA`, or `GetMessageA` when waiting | `0x10AEB350` | static |
-| `appRequestExit(Force)`: logs `appRequestExit(%i)`; Force calls `ForceExit`, else `PostQuitMessage` and `GIsRequestingExit` | `0x10AEA960` | verified (hooked: Force is 1 at level changes) |
+| `appRequestExit(Force)`: logs `appRequestExit(%i)`; Force calls `ForceExit`, else `PostQuitMessage` and `GIsRequestingExit` | `0x10AEA960` | verified (an earlier SDK hook saw Force 1 at level changes; no longer hooked) |
 | `ForceExit`: releases input, `RelaunchForLevelChange`, shuts the renderer down, `TerminateProcess(-1)` | `0x10906D80` | static |
-| `RelaunchForLevelChange` (below); with no next level it restores the display mode | `0x10901D60` | verified (its `ShellExecuteExA` is hooked) |
+| `RelaunchForLevelChange` (below); with no next level it restores the display mode | `0x10901D60` | verified (Ion Launcher's log shows the command line it passes) |
 | `GNextLevelURL` (`char[0x400]`), followed by the extra arguments passed on | `0x10F34AD8` / `0x10F34ED8` | static |
 | `appLaunchURL` (`ShellExecuteA`) | `0x10AEBC40` | static |
+| engine console commands (`MEMSTAT`, `RES_DUMPSTATS`, `CONFIGHASH`, `EXIT`/`QUIT`, `RELAUNCH`, `DIR`, `DEBUG CRASH`/`GPF`/`EATMEM`; list in [game/console.md](game/console.md)); not named yet | `0x10AEB6D0` | static |
 
 - Functions calling `PeekMessageA` (IAT `0x10E4734C`): `0x10A50C30` (intro
   movies), `0x10AEB350`, `0x10C83450` (`UD3DRenderDevice::Lock`, its
@@ -174,7 +175,7 @@ the source of each frame's game delta.
 | What | Address | Status |
 |---|---|---|
 | `TimeManager::Instance()` (creates it on first use) / `TimeManager::GSingleton` | `0x10D3EBE0` / `0x10FFCC8C` | verified (called by the SDK) |
-| `TimeManager::TimeManager`: time scale 1, min step 0.01 s (`MOV [ESI+4], 0x3C23D70A` at `0x10D3EB9E`), max step 0.1 s | `0x10D3EB80` | verified (the SDK patches the min step) |
+| `TimeManager::TimeManager`: time scale 1, min step 0.01 s (`MOV [ESI+4], 0x3C23D70A` at `0x10D3EB9E`), max step 0.1 s | `0x10D3EB80` | static (the SDK's `SmoothFrames` patches the min step) |
 | `BeginFrame` (frame-start TSC) / `EndFrame` (advances game time) | `0x10D3EDD0` / `0x10D3EDF0` | static |
 | `GetGameTime` / `SetGameTime` (double) | `0x10D3EC80` / `0x10D3EC90` | static |
 | `SetMaxStep` / `SetMinStep` | `0x10D3ECA0` / `0x10D3ECD0` | static |
@@ -282,14 +283,14 @@ returned pointer: a detour must return it.
 | `InitDirect3D`: `Direct3DCreate8(220)`, `CreateDevice` (HAL, hardware then software vertex processing) | `0x10919730` | verified (hooked through the import) |
 | `D3DPRESENT_PARAMETERS` the device is created with | `0x10F2C86C` | verified |
 | `IDirect3D8*` / `IDirect3DDevice8*` | `0x10F2C8B4` / `0x10F2C8B8` | static |
-| `UWindowsViewport::ViewportWndProc` | `0x10C8B820` | static |
-| `UWindowsViewport::Exec` (console commands: EndFullscreen, ToggleFullscreen, SetRes, ...) | `0x10C8ADE0` | static |
+| `UWindowsViewport::ViewportWndProc` | `0x10C8B820` | verified (hooked: the SDK keeps a borderless game running) |
+| `UWindowsViewport::Exec` (console commands: EndFullscreen, ToggleFullscreen, SetRes, ...; list in [game/console.md](game/console.md)) | `0x10C8ADE0` | static |
 | `UWindowsViewport::EndFullscreen` (logs "EndFullscreen") | `0x10C86630` | verified (log) |
 | `UWindowsViewport::ToggleFullscreen` (logs "AttemptFullscreen") | `0x10C87560` | static |
 | `UD3DRenderDevice::Lock` (logs "TestCooperativeLevel failed", "BeginScene failed") | `0x10C83450` | verified (log) |
 | `UD3DRenderDevice::SetRes`: present parameters (fullscreen interval ONE with VSynch, else IMMEDIATE; none when windowed), creates or resets the device, then `LoadingScreen::Begin` for the current map | `0x10C84070` | static |
 | VSynch as `SetRes` reads it (`Options::ApplyVideo` writes it) | render device `+0x40DC` | static |
-| `LoadingScreen::Begin(device, map, flag)`, `__cdecl`: `<[Paths] DynamicTextures>\<map>.dds` (else `Loading1.dds`) as the background, the `[LoadingScreen]` logo and caption textures; draws and presents | `0x109E1FC0` | verified (hooked) |
+| `LoadingScreen::Begin(device, map, flag)`, `__cdecl`: `<[Paths] DynamicTextures>\<map>.dds` (else `Loading1.dds`) as the background, the `[LoadingScreen]` logo and caption textures; draws and presents | `0x109E1FC0` | static (hooked by the SDK's level-change curtain) |
 | `LoadingScreen::LoadLayout` (`[LoadingScreen]` positions and sizes) | `0x109DFBA0` | static |
 | `UpdateWindowTitle` (localised "Thief - Deadly Shadows") | `0x10C872C0` | static |
 
