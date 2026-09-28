@@ -71,9 +71,20 @@ does not yet.
 
 ![Map Studio: the game's maps, and the export, edit, repack and install steps for the selected one](docs/images/launcher-map-studio.png)
 
-**View** opens a map in a fly-through viewer instead. How the maps are stored
-and converted is in [docs/assets.md](docs/assets.md). What the tools extract
-from your copy is for your own modding: don't share it.
+![Auldale in the Godot editor. The T3 Map dock below the Inspector shows the selected patrol point's class, location and gameplay properties, and saves the edits for the game.](docs/images/godot-editor.jpg)
+
+**View** opens a map in a fly-through viewer instead: pick one of the game's
+maps, fly through it, and click anything to see what it is (class, position,
+gameplay properties), in lit, unlit or wireframe view.
+
+<p>
+  <img src="docs/images/map-viewer-menu.png" width="32%" alt="The map viewer's picker: the game's 32 maps by name, file and actor count">
+  <img src="docs/images/map-viewer-1.jpg" width="32%" alt="Auldale in the map viewer: the HUD, and a selected patrol point in the inspector">
+  <img src="docs/images/map-viewer-2.jpg" width="32%" alt="The same view in wireframe, with the markers of the actors that have no geometry">
+</p>
+
+How the maps are stored and converted is in [docs/assets.md](docs/assets.md).
+What the tools extract from your copy is for your own modding: don't share it.
 
 ## Buy the damn game
 
