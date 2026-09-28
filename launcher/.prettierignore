@@ -1,4 +1,5 @@
 dist/
+.svelte-check/
 src-tauri/
 node_modules/
 .yarn/

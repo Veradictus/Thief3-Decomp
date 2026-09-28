@@ -8,7 +8,7 @@ import ts from "typescript-eslint";
 import svelteConfig from "./svelte.config.js";
 
 export default defineConfig(
-  { ignores: ["dist/", "src-tauri/", "node_modules/", ".yarn/"] },
+  { ignores: ["dist/", "src-tauri/", "node_modules/", ".yarn/", ".svelte-check/"] },
   js.configs.recommended,
   ts.configs.strictTypeChecked,
   ts.configs.stylisticTypeChecked,
