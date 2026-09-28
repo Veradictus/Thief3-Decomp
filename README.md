@@ -1,8 +1,12 @@
 # Thief: Deadly Shadows modding SDK
 
-[![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hdAXH73tEG)
+[![Discord: join the Taffer Tavern](https://img.shields.io/badge/Discord-Join%20the%20Taffer%20Tavern-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/eaJkC5C6WJ)
 [![Download the launcher](https://img.shields.io/github/v/release/Veradictus/Thief3-Decomp?include_prereleases&label=Download&style=for-the-badge)](https://github.com/Veradictus/Thief3-Decomp/releases/latest)
 [![Documentation](https://img.shields.io/badge/Documentation-read%20the%20guides-d6ab52?style=for-the-badge)](https://veradictus.github.io/Thief3-Decomp/)
+
+[![Decompiled](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=matched_code_percent&category=main&label=Decompiled)](https://decomp.dev/Veradictus/Thief3-Decomp)
+[![Functions](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=matched_functions&category=main&label=Functions)](https://decomp.dev/Veradictus/Thief3-Decomp)
+[![Progress report](https://github.com/Veradictus/Thief3-Decomp/actions/workflows/build.yml/badge.svg)](https://github.com/Veradictus/Thief3-Decomp/actions/workflows/build.yml)
 
 **T3SDK** is a modding SDK for **Thief: Deadly Shadows** (Ion Storm, 2004), PC.
 It fixes the PC version's display problems, loads mods into your installed
@@ -10,9 +14,12 @@ copy of the game, and gives them access to the engine. The goal is mods as
 large as multiplayer. It comes with a launcher, tools to edit maps in Godot,
 and the workbench for a matching decompilation of the game.
 
+![The T3SDK Launcher's Play page: the game's build check, T3SDK, mods, maps and T3SDK's log](docs/images/launcher-play.png)
+
 **Documentation**: <https://veradictus.github.io/Thief3-Decomp/>, with the
-player guide, the mod author guide, the API reference and the engineering
-notes (the same pages as in [docs/](docs/)).
+player guide (settings, FAQ, troubleshooting), the mod author guide and its
+cookbook, how the game works under the hood, the API reference, the decomp
+handbook and the engineering notes (the same pages as in [docs/](docs/)).
 
 **What do you want to do?**
 
@@ -66,9 +73,22 @@ does not yet.
 5. **Restore original** puts the unmodified map back. Every original is backed
    up once, before it is first replaced.
 
-**View** opens a map in a fly-through viewer instead. How the maps are stored
-and converted is in [docs/assets.md](docs/assets.md). What the tools extract
-from your copy is for your own modding: don't share it.
+![Map Studio: the game's maps, and the export, edit, repack and install steps for the selected one](docs/images/launcher-map-studio.png)
+
+![Auldale in the Godot editor. The T3 Map dock below the Inspector shows the selected patrol point's class, location and gameplay properties, and saves the edits for the game.](docs/images/godot-editor.jpg)
+
+**View** opens a map in a fly-through viewer instead: pick one of the game's
+maps, fly through it, and click anything to see what it is (class, position,
+gameplay properties), in lit, unlit or wireframe view.
+
+<p>
+  <img src="docs/images/map-viewer-menu.png" width="32%" alt="The map viewer's picker: the game's 32 maps by name, file and actor count">
+  <img src="docs/images/map-viewer-1.jpg" width="32%" alt="Auldale in the map viewer: the HUD, and a selected patrol point in the inspector">
+  <img src="docs/images/map-viewer-2.jpg" width="32%" alt="The same view in wireframe, with the markers of the actors that have no geometry">
+</p>
+
+How the maps are stored and converted is in [docs/assets.md](docs/assets.md).
+What the tools extract from your copy is for your own modding: don't share it.
 
 ## Buy the damn game
 
@@ -249,14 +269,20 @@ your own copy of `T3Main.exe` and writes its results into ignored folders.
   [wibo](https://github.com/decompals/wibo) instead.
 - **Matching**: `tools/agent/` is the per-function loop used by people and AI
   agents alike (claim a function, get its context, try a candidate, pass the
-  strict gate); see [docs/matching.md](docs/matching.md). Progress is published
-  on [decomp.dev](https://decomp.dev) by CI
-  ([docs/decomp-dev.md](docs/decomp-dev.md)).
+  strict gate); see [docs/matching.md](docs/matching.md).
+- **Progress**: `tools/progress_report.py write` turns a local build's objdiff
+  report into `progress/PC_20040610/report.json`, which is committed; CI
+  checks that it matches `src/` and publishes it to
+  [decomp.dev](https://decomp.dev/Veradictus/Thief3-Decomp)
+  ([docs/decomp-dev.md](docs/decomp-dev.md)). The code by unit, matched in
+  colour:
+
+  [![decomp.dev progress by unit](https://decomp.dev/Veradictus/Thief3-Decomp.svg?w=512&h=256)](https://decomp.dev/Veradictus/Thief3-Decomp)
 
 ## Contributing
 
 Questions, ideas, or want to help? Come to the
-[Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG).
+[Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ).
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages follow
 Conventional Commits, and there are hard rules about what may enter the

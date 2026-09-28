@@ -26,6 +26,7 @@ python tools/ghidra_headless.py names                              # apply symbo
 python tools/ghidra_headless.py bootstrap                          # rebuild ghidra/ + symbols.txt (~12 min)
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
 python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
+.venv/Scripts/python tools/progress_report.py write|check                          # decomp.dev report: write after integrating, commit progress/
 python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
 cd launcher && yarn install && yarn tauri dev                                      # the launcher (docs/launcher.md)
 cd launcher && yarn verify                                                         # launcher UI: types, lint, format, tests

@@ -41,7 +41,7 @@ PC are replaced in it. Look through it anyway before you post it.
 
 **Report a problem** takes you to the project's issue tracker on GitHub. Say
 what you did, what you expected and what happened instead, and attach the
-zip. For questions, the [Taffer Tavern on Discord](https://discord.gg/hdAXH73tEG)
+zip. For questions, the [Taffer Tavern on Discord](https://discord.gg/eaJkC5C6WJ)
 is quicker.
 
 Without the launcher, attach `System\T3SDK.log`, and `T3SDK.ini` if you
@@ -59,6 +59,52 @@ build is supported.
 If you used a tool that patches `T3Main.exe` itself, such as a field-of-view
 patch, the file no longer matches. Steam's **Verify integrity of game files**
 (the game's **Properties > Installed Files**) puts the original back.
+
+## Display and performance
+
+Specific symptoms from T3SDK's display fixes: what causes each one, and the
+setting that changes it. [Settings explained](settings.md#display) has every
+`[Display]` key in `T3SDK.ini`.
+
+- **The game looks choppy even at a high frame rate.** The engine's own clock
+  only moves the game world once 10 ms have passed, so above 100 fps the
+  world and the camera move on only every second or third frame, however
+  fast the game renders.
+  `SmoothFrames=1` (the default) lowers that to 1 ms, so the world moves
+  every frame. Not yet tried in the actual game: watch fast-moving things
+  (physics, jumping, mantling, rope arrows) above 100 fps, and turn it off
+  if something looks wrong.
+- **Tearing, or a frame rate that feels unpaced.** Turn on the game's own
+  VSynch (Options > Audio/Video): in the borderless window, T3SDK now makes
+  it present once per monitor refresh, the way exclusive fullscreen always
+  did. This doesn't apply together with MultiSampling; with both on, expect
+  an unpaced rate instead. `MaxFPS` caps the rate independently of
+  VSynch. Neither has been tried in the actual game yet.
+- **The menu cursor is tiny, or flickers.** That's how the game's own
+  hardware cursor behaves in a window. T3SDK's borderless window replaces it
+  with one Windows cursor scaled to your screen, on by default; this has
+  been confirmed fixed by testing. `CursorScale` sets a fixed size instead of
+  the automatic one, if you want it bigger or smaller.
+- **The game pauses when you click another window.** With
+  `PauseInBackground=0` (the default), a borderless game keeps running in
+  the background instead; pause yourself before you alt-tab away if you
+  don't want it to. Set it to `1` to bring back the game's own
+  pause-on-focus-loss behaviour.
+- **The desktop, or a black screen, appears between levels.** The game
+  restarts its whole process for every level change; that gap is normal,
+  with or without T3SDK. The loading-screen curtain keeps the outgoing
+  loading screen up until the new one is ready, but it's one of the newest
+  fixes and hasn't been tried in the actual game yet, so you may still see a
+  brief black screen instead of the loading image.
+- **The Inputs page's key table runs past its frame, or the main menu's
+  version line sits away from the bottom-left corner.** Both were bugs in
+  `WidescreenUI` on wide screens, fixed in the current T3SDK: update it.
+  With `WidescreenUI` off, the menus are the game's own 4:3 layout,
+  stretched to fill the screen.
+- **The picture looks blurry on a monitor scaled above 100%.** The game isn't aware of Windows' display
+  scaling, so Windows stretches the borderless window itself, which blurs
+  it. This is a known limitation with no fix yet; see
+  [Handoff: next steps](../handoff.md#next-steps).
 
 ## Something looks wrong
 

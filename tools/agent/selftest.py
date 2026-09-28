@@ -191,6 +191,23 @@ def test_class_method_names(base: Path) -> None:
           "integration replaces the undecorated names with the decorated ones", proc)
 
 
+def test_qualified_names(base: Path) -> None:
+    """Demangled names reduce to what symbols.txt writes, for functions and for variables."""
+    from common import qualified_name
+    for name, demangled, want in (
+        ("?execIsA@UObject@@QAEXAAVFFrame@@QAX@Z",
+         "public: void __thiscall UObject::execIsA(class FFrame &,void * const)", "UObject::execIsA"),
+        ("?GLog@@3PAVFOutputDevice@@A", "class FOutputDevice * GLog", "GLog"),
+        ("?GNatives@@3PAP8UObject@@AEXAAVFFrame@@QAX@ZA",
+         "void (__thiscall UObject::** GNatives)(class FFrame &,void * const)", "GNatives"),
+        ("?GCasts@@3PAP8UObject@@AEXAAVFFrame@@QAX@ZA",
+         "void (__thiscall UObject::* GCasts[256])(class FFrame &,void * const)", "GCasts"),
+        ("_strlen", "", "strlen"),
+    ):
+        got = qualified_name(name, demangled)
+        check(got == want, f"{name} reduces to {got}, not {want}")
+
+
 def test_wrong_literal_rejected(base: Path) -> None:
     e = Env(base, "literal")
     scale = "?Scale@@YAMPAUFoo@@@Z"
@@ -431,9 +448,9 @@ def test_compile_command_matches_configure(base: Path) -> None:
 
 TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_wrong_callee_rejected,
-    test_class_method_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap, test_claims_concurrency,
-    test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard, test_wave_dry_run,
-    test_compile_command_matches_configure,
+    test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
+    test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
+    test_wave_dry_run, test_compile_command_matches_configure,
 ]
 
 

@@ -1,0 +1,11 @@
+{
+  "Engine/UObject.cpp": {
+    "category": "engine"
+  },
+  "Game/Options.cpp": {
+    "category": "game"
+  },
+  "Game/Window.cpp": {
+    "category": "game"
+  }
+}

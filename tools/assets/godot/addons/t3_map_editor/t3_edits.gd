@@ -66,7 +66,8 @@ const SCALE_ROUND := 100000.0
 ## the node's scale (the edits file's draw_scale).
 const NODE_PROPERTIES := ['DrawScale']
 
-## The scene's actor group nodes, as written by t3map.py.
+## The actor group nodes of scenes exported before t3map.py sorted actors
+## into folders (nodes marked t3_folder).
 const GROUPS := ['StaticMeshes', 'Lights', 'Markers', 'CharacterParts']
 
 ## At most this many names are listed in one warning.
@@ -489,16 +490,30 @@ static func actor_nodes(root: Node) -> Dictionary:
 
 	return {'actors': actors, 'copies': copies}
 
-## Nodes added under the actor groups that are not T3 actors (they are not saved).
+## Nodes added among the actors that are not T3 actors (they are not saved):
+## children of the scene's folders that are neither actors nor folders.
 static func foreign_nodes(root: Node) -> Array[Node]:
 	var out: Array[Node] = []
+	for folder in actor_folders(root):
+		for c in folder.get_children():
+			if not c.has_meta('t3_name') and not c.has_meta('t3_folder'):
+				out.append(c)
+
+	return out
+
+## The scene's actor folders: the nodes marked t3_folder and, in scenes
+## exported before folders existed, the group nodes in GROUPS.
+static func actor_folders(root: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	for n in root.find_children('*', '', true, false):
+		if n.has_meta('t3_folder'):
+			out.append(n)
+
 	for group in GROUPS:
 		var g := root.get_node_or_null(group)
-		if g == null:
-			continue
-		for c in g.get_children():
-			if not c.has_meta('t3_name'):
-				out.append(c)
+		if g != null and not out.has(g):
+			out.append(g)
+
 	return out
 
 ## Names of the actors in <Level>.actors.json next to the scene, or [] if it

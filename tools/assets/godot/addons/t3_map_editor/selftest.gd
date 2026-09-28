@@ -258,7 +258,7 @@ func test_edits(packed: PackedScene) -> Dictionary:
 	yawed.get_parent().add_child(copy)
 	var extra := Marker3D.new()
 	extra.name = 'NewMarker'
-	root.get_node('Markers').add_child(extra)
+	yawed.get_parent().add_child(extra)
 	var gone := actor(root, 'LevelInfo0')
 	gone.get_parent().remove_child(gone)
 	gone.free()

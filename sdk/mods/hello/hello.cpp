@@ -10,6 +10,7 @@
 
 #include <cstring>
 #include <map>
+#include <mutex>
 #include <string>
 
 namespace {
@@ -18,9 +19,15 @@ const T3SdkApi* g_api = nullptr;
 bool g_engineUp = false;
 DWORD g_lastReport = 0;
 T3Object* g_playerControllerClass = nullptr;
+// Engine log callbacks run on whichever thread logged, frame callbacks on the
+// main thread: the counts they share are locked.
 std::map<std::string, int> g_logLines;
+std::mutex g_logLinesMutex;
 
-void T3SDK_CALL OnEngineLog(void*, const char*, const char* category) { ++g_logLines[category]; }
+void T3SDK_CALL OnEngineLog(void*, const char*, const char* category) {
+    std::lock_guard<std::mutex> lock(g_logLinesMutex);
+    ++g_logLines[category];
+}
 
 T3Object* FindPlayerController() {
     if (!g_playerControllerClass) {
@@ -62,8 +69,11 @@ void T3SDK_CALL OnFrame(void*) {
         g_api->ObjectPathName(pc, controller, sizeof(controller));
     }
     std::string lines;
-    for (const auto& [category, count] : g_logLines) {
-        lines += category + "=" + std::to_string(count) + " ";
+    {
+        std::lock_guard<std::mutex> lock(g_logLinesMutex);
+        for (const auto& [category, count] : g_logLines) {
+            lines += category + "=" + std::to_string(count) + " ";
+        }
     }
     g_api->Log("%d live objects; player controller %s; engine log lines: %s", live, controller, lines.c_str());
 }

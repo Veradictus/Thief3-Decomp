@@ -1,85 +1,74 @@
 # Progress on decomp.dev
 
-[decomp.dev](https://decomp.dev) shows the progress of public matching
-decompilations. It reads the objdiff report that this repository's CI builds;
-nothing is uploaded by hand. Findings behind this setup (how the site finds
-reports, how other projects feed CI the original binary) are in
-[research/llm-matching.md](research/llm-matching.md), section 3.
+[decomp.dev](https://decomp.dev/Veradictus/Thief3-Decomp) shows the progress
+of public matching decompilations. It reads an objdiff report that this
+repository's CI uploads; nothing is uploaded by hand. How the site finds
+reports is in [research/llm-matching.md](research/llm-matching.md), section 3.
 
-## How the report is built
+## How the report gets there
 
-`.github/workflows/build.yml` runs on every push and pull request:
+The report comes from a local build: CI cannot make it, because the build
+splits `T3Main.exe`, which never enters the repository or CI.
 
-1. It starts in a **private** container image that holds
-   `/orig/PC_20040610/T3Main.exe`, and copies `/orig` into the checkout.
-2. `configure.py` downloads the pinned tools (objdiff-cli, delink, wibo, the
-   MSVC 7.1 bundle) and checks the exe's SHA-1.
-3. `ninja all_source build/PC_20040610/report.json progress` splits the exe,
-   compiles `src/`, and writes the report.
-4. The report is uploaded as the artifact `PC_20040610_report`. decomp.dev
-   takes the newest one from a completed push run on the default branch.
+1. After integrating matched functions ([matching.md](matching.md)), run
+   `python tools/progress_report.py write` on a machine with `orig/`. It runs
+   ninja, which compiles `src/` and has objdiff compare every unit with the
+   split exe (`build/PC_20040610/report.json`), checks that the report
+   describes the tree, and copies it to `progress/PC_20040610/report.json`,
+   one line per function so that a new match is a small diff.
+2. Commit that file with the source.
+3. On every push and pull request, `.github/workflows/build.yml` (workflow
+   "progress") runs `python tools/progress_report.py check`, validates the
+   report with objdiff, and uploads it as the artifact `PC_20040610_report`.
+   decomp.dev takes it from the latest push run on the default branch.
 
-Until the repository variable `T3_BUILD_IMAGE` names that image, the build
-job is skipped and a **baseline** job runs instead: `tools/baseline_report.py`
-writes a report with the same units and categories from `symbols.txt` alone,
-every function unmatched (data is left unmeasured), and uploads it under the
-same artifact name. That is enough to register the project on decomp.dev,
-which refuses a repository without a report ("No workflow runs containing
-reports found"). It never shows progress: matched code counts only once the
-real build runs.
+`check` needs neither the exe nor the compiler. It fails when `src/`,
+`splits.txt` or `symbols.txt` changed without a new report: the report's
+units must be the ones `configure.py` plans, with the same functions (by
+address), and the functions it compiles must be exactly those with a
+`// FUNCTION:` line in `src/`. Renaming symbols does not make the report
+stale; adding a function, resizing one or integrating does.
+
+The report holds names, addresses, sizes and match percentages, and no bytes
+of the game. CI cannot prove the matches it lists: `tools/agent/accept.py`
+proved each one before it entered `src/` (see "Keeping the number honest").
+Other decompilations without a redistributable binary publish the same way,
+for example [rac1-decomp](https://github.com/Lynder063/rac1-decomp)
+(`progress/report.json`).
 
 Progress categories (set in `configure.py`): **main** "Game & engine" is the
-headline, with **game** and **engine** under it; **libs** is the MSVC runtime,
-STL and D3DX, matched from library objects rather than decompiled. Units get a
-category from `UNITS` or, failing that, from their address (before the CRT
-entry point `0x10D1F7AF` and the `.text$x` funclets: main; after: libs).
+headline, with **game** and **engine** under it; **libs** is qhull, the MSVC
+runtime, STL, D3DX and Havok, matched from library objects or original
+sources rather than decompiled. Units get a category from `UNITS` or
+`config/<version>/units.json`, or failing that from their address (before
+`LIBRARY_START`, `0x10CFBFB0`, where qhull and then the C runtime begin, and
+the `.text$x` funclets: main; after: libs).
 
 ## One-time setup (repository owner)
 
-**Register first** (no exe needed): once `build.yml` with the baseline job is
-on the default branch and a push to it has run the workflow (Actions tab, a
-green "build" run with a `PC_20040610_report` artifact), do step 4. Steps 1-3
-switch the report from the baseline to the real build; they are needed before
-matched code can show as progress.
+The repository is registered (at <https://decomp.dev/manage/new>, platform
+*Windows (win32)*). Left to do on decomp.dev, signed in as an admin of the
+repository:
 
-1. **The build image.** Create a *private* repository, for example
-   `<owner>/t3-build`, from
-   [encounter/dtk-template-build](https://github.com/encounter/dtk-template-build)
-   or from scratch. Put the Steam `T3Main.exe` (SHA-1
-   `40bf68a54246bcde2fb5fcbc75b94dc7c7f78305`) at `orig/PC_20040610/T3Main.exe`
-   and use this `Dockerfile`:
+- In the project's settings, set the default category to **main**, so the
+  headline counts the game and its engine rather than the libraries too.
+- Optionally install the decomp.dev GitHub App, which comments on pull
+  requests with the functions they improve or regress.
 
-   ```dockerfile
-   FROM python:3.12-slim
-   RUN apt-get update && apt-get install -y --no-install-recommends ninja-build git \
-       && rm -rf /var/lib/apt/lists/*
-   COPY orig /orig
-   CMD ["bash"]
-   ```
-
-   The template's workflow builds it and pushes `ghcr.io/<owner>/t3-build:main`
-   on every push. Keep the repository and the package private: they contain the
-   game's executable.
-2. **Access.** In the package's settings on GitHub (Packages → t3-build →
-   Package settings → Manage Actions access), add this repository with the
-   *Read* role.
-3. **The variable.** In this repository: Settings → Secrets and variables →
-   Actions → Variables, add `T3_BUILD_IMAGE` = `ghcr.io/<owner>/t3-build:main`.
-   The next push builds the real report, and the baseline job stops.
-4. **decomp.dev.** Sign in at <https://decomp.dev/manage/new> with a GitHub
-   account that is an admin of this repository, pick the repository, platform
-   *Windows (win32)*, and set the default category to **main**. Installing the
-   decomp.dev GitHub App adds per-PR comments listing improved and regressed
-   functions, which helps when reviewing agent work.
-
-A project stays hidden on decomp.dev until 0.5% of its code matches (about
-21 KB of the 4.2 MB game and engine code).
+A project stays hidden from decomp.dev's list until 0.5% of its code matches
+(about 21 KB of the game and engine code, 27 KB of everything); its page and
+badges work before that.
 
 ## Badges
 
+The README shows these. decomp.dev's shields take `style=flat` (the
+default), `plastic` or `flatsquare`; `forthebadge` is refused at the moment.
+
 ```markdown
-![Code](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=code&label=Code)
-![Progress](https://decomp.dev/Veradictus/Thief3-Decomp.svg?w=512&h=256)
+[![Decompiled](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=matched_code_percent&category=main&label=Decompiled)](https://decomp.dev/Veradictus/Thief3-Decomp)
+[![Functions](https://decomp.dev/Veradictus/Thief3-Decomp.svg?mode=shield&measure=matched_functions&category=main&label=Functions)](https://decomp.dev/Veradictus/Thief3-Decomp)
+[![Progress report](https://github.com/Veradictus/Thief3-Decomp/actions/workflows/build.yml/badge.svg)](https://github.com/Veradictus/Thief3-Decomp/actions/workflows/build.yml)
+![Progress chart](https://decomp.dev/Veradictus/Thief3-Decomp.svg?w=512&h=256)
 ```
 
 ## Keeping the number honest
@@ -92,3 +81,7 @@ constants all sit at offset 0). So functions enter `src/` only through
 `tools/agent/accept.py`, which checks callees and data values by address and by
 value (see [matching.md](matching.md)): the report is the progress display, the
 gate is the proof.
+
+The report also under-counts: objdiff scores some functions the gate matched
+just below 100% (EH frames, references into a named array at an offset; see
+[matching.md](matching.md), "objdiff's report and the gate").

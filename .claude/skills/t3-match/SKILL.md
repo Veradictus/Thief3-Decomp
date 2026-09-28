@@ -16,7 +16,7 @@ Your worker id comes from `$T3_AGENT_ID` (wave.py sets it).
 ## The loop
 
 1. **Claim.** `python tools/agent/next.py claim` prints JSON: `addr`,
-   `symbol` (the symbols.txt name, often a placeholder like `FUN_10a52530`),
+   `symbol` (the symbols.txt name, often a placeholder like `FUN_10a52420`),
    `size`, `callees`, and `siblings` (accepted functions nearby). If
    `empty` is true, the queue is done: stop.
 2. **Read the context.** `python tools/agent/context.py <addr>`: the target's
@@ -33,7 +33,7 @@ Your worker id comes from `$T3_AGENT_ID` (wave.py sets it).
    struct Foo { int a; int b; int Get() const; };   // what the function needs
    int Helper(int);          // callees: declared, never defined (see the cheat sheet)
 
-   // FUNCTION: 0x10A52530
+   // FUNCTION: 0x10A52420
    int Foo::Get() const
    {
        return a + Helper(b);
@@ -94,6 +94,24 @@ Then claim the next function.
   Don't try to work around it; put what you need in `needs`.
 - Don't raise the attempt cap or replace someone else's accepted function.
 
+## Names need evidence
+
+`config/PC_20040610/symbols.txt` is the project's name database, and
+integration copies your names into it. So name only what the context shows:
+the name `symbols.txt` or a header gives, a class an accepted function
+established, a string the function uses, what its callees are known to do.
+Without evidence, keep placeholders:
+
+- a free function keeps its placeholder name: `void FUN_10926680();`
+- a member of an unidentified class goes into a class named after the
+  class's vtable when the code shows it (a constructor storing `0x10E6BBCC`
+  at `[this]` is in `Class_10E6BBCC`), else after the function
+  (`Class_10926680`), and keeps its placeholder method name;
+- a field gets a name when the code shows what it holds (`Flags`, `Parent`),
+  else its offset (`Unknown34`).
+
+A wrong name misleads every reader after you; a placeholder costs nothing.
+
 ## Systemic blockers: recognise them, then defer
 
 - The same register-allocation or instruction-order difference survives
@@ -112,7 +130,7 @@ Then claim the next function.
 End your run with one line of JSON, and nothing after it:
 
 ```json
-{"agent": "w03", "matched": ["0x10A52530"], "deferred": [{"addr": "0x10A52600", "best": 87.5, "why": "register allocation in the loop"}], "needs": ["a header for Foo: the target reads fields at +0x30 and +0x34"], "idioms": ["x * 6 compiles to lea eax, [eax+eax*0x2]; shl eax, 0x1"]}
+{"agent": "w03", "matched": ["0x10A52420"], "deferred": [{"addr": "0x10A52440", "best": 87.5, "why": "register allocation in the loop"}], "needs": ["a header for Foo: the target reads fields at +0x30 and +0x34"], "idioms": ["x * 6 compiles to lea eax, [eax+eax*0x2]; shl eax, 0x1"]}
 ```
 
 `needs` lists headers, layouts, names and declarations the lead should

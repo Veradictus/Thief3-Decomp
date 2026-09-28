@@ -11,7 +11,7 @@ goes to a unit:
     (free functions: <Category>/Unsorted.cpp), where the category is --category,
     or "engine" for Unreal-style class names (UObject, AActor, FName), else
     "game".
-Library code (from the CRT entry point on, outside .text$x) is not published
+Library code (from configure.py's LIBRARY_START on, outside .text$x) is not published
 (CONTRIBUTING.md): it is skipped unless --category libs.
 
 For each unit the tool assembles the file (the accepted files' declarations,
@@ -360,8 +360,8 @@ def main() -> None:
     elif args.dry_run:
         print("dry run: nothing written")
     else:
-        print("written. Next: python configure.py && ninja, then compare the report with the previous one "
-              "(objdiff-cli report changes)")
+        print("written. Next: python configure.py && ninja, compare the report with the previous one "
+              "(objdiff-cli report changes), then python tools/progress_report.py write and commit progress/")
 
 
 def integrate(p: Project, args) -> dict:

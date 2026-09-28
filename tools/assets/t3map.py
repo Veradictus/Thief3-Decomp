@@ -14,7 +14,9 @@ Output (default build/assets/godot/, itself a Godot 4.7 project):
                                  light, instance gamesys properties, links
   <Level>/<Level>.tscn           Node3D scene: static meshes instanced from
                                  .glb files, OmniLight3D/SpotLight3D for lights,
-                                 Marker3D for everything else; T3 data in node metadata
+                                 Marker3D for everything else, sorted into folders by
+                                 what they are and named after it (a mesh, an archetype,
+                                 the item's in-game name); T3 data in node metadata
   <Level>/meshes/*.glb           one per (mesh, skin) pair used by the level
   <Level>/textures/*.png
   <Level>/meshes/<Level>_bsp.glb  BSP render blocks from the Level object (t3bsp.py)
@@ -80,6 +82,8 @@ class PropIds:
         self.light_shape = get("LightShape")
         self.light_type = get("FleshLightType")
         self.light_on = get("bLightOn")
+        self.inv_name = get("InvName")
+        self.book_file = get("BookFileName")
 
 
 @dataclass
@@ -102,6 +106,10 @@ class ActorRecord:
     links: List[str] = field(default_factory=list)
     attached_to: Optional[str] = None     # parent actor of an attachment link
     attached_bone: Optional[str] = None   # parent hardpoint/bone
+    family: List[str] = field(default_factory=list)  # archetype display names, most derived first
+    inv_name: Optional[str] = None        # InvName string tag of an item (t_daggerloot)
+    display_name: Optional[str] = None    # the name the game shows for it, from the string tables
+    book: Optional[str] = None            # BookFileName of a readable
     error: Optional[str] = None
 
 
@@ -181,6 +189,26 @@ def _block_value(blocks: Dict[int, GamesysBlock], pid: Optional[int], default: A
     return default if b is None else b.value
 
 
+def string_tag(value: Any) -> Optional[str]:
+    """A string-table tag from a gamesys value: InvName holds either a name
+    (t_CourierBag) or a string written as <string=t_WaterArrow>."""
+    if not isinstance(value, str):
+        return None
+    tag = value.strip()
+    if tag.startswith("<string=") and tag.endswith(">"):
+        tag = tag[len("<string="):-1].strip()
+    return tag if tag and tag != "None" else None
+
+
+def resolve_display_names(actors: List[ActorRecord], strings: Dict[str, str]) -> None:
+    """Fills in the name the game shows for each item (InvName through the
+    string tables, whose tags differ in case: t_daggerloot, t_WaterArrow)."""
+    by_tag = {k.lower(): v for k, v in strings.items()}
+    for rec in actors:
+        if rec.inv_name:
+            rec.display_name = by_tag.get(rec.inv_name.lower()) or None
+
+
 def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[ActorRecord]:
     ids = PropIds(names)
     actors = []
@@ -196,6 +224,7 @@ def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[Acto
         if cls.upper().startswith("D_"):
             rec.archetype = gs.display(cls)
             rec.base = gs.engine_class(cls)
+            rec.family = [a.display for a in gs.chain(cls)]
             merged = {**gs.resolved(cls), **own}
         else:
             rec.base = cls
@@ -215,6 +244,9 @@ def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[Acto
         rec.tag = tag if isinstance(tag, str) else None
         grp = _block_value(merged, ids.group)
         rec.group = grp if isinstance(grp, str) else None
+        rec.inv_name = string_tag(_block_value(merged, ids.inv_name))
+        book = _block_value(merged, ids.book_file)
+        rec.book = book if isinstance(book, str) and book.strip() else None
         # lights: anything with a Flesh light type or a LightColor
         ltype = _block_value(merged, ids.light_type)
         color = struct_fields(_block_value(merged, ids.light_color))
@@ -275,6 +307,115 @@ def _node_name(name: str, used: Dict[str, int]) -> str:
     return n
 
 
+# --- scene layout ------------------------------------------------------------------------
+# Actors are sorted into folders by what they are and named after it (the name
+# the game shows for an item, an archetype, a mesh) instead of their object
+# names, which stay in the t3_name metadata. The map editor plugin finds actors
+# by that metadata, so the layout can change without breaking saved edits.
+
+# Top-level folders, in scene order. The hidden ones hold editor-only actors,
+# and parts that would float in the air without the skeletons they belong to.
+FOLDER_ORDER = ("Geometry", "Objects", "Characters", "Lights", "Effects", "Sounds", "AI navigation",
+                "Player starts", "Volumes and zones", "Level and mission", "Cameras", "Other", "Brushes",
+                "Editor cameras", "Character parts")
+HIDDEN_FOLDERS = {"Brushes", "Editor cameras", "Character parts"}
+UNGROUPED = "Ungrouped"
+
+# Archetypes too generic to name a folder after (the roots of the tree).
+GENERIC_ARCHETYPES = {"WorldObj"}
+NAV_POINTS = {"PatrolPoint", "WanderPoint", "FleePoint", "LookPoint", "PlayAnimPoint", "AddAIPoint",
+              "NavMeshInsertionPoint", "PathNode"}
+LEVEL_CLASSES = {"LevelInfo", "EnterMissionInfo", "ExitMissionInfo", "DifficultyInfo", "NorthMarker", "Marker"}
+ZONE_CLASSES = {"ZoneProperties", "ZoneInfo", "SkyZoneInfo"}
+
+# Characters Godot does not allow in node names.
+INVALID_NODE_CHARS = set('.:@/"%')
+
+
+def editor_groups(rec: ActorRecord) -> List[str]:
+    """The level designers' editor groups (the Group property, comma-separated), without "None"."""
+    return [g.strip() for g in (rec.group or "").split(",") if g.strip() and g.strip() != "None"]
+
+
+def family_of(rec: ActorRecord) -> Optional[str]:
+    """The archetype family: the most generic archetype below the tree's
+    generic roots, such as SetDressing for the Inn's footprints or
+    CityWatchGuard for a watch guard. None for actors without an archetype."""
+    for name in reversed(rec.family):  # most generic first
+        if name in GENERIC_ARCHETYPES or name.startswith("T3AIPawn"):
+            continue
+        return name
+    return rec.family[0] if rec.family else None
+
+
+def actor_folder(rec: ActorRecord, character_part: bool) -> Tuple[str, ...]:
+    """The folder an actor goes into: a top-level folder and, for most, a subfolder."""
+    cls, base = rec.cls, rec.base or rec.cls
+    family = family_of(rec)
+    if character_part:
+        return ("Character parts",)
+    if cls == "StaticMeshActor":
+        groups = editor_groups(rec)
+        return ("Geometry", groups[0] if groups else UNGROUPED)
+    if "Pawn" in base:
+        return ("Characters", family or cls)
+    if base == "Emitter" or cls == "Emitter":
+        return ("Effects", family or "Emitters")
+    if base == "FX":
+        return ("Lights",) if rec.light is not None else ("Effects", family or "FX")
+    if rec.family and base == "Actor":
+        return ("Objects", family or cls)
+    if rec.light is not None:
+        return ("Lights",)
+    if cls == "AmbientSound" or "Sound" in base:
+        return ("Sounds",)
+    if cls in NAV_POINTS:
+        return ("AI navigation", cls)
+    if cls == "PlayerStart":
+        return ("Player starts",)
+    if "Volume" in cls or "Volume" in base or cls in ZONE_CLASSES:
+        return ("Volumes and zones", cls)
+    if cls in LEVEL_CLASSES or base in LEVEL_CLASSES:
+        return ("Level and mission",)
+    if cls == "Camera":
+        return ("Editor cameras",)
+    if cls == "CameraPoint":
+        return ("Cameras",)
+    if cls == "Brush":
+        return ("Brushes",)
+    return ("Other", cls)
+
+
+def actor_label(rec: ActorRecord) -> str:
+    """What an actor is, for its node name: the name the game shows for an
+    item, else its archetype or mesh, else its class with a telling detail."""
+    label = rec.display_name or rec.archetype or (rec.mesh if rec.cls == "StaticMeshActor" else None) or rec.cls
+    if rec.book:
+        label += f" ({Path(rec.book).stem})"
+    dest = rec.gamesys.get("TeleportDestName")
+    if rec.cls == "PlayerStart" and isinstance(dest, str) and dest not in ("", "None"):
+        label += f" {dest}"
+    elif not (rec.display_name or rec.archetype or rec.mesh) and rec.tag and rec.tag not in (rec.cls, rec.base):
+        label += f" {rec.tag}"
+    return label
+
+
+def instance_number(name: str) -> Optional[int]:
+    """N in an object name Name__N (FName's instance number, as printed)."""
+    _, sep, tail = name.rpartition("__")
+    return int(tail) if sep and tail.isdigit() else None
+
+
+def scene_node_name(label: str, used: Dict[str, int]) -> str:
+    """`label` as a node name Godot accepts, unique among its siblings."""
+    n = "".join(c for c in label if c not in INVALID_NODE_CHARS and c.isprintable()).strip() or "Node"
+    if n in used:
+        used[n] += 1
+        return f"{n} ({used[n]})"
+    used[n] = 1
+    return n
+
+
 def _fmt_exact(v: float) -> str:
     """Float for a scene transform: enough digits to round-trip Godot's 32-bit
     floats, so the map editor plugin can tell moved actors from unmoved ones
@@ -327,23 +468,16 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
     stored on the root for the edits file of the map editor plugin."""
     ext: Dict[str, str] = {}
     lines_nodes: List[str] = []
-    used: Dict[str, int] = {}
-    groups = {"StaticMeshes": [], "Lights": [], "Markers": [], "CharacterParts": []}
     pawns = {a.name for a in actors if "Pawn" in (a.base or "")}
+    folders: Dict[Tuple[str, ...], List[ActorRecord]] = {}
     for rec in actors:
         key = (rec.mesh or "", rec.skin or "Default")
-        if rec.attached_to in pawns and rec.mesh and key in mesh_files:
-            # eyes, teeth, hair, armour... attached to NPC skeletons, which are
-            # not exported yet: keep them, hidden, instead of floating in the air
-            groups["CharacterParts"].append(rec)
-        elif rec.mesh and key in mesh_files:
-            groups["StaticMeshes"].append(rec)
-        elif rec.light is not None:
-            groups["Lights"].append(rec)
-        else:
-            groups["Markers"].append(rec)
+        # eyes, teeth, hair, armour... attached to NPC skeletons, which are not
+        # exported yet: kept, hidden, instead of floating in the air
+        part = rec.attached_to in pawns and bool(rec.mesh) and key in mesh_files
+        folders.setdefault(actor_folder(rec, part), []).append(rec)
 
-    def meta(rec: ActorRecord) -> List[str]:
+    def meta(rec: ActorRecord, folder: str) -> List[str]:
         out = [f"metadata/t3_name = {_tscn_str(rec.name)}", f"metadata/t3_class = {_tscn_str(rec.cls)}"]
         if rec.archetype:
             out.append(f"metadata/t3_archetype = {_tscn_str(rec.archetype)}")
@@ -362,6 +496,16 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
             out.append(f"metadata/t3_gamesys = {_tscn_str(json.dumps(rec.gamesys, default=str))}")
             if rec.gamesys_types:
                 out.append(f"metadata/t3_gamesys_types = {_tscn_str(json.dumps(rec.gamesys_types))}")
+        if rec.display_name:
+            out.append(f"metadata/t3_display_name = {_tscn_str(rec.display_name)}")
+        if rec.family:
+            out.append(f"metadata/t3_family = {_tscn_str(' > '.join(reversed(rec.family)))}")
+        groups = editor_groups(rec)
+        if groups:
+            out.append(f"metadata/t3_groups = {_tscn_str(', '.join(groups))}")
+        if rec.book:
+            out.append(f"metadata/t3_book = {_tscn_str(rec.book)}")
+        out.append(f"metadata/t3_category = {_tscn_str(folder)}")
         out.append(f"metadata/t3_origin = {_tscn_str(json.dumps(origin_meta(rec)))}")
         if default_start and rec.name == default_start:
             out.append("metadata/t3_default_start = true")
@@ -388,30 +532,56 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
         out.append(f"metadata/t3_light = {_tscn_str(json.dumps(lt))}")
         return out
 
-    for group, recs in groups.items():
-        lines_nodes.append(f'\n[node name="{group}" type="Node3D" parent="."]')
-        if group == "CharacterParts":
-            lines_nodes.append("visible = false")
-        lines_nodes.append("")
-        gused: Dict[str, int] = {}
-        for rec in recs:
-            nn = _node_name(rec.name, gused)
-            if group in ("StaticMeshes", "CharacterParts"):
-                f = mesh_files[(rec.mesh or "", rec.skin or "Default")]
-                if f not in ext:
-                    ext[f] = f"{len(ext) + 1}_mesh"
-                lines_nodes.append(f'\n[node name="{nn}" parent="{group}" instance=ExtResource("{ext[f]}")]')
-                lines_nodes.append(f"transform = {transform3d(rec, scale)}")
-                lines_nodes.extend(meta(rec))
-                if rec.light is not None:  # lamps, candles: mesh plus light
-                    lines_nodes.extend(light_lines(rec, "T3Light", f"{group}/{nn}", False))
+    def actor_lines(rec: ActorRecord, name: str, parent: str) -> List[str]:
+        key = (rec.mesh or "", rec.skin or "Default")
+        if rec.mesh and key in mesh_files:
+            f = mesh_files[key]
+            if f not in ext:
+                ext[f] = f"{len(ext) + 1}_mesh"
+            out = [f'\n[node name="{name}" parent="{parent}" instance=ExtResource("{ext[f]}")]',
+                   f"transform = {transform3d(rec, scale)}"]
+            out.extend(meta(rec, parent))
+            if rec.light is not None:  # lamps, candles: mesh plus light
+                out.extend(light_lines(rec, "T3Light", f"{parent}/{name}", False))
+            return out
+        if rec.light is not None:
+            out = light_lines(rec, name, parent, True)
+        else:
+            out = [f'\n[node name="{name}" type="Marker3D" parent="{parent}"]',
+                   f"transform = {transform3d(rec, scale)}"]
+        out.extend(meta(rec, parent))
+        return out
+
+    def folder_order(folder: Tuple[str, ...]) -> Tuple[Any, ...]:
+        top = FOLDER_ORDER.index(folder[0]) if folder[0] in FOLDER_ORDER else len(FOLDER_ORDER)
+        return (top, tuple((sub == UNGROUPED, sub.lower()) for sub in folder[1:]))
+
+    def actor_order(rec: ActorRecord) -> Tuple[Any, ...]:
+        number = instance_number(rec.name)
+        return (actor_label(rec).lower(), -1 if number is None else number, rec.name)
+
+    # Folders in a fixed order (subfolders alphabetically, Ungrouped last), and
+    # in each the actors by name, so instances of the same mesh sit together.
+    folder_paths: Dict[Tuple[str, ...], str] = {}
+    for folder in sorted(folders, key=folder_order):
+        for depth in range(1, len(folder) + 1):
+            sub = folder[:depth]
+            if sub in folder_paths:
                 continue
-            if group == "Lights":
-                lines_nodes.extend(light_lines(rec, nn, group, True))
-            else:
-                lines_nodes.append(f'\n[node name="{nn}" type="Marker3D" parent="{group}"]')
-                lines_nodes.append(f"transform = {transform3d(rec, scale)}")
-            lines_nodes.extend(meta(rec))
+            parent = folder_paths.get(sub[:-1], ".")
+            name = scene_node_name(sub[-1], {})
+            lines_nodes.append(f'\n[node name="{name}" type="Node3D" parent="{parent}"]')
+            if depth == 1 and sub[0] in HIDDEN_FOLDERS:
+                lines_nodes.append("visible = false")
+            lines_nodes.append("metadata/t3_folder = true")
+            folder_paths[sub] = name if parent == "." else f"{parent}/{name}"
+
+        parent = folder_paths[folder]
+        used: Dict[str, int] = {}
+        for rec in sorted(folders[folder], key=actor_order):
+            number = instance_number(rec.name)
+            label = actor_label(rec) + ("" if number is None else f" #{number}")
+            lines_nodes.extend(actor_lines(rec, scene_node_name(label, used), parent))
 
     env = level_environment(actors)
     steps = len(ext) + 1 + (1 if bsp_file else 0) + (1 if env else 0)
@@ -661,6 +831,7 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
     t0 = time.time()
     pkg = Package(gmp)
     actors = extract_actors(pkg, names, gs)
+    resolve_display_names(actors, strings or {})
     links = extract_links(pkg)
     apply_attachments(actors, links)
     source = source_info(gmp)

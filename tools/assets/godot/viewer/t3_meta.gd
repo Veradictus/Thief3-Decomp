@@ -3,8 +3,9 @@ extends RefCounted
 ## Reads the T3 metadata the exporter stores on scene nodes and turns a pick
 ## result into something an inspector can show.
 ##
-## Actor nodes (instances in StaticMeshes, lights, markers) carry t3_name,
-## t3_class, t3_archetype, t3_base, t3_mesh, t3_skin, t3_tag, t3_attached_to,
+## Actor nodes (mesh instances, lights and markers, in the scene's folders)
+## carry t3_name, t3_class, t3_archetype, t3_base, t3_mesh, t3_skin, t3_tag,
+## t3_display_name, t3_family, t3_groups, t3_book, t3_category, t3_attached_to,
 ## t3_attached_bone, t3_gamesys (JSON), t3_light (JSON).  Nodes and materials
 ## inside the exported .glb files carry glTF "extras" (t3_mesh, t3_block_id,
 ## t3_material, stages, category...).
@@ -59,11 +60,15 @@ static func describe(hit: Dictionary, units_per_meter: float) -> Dictionary:
 		# An actor's own node (mesh instance, light or marker) carries the t3_* metadata.
 		var cls := String(actor.get_meta('t3_class', ''))
 		var arche := String(actor.get_meta('t3_archetype', ''))
-		info['title'] = arche if arche != '' else cls
+		var shown := String(actor.get_meta('t3_display_name', ''))
+
+		# The name the game shows for an item, else its archetype, else its class.
+		info['title'] = shown if shown != '' else (arche if arche != '' else cls)
 		info['subtitle'] = String(actor.get_meta('t3_name', actor.name))
 		info['target'] = actor
-		for pair in [['Class', 't3_class'], ['Base class', 't3_base'], ['Archetype', 't3_archetype'],
-				['Mesh', 't3_mesh'], ['Skin', 't3_skin'], ['Tag', 't3_tag'],
+		for pair in [['In game', 't3_display_name'], ['Class', 't3_class'], ['Base class', 't3_base'],
+				['Archetype', 't3_archetype'], ['Family', 't3_family'], ['Mesh', 't3_mesh'], ['Skin', 't3_skin'],
+				['Tag', 't3_tag'], ['Editor groups', 't3_groups'], ['Book', 't3_book'], ['Folder', 't3_category'],
 				['Attached to', 't3_attached_to'], ['Attach bone', 't3_attached_bone']]:
 			if actor.has_meta(pair[1]) and String(actor.get_meta(pair[1])) != '':
 				fields.append([pair[0], String(actor.get_meta(pair[1]))])
