@@ -62,3 +62,6 @@ Thumbs.db
 /launcher/src-tauri/target/
 /launcher/src-tauri/gen/
 /launcher/src-tauri/bundle/
+
+# Agent worktrees
+/.claude/worktrees/

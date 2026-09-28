@@ -120,8 +120,23 @@ left untouched.
   its own files to the game's `System/` folder, and removing it deletes
   exactly those. Installing an edited map replaces that one map, after the
   original is backed up.
+- Content mods (texture packs and other file replacements) are applied the
+  same way: the original files are kept in `System/mods/originals/` and put
+  back when the mod is switched off.
 - The software is provided as is, without warranty of any kind. Back up your
   saves before modding.
+
+### License
+
+Everything in this repository is under the [MIT license](LICENSE), including
+the matching decompilation. The MIT license covers the contributors' own
+work: the matching source is new code written to compile to the same machine
+code, and it grants no rights to the game itself, its executable, its content
+or its names, which stay with their owners. Building or using any of it needs
+your own copy of the game. Third-party code we ship (MinHook in the SDK,
+Python in the launcher) keeps its own license; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Security reports:
+[SECURITY.md](SECURITY.md).
 
 ## Write a mod
 
