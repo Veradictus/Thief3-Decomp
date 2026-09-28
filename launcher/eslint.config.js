@@ -47,4 +47,10 @@ export default defineConfig(
     },
   },
   { files: ["*.config.js"], extends: [ts.configs.disableTypeChecked] },
+  {
+    // Node scripts (the `yarn tauri` wrapper): Node's globals, no type information.
+    files: ["scripts/*.js"],
+    extends: [ts.configs.disableTypeChecked],
+    languageOptions: { globals: { ...globals.node } },
+  },
 );
