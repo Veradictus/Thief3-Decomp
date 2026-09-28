@@ -34,13 +34,13 @@ decompilation** worked mostly by Claude agents under the strict gate in
   in the game yet. The launcher builds and runs on Windows (`yarn tauri
   dev`); it needs Rust's MSVC toolchain, which `yarn tauri` selects on its
   own (see [launcher.md](launcher.md)).
-- Matching runs on the real split. Eight functions are matched and accepted
-  (`src/Game/Window.cpp`, `src/Game/Options.cpp`; four `UObject` natives
-  accepted, not yet integrated). The game's native table named 234 `UObject`
-  script natives (`docs/engine.md`, "Script natives"), and
-  `include/Core/Core.h` has what they need. `wave.py --name '^UObject::exec'`
-  works through them. decomp.dev lists the project (hidden below 0.5%
-  matched), but CI still publishes the baseline: see next step 2.
+- Matching runs on the real split: 57 functions are matched and integrated
+  (`src/Game/`, and 53 `UObject` script natives in `src/Engine/UObject.cpp`,
+  about 1.7 KB). The game's native table named 234 natives (`docs/engine.md`,
+  "Script natives"); `include/Core/Core.h` has what they need, and
+  `wave.py --name '^UObject::exec'` works through the rest (the first wave:
+  six Sonnet workers, 32 matched, $21). decomp.dev lists the project (hidden
+  below 0.5% matched), but CI still publishes the baseline: see next step 2.
 
 ## What exists
 
@@ -177,14 +177,22 @@ Later the same day, played by the user:
    once the private build image and the `T3_BUILD_IMAGE` variable switch CI to
    the real report ([decomp-dev.md](decomp-dev.md), steps 1-3). Needs the
    owner's GitHub account.
-3. **Matching**: integrate accepted functions (`integrate.py --dry-run`,
-   then without), review their names, rebuild, and commit. Continue the
-   natives (`wave.py --name '^UObject::exec'`); they need `FString`,
-   `FVector` and `FRotator` in `include/Core/` next (workers declare them
-   locally until then). Still unchecked on the real split: a switch table, EH
-   funclets, the data ruler on literals ([matching.md](matching.md)). Pin the
-   compiler flags with varied functions (`/G6` vs `/G7`, `/GS`) before large
-   waves outside the natives.
+3. **Matching**:
+   - Make objdiff's report count what the gate matched. The split objects
+     read `fs:[0x0]` where compiled code refers to `__except_list`, so every
+     function with an EH frame scores 99.x% (a post-split fixup adding those
+     relocations would do), and a reference into a named array at an offset
+     (`GNatives[2 * 256 + B]`) becomes a `DAT_` label of its own
+     (execHighNative1-15 score 99.67%).
+   - Continue the natives (`wave.py --name '^UObject::exec'`, about 180
+     left). Review every accepted file before integrating: workers stand in
+     for what the header lacks (local types, `Shim` subclasses to reach
+     undeclared members, `DAT_` slices of tables); add the real declarations
+     to `include/Core/Core.h`, redo those functions and accept them again.
+   - Still unchecked on the real split: a switch table and the data ruler on
+     float literals ([matching.md](matching.md)). Pin the compiler flags with
+     varied functions (`/G6` vs `/G7`, `/GS`) before large waves outside the
+     natives.
 4. **SDK generator** (roadmap 2 below): the class layouts it emits are what
    matching agents most need (wrong offsets are the top failure in every
    published agent decomp).

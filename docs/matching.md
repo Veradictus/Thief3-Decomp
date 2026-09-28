@@ -312,11 +312,30 @@ The self-test cannot cover these, so they were checked on the real split:
 - next.py's queue over the full `symbols.txt`: about 17,800 functions,
   ordered by instruction features (iced-x86) in about 4 seconds.
 
+- An EH function (`execLen`): its handler, function info and unwind funclet,
+  which sits in another auto unit, are checked through the parent.
+- Waves: a smoke wave (one worker) found that Windows looked `cl.exe` up
+  from the worker's worktree; the first real wave (six Sonnet workers on the
+  script natives) matched 32 functions for $21, about 66 cents a match, and
+  its deferrals found the gate misreading function-pointer globals
+  (`GNatives`). Workers stand in for what the headers lack (local types,
+  subclasses to reach undeclared members); review accepted files before
+  integrating.
+
 ## Not yet checked against the real exe
 
-- try.py on a function with a switch table, and on one with EH funclets in
-  another auto unit.
-- The exe path of the data ruler (pointers detected as in `delink_model.py`)
-  on `__real@` constants, strings and EH tables.
-- A pilot wave: that hooks fire in headless workers with these settings, and
-  the cost per match.
+- try.py on a function with a switch table.
+- The exe path of the data ruler on `__real@` constants (strings and EH
+  tables are checked: `execBoolToString`, `execLen`).
+
+## objdiff's report and the gate
+
+The report under-counts what the gate matched in two cases, both to fix in
+how the split objects are made rather than in the gate:
+
+- EH frames: the split objects read `fs:[0x0]` where compiled code refers to
+  `__except_list`, so every function with an EH frame scores 99.x%.
+- A reference into a named array at an offset (`GNatives[2 * 256 + B]`): the
+  model gives the address a `DAT_` label of its own, and delink turns an
+  unnamed one into `<section> + offset`; either way objdiff's name ruler
+  does not pair it with `GNatives + 0x800`.
