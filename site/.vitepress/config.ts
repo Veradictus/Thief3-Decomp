@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { isAbsolute, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitepress";
@@ -10,6 +11,15 @@ const srcDir = fileURLToPath(new URL("../../docs/", import.meta.url));
 const configFile = fileURLToPath(import.meta.url);
 
 /**
+ * Whether `file` is inside docs/. Compared as paths, not strings: on Windows
+ * Vite spells ids with forward slashes and fileURLToPath with backslashes.
+ */
+function inSrcDir(file: string): boolean {
+  const rel = relative(srcDir, file);
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+}
+
+/**
  * The pages are compiled into modules that import `vue` and
  * `vue/server-renderer`. Node-style resolution looks for those next to the
  * page, in docs/, where there is no node_modules: resolve them from site/.
@@ -18,7 +28,7 @@ const resolveFromSite: Plugin = {
   name: "t3-resolve-from-site",
   enforce: "pre",
   resolveId(id, importer, options) {
-    if (!importer?.startsWith(srcDir) || !/^[a-z@][\w@./-]*$/i.test(id)) return null;
+    if (!importer || !inSrcDir(importer) || !/^[a-z@][\w@./-]*$/i.test(id)) return null;
     return this.resolve(id, configFile, { ...options, skipSelf: true });
   },
 };
