@@ -85,3 +85,14 @@ launcher is Rust and Svelte/TypeScript: `cargo fmt`, `cargo clippy` and
 [docs/launcher.md](docs/launcher.md)). Record every engine address you use in
 `docs/engine.md` with its evidence, and its name in
 `config/PC_20040610/symbols.txt`.
+
+## Documentation
+
+The Markdown files in `docs/` are also the
+[documentation site](https://veradictus.github.io/Thief3-Decomp/). Keep links
+relative, so that they work on GitHub too; the site turns links that leave
+`docs/` into GitHub links. Preview the site with
+`cd site && yarn install && yarn docs:dev`. `yarn docs:build` fails on dead
+links and on a stale API reference: after a change to
+`sdk/include/t3sdk/t3sdk.h`, run `yarn api` in `site/` and commit the
+result. A new page needs a sidebar entry; see [docs/site.md](docs/site.md).
