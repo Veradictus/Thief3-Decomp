@@ -25,6 +25,8 @@ class FFrame;
 class UObject;
 class UField;
 class UStruct;
+class UFunction;
+class UProperty;
 class UState;
 class UClass;
 
@@ -49,6 +51,55 @@ public:
     DWORD Value;
 };
 
+// --- Strings and math ---------------------------------------------------------------
+
+// A dynamic array's header; the elements live at Data.
+class FArray
+{
+public:
+    INT Num() const { return ArrayNum; }
+
+    void* Data;
+    INT ArrayNum;
+    INT ArrayMax;
+};
+
+// A string: its characters and terminator in an array (TArray<ANSICHAR> in
+// stock Unreal Engine 2), with these members out of line in this build.
+class FString : public FArray
+{
+public:
+    FString();                                  // 0x10AF8230
+    ~FString();                                 // 0x10AF83B0
+
+    FString& operator=(const ANSICHAR* Other);  // 0x10AF81C0
+
+    INT Len() const;                            // 0x10AF7F70
+};
+
+class FVector
+{
+public:
+    FVector() {}
+    FVector(FLOAT InX, FLOAT InY, FLOAT InZ) : X(InX), Y(InY), Z(InZ) {}
+
+    FVector operator+(const FVector& V) const { return FVector(X + V.X, Y + V.Y, Z + V.Z); }
+
+    FLOAT X, Y, Z;
+};
+
+// Unreal angles: 65536 units per turn.
+class FRotator
+{
+public:
+    FRotator() {}
+    FRotator(INT InPitch, INT InYaw, INT InRoll) : Pitch(InPitch), Yaw(InYaw), Roll(InRoll) {}
+
+    FRotator operator+(const FRotator& R) const { return FRotator(Pitch + R.Pitch, Yaw + R.Yaw, Roll + R.Roll); }
+
+    INT Pitch, Yaw, Roll;
+};
+
 // --- Output devices -----------------------------------------------------------------
 
 // GLog's vtable[0] is FOutputDeviceFile::Serialize(const char*, EName).
@@ -64,14 +115,39 @@ public:
 #define RESULT_DECL void* const Result
 
 // The first 0x28 bytes match stock Unreal Engine 2 (the SDK checks Name, Class
-// and Outer at runtime). The virtual functions are not reconstructed yet.
+// and Outer at runtime). Of the virtual functions, only CallFunction's slot is
+// known; the others are named by their vtable offset.
 class UObject
 {
 public:
     virtual ~UObject();
+    virtual void Unknown04();
+    virtual void Unknown08();
+    virtual void Unknown0C();
+    virtual void Unknown10();
+    virtual void Unknown14();
+    virtual void Unknown18();
+    virtual void Unknown1C();
+    virtual void Unknown20();
+    virtual void Unknown24();
+    virtual void Unknown28();
+    virtual void Unknown2C();
+    virtual void Unknown30();
+    virtual void Unknown34();
+    virtual void Unknown38();
+    virtual void Unknown3C();
+    virtual void Unknown40();
+
+    // Runs a script function (execFinalFunction and the other calls).
+    virtual void CallFunction(FFrame& Stack, RESULT_DECL, UFunction* Function);
 
     UClass* GetClass() const { return Class; }
     const FName GetFName() const { return Name; }
+
+    // Writes the object's config properties (execSaveConfig); resets a
+    // class's (execResetConfig).
+    void SaveConfig(DWORD Flags, const ANSICHAR* Filename);
+    static void ResetConfig(UClass* Class);
 
     // Script natives, named by the game's native table (docs/engine.md,
     // "Script natives").
@@ -335,12 +411,21 @@ class UStruct : public UField
 {
 };
 
+class UFunction : public UStruct
+{
+};
+
 class UState : public UStruct
 {
 };
 
+// UStruct and UState have no known fields yet, so UClass's padding covers
+// theirs: shrink it when they get some.
 class UClass : public UState
 {
+public:
+    BYTE Unknown34[0xB4];
+    UObject* ClassDefaultObject;    // 0xE8 (docs/engine.md: static, probable)
 };
 
 // --- Script execution ---------------------------------------------------------------
@@ -352,6 +437,17 @@ typedef void (UObject::*Native)(FFrame& Stack, RESULT_DECL);
 extern Native GNatives[];
 extern Native GCasts[];
 
+// What the last Step() evaluated as a variable: its property and address
+// (execDynArrayLength reads them), and flags for the script compiler.
+extern UProperty* GProperty;        // 0x10F45C30
+extern BYTE* GPropAddr;             // 0x10F45C34
+extern DWORD GRuntimeUCFlags;       // 0x10F45C44
+
+enum ERuntimeUCFlags
+{
+    RUC_ArrayLengthSet = 0x01,      // a dynamic array's length was assigned
+};
+
 // The state of one running script function (stock Unreal Engine 2 layout; the
 // natives read Object and Code at these offsets).
 class FFrame : public FOutputDevice
@@ -360,8 +456,16 @@ public:
     virtual void Serialize(const ANSICHAR* V, EName Event);
 
     // Runs the next expression, writing its value to Result. Out of line in
-    // this build (0x10B0FC50), where stock Unreal Engine 2 inlines it.
+    // this build (0x10B0FC50), where stock Unreal Engine 2 inlines it, like the
+    // readers below that take a constant from the bytecode.
     void Step(UObject* Context, RESULT_DECL);
+
+    INT ReadInt();                  // 0x10B0FC70
+    FLOAT ReadFloat();              // 0x10B0FC80
+    FName ReadName();               // 0x10B0FCD0
+
+    // The linker folded ReadObject into ReadInt: they compile to the same code.
+    UObject* ReadObject() { return (UObject*)ReadInt(); }
 
     UStruct* Node;                  // 0x04
     UObject* Object;                // 0x08
@@ -375,6 +479,9 @@ public:
 #define P_GET_INT(var)         INT var = 0; Stack.Step(Stack.Object, &var);
 #define P_GET_FLOAT(var)       FLOAT var = 0.f; Stack.Step(Stack.Object, &var);
 #define P_GET_NAME(var)        FName var = NAME_None; Stack.Step(Stack.Object, &var);
+#define P_GET_STR(var)         FString var; Stack.Step(Stack.Object, &var);
+#define P_GET_VECTOR(var)      FVector var; Stack.Step(Stack.Object, &var);
+#define P_GET_ROTATOR(var)     FRotator var; Stack.Step(Stack.Object, &var);
 #define P_GET_OBJECT(cls, var) cls* var = NULL; Stack.Step(Stack.Object, &var);
 #define P_FINISH               Stack.Code++;
 
