@@ -1,8 +1,8 @@
 // Three independent display features, each behind its own T3SDK.ini option
 // (see display.hpp): rewriting the resolution table, running the Direct3D 8
-// device windowed and borderless (with what that needs: bringing the window
-// to the front, covering level changes, running in the background), and
-// rescaling the UI layout for widescreen.
+// device windowed and borderless (with what that needs: the game's cursor,
+// bringing the window to the front, covering level changes, running in the
+// background), and rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
 
@@ -302,6 +302,8 @@ LARGE_INTEGER g_statsStart{};
 LONGLONG g_presentTicks = 0;
 int g_frames = 0;
 
+void LogCursorCalls();
+
 HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest, HWND window, const void* dirty) {
     LARGE_INTEGER before;
     LARGE_INTEGER after;
@@ -316,11 +318,290 @@ HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest,
     if (seconds >= 10.0) {
         const double presentMs = 1000.0 * double(g_presentTicks) / double(g_ticksPerSecond.QuadPart) / g_frames;
         T3_LOG("display: %.1f fps, %.2f ms per frame in Present", g_frames / seconds, presentMs);
+        LogCursorCalls();
         g_statsStart = after;
         g_presentTicks = 0;
         g_frames = 0;
     }
     return result;
+}
+
+// ---- cursor ---------------------------------------------------------------------------
+// The game's menu cursor is a Direct3D hardware cursor: a 32x32 image, sized
+// for the screens of 2004, that the game sets again every frame (device
+// SetCursorProperties and ShowCursor, user32 ShowCursor and SetCursor). In a
+// window, Direct3D 8 imitates the hardware cursor with a Windows cursor it
+// rebuilds on every such call, while the game's own SetCursor works against
+// it: the cursor flickers, and it is tiny on a large screen. So with a
+// borderless window the SDK owns the cursor: one Windows cursor built from the
+// game's image (again only when the image changes), scaled to the screen, and
+// shown whenever the game shows its cursor. Direct3D's imitation stays off.
+constexpr int kDevice8SetCursorProperties = 10;  // IDirect3DDevice8 vtable slots
+constexpr int kDevice8SetCursorPosition = 11;
+constexpr int kDevice8ShowCursor = 12;
+constexpr int kSurface8GetDesc = 8;              // IDirect3DSurface8 vtable slots
+constexpr int kSurface8LockRect = 9;
+constexpr int kSurface8UnlockRect = 10;
+constexpr UINT kFormatA8R8G8B8 = 21;
+constexpr DWORD kLockReadOnly = 0x10;            // D3DLOCK_READONLY
+constexpr UINT kMaxCursorSide = 256;
+constexpr double kCursorDesignHeight = 768.0;    // the screen height the cursor looks right on
+
+struct SurfaceDesc {  // D3DSURFACE_DESC (d3d8.h)
+    UINT Format;
+    UINT Type;
+    DWORD Usage;
+    UINT Pool;
+    UINT Size;
+    UINT MultiSampleType;
+    UINT Width;
+    UINT Height;
+};
+struct LockedRect {  // D3DLOCKED_RECT
+    INT Pitch;
+    void* Bits;
+};
+
+using SetCursorPropertiesFn = HRESULT(WINAPI*)(void* device, UINT hotX, UINT hotY, void* surface);
+using SetCursorPositionFn = void(WINAPI*)(void* device, UINT x, UINT y, DWORD flags);
+using DeviceShowCursorFn = BOOL(WINAPI*)(void* device, BOOL show);
+using GetDescFn = HRESULT(WINAPI*)(void* surface, SurfaceDesc* desc);
+using LockRectFn = HRESULT(WINAPI*)(void* surface, LockedRect* locked, const RECT* rect, DWORD flags);
+using UnlockRectFn = HRESULT(WINAPI*)(void* surface);
+using ShowCursorFn = int(WINAPI*)(BOOL show);
+using SetCursorFn = HCURSOR(WINAPI*)(HCURSOR cursor);
+
+SetCursorPropertiesFn g_setCursorProperties = nullptr;
+SetCursorPositionFn g_setCursorPosition = nullptr;
+DeviceShowCursorFn g_deviceShowCursor = nullptr;
+ShowCursorFn g_showCursor = nullptr;
+SetCursorFn g_setCursor = nullptr;
+
+bool g_ownCursor = false;       // the SDK draws the cursor (borderless window)
+double g_cursorScale = 0;       // [Display] CursorScale; 0 = from the screen height
+HCURSOR g_cursor = nullptr;     // the game's image as a Windows cursor
+bool g_cursorVisible = false;   // as the game last asked through the device
+uint32_t g_cursorImageHash = 0;
+
+// [Display] FrameStats also counts the calls, to see how the game drives the cursor.
+struct CursorCalls {
+    int properties = 0;
+    int position = 0;
+    int deviceShow = 0;
+    int deviceHide = 0;
+    int showCursor = 0;
+    int hideCursor = 0;
+    int setCursor = 0;
+};
+CursorCalls g_cursorCalls;
+
+void LogCursorCalls() {
+    const CursorCalls& c = g_cursorCalls;
+    T3_LOG("display: cursor calls: device properties %d, position %d, show %d, hide %d; user32 ShowCursor "
+           "%d/%d (show/hide), SetCursor %d",
+           c.properties, c.position, c.deviceShow, c.deviceHide, c.showCursor, c.hideCursor, c.setCursor);
+    g_cursorCalls = CursorCalls{};
+}
+
+uint32_t HashImage(const std::vector<uint32_t>& pixels, UINT hotX, UINT hotY) {
+    uint32_t hash = 2166136261u ^ hotX ^ (hotY << 16);
+    for (uint32_t pixel : pixels) {
+        hash = (hash ^ pixel) * 16777619u;
+    }
+    return hash;
+}
+
+// One channel of a bilinear sample at (x, y) in a width x height ARGB image.
+double Sample(const std::vector<uint32_t>& image, UINT width, UINT height, double x, double y, int shift) {
+    const double fx = std::clamp(x, 0.0, double(width - 1));
+    const double fy = std::clamp(y, 0.0, double(height - 1));
+    const UINT x0 = UINT(fx);
+    const UINT y0 = UINT(fy);
+    const UINT x1 = std::min(x0 + 1, width - 1);
+    const UINT y1 = std::min(y0 + 1, height - 1);
+    const double tx = fx - x0;
+    const double ty = fy - y0;
+
+    auto channel = [&](UINT px, UINT py) { return double((image[py * width + px] >> shift) & 0xFF); };
+    const double top = channel(x0, y0) * (1 - tx) + channel(x1, y0) * tx;
+    const double bottom = channel(x0, y1) * (1 - tx) + channel(x1, y1) * tx;
+    return top * (1 - ty) + bottom * ty;
+}
+
+// A Windows cursor from a width x height ARGB image, scaled by `scale`.
+HCURSOR MakeCursor(const std::vector<uint32_t>& image, UINT width, UINT height, UINT hotX, UINT hotY,
+                   double scale) {
+    const UINT side = std::min<UINT>(kMaxCursorSide, UINT(std::max(width, height) * scale + 0.5));
+
+    BITMAPV5HEADER header{};
+    header.bV5Size = sizeof(header);
+    header.bV5Width = LONG(side);
+    header.bV5Height = -LONG(side);  // top-down
+    header.bV5Planes = 1;
+    header.bV5BitCount = 32;
+    header.bV5Compression = BI_BITFIELDS;
+    header.bV5RedMask = 0x00FF0000;
+    header.bV5GreenMask = 0x0000FF00;
+    header.bV5BlueMask = 0x000000FF;
+    header.bV5AlphaMask = 0xFF000000;
+
+    void* bits = nullptr;
+    HDC screen = GetDC(nullptr);
+    HBITMAP color = CreateDIBSection(screen, reinterpret_cast<BITMAPINFO*>(&header), DIB_RGB_COLORS, &bits,
+                                     nullptr, 0);
+    ReleaseDC(nullptr, screen);
+    if (!color) {
+        return nullptr;
+    }
+
+    auto out = static_cast<uint32_t*>(bits);
+    for (UINT y = 0; y < side; ++y) {
+        for (UINT x = 0; x < side; ++x) {
+            // Sample the source at the point under this pixel's center.
+            const double sx = (x + 0.5) / scale - 0.5;
+            const double sy = (y + 0.5) / scale - 0.5;
+            uint32_t pixel = 0;
+            for (int shift : {0, 8, 16, 24}) {
+                pixel |= uint32_t(Sample(image, width, height, sx, sy, shift) + 0.5) << shift;
+            }
+            out[y * side + x] = pixel;
+        }
+    }
+
+    HBITMAP mask = CreateBitmap(LONG(side), LONG(side), 1, 1, nullptr);
+    ICONINFO info{};
+    info.fIcon = FALSE;
+    info.xHotspot = DWORD(hotX * scale);
+    info.yHotspot = DWORD(hotY * scale);
+    info.hbmMask = mask;
+    info.hbmColor = color;
+    HCURSOR cursor = reinterpret_cast<HCURSOR>(CreateIconIndirect(&info));
+    DeleteObject(mask);
+    DeleteObject(color);
+    return cursor;
+}
+
+void ApplyCursor() {
+    g_setCursor(g_cursorVisible ? g_cursor : nullptr);
+}
+
+// Reads the game's cursor image and, when it changed, builds the Windows
+// cursor from it. Returns false when the image cannot be read (Direct3D then
+// keeps handling the cursor).
+bool TakeCursorImage(void* surface, UINT hotX, UINT hotY) {
+    SurfaceDesc desc{};
+    if (FAILED(reinterpret_cast<GetDescFn>(VtableEntry(surface, kSurface8GetDesc))(surface, &desc)) ||
+        desc.Format != kFormatA8R8G8B8 || !desc.Width || !desc.Height || desc.Width > 64 || desc.Height > 64) {
+        return false;
+    }
+
+    LockedRect locked{};
+    auto lockRect = reinterpret_cast<LockRectFn>(VtableEntry(surface, kSurface8LockRect));
+    if (FAILED(lockRect(surface, &locked, nullptr, kLockReadOnly))) {
+        return false;
+    }
+    std::vector<uint32_t> image(desc.Width * desc.Height);
+    for (UINT y = 0; y < desc.Height; ++y) {
+        memcpy(&image[y * desc.Width], static_cast<const uint8_t*>(locked.Bits) + y * locked.Pitch,
+               desc.Width * sizeof(uint32_t));
+    }
+    reinterpret_cast<UnlockRectFn>(VtableEntry(surface, kSurface8UnlockRect))(surface);
+
+    // The game sets the same image every frame: rebuild only when it changes.
+    const uint32_t hash = HashImage(image, hotX, hotY);
+    if (g_cursor && hash == g_cursorImageHash) {
+        return true;
+    }
+
+    double scale = g_cursorScale;
+    if (scale <= 0) {
+        const RECT screen = g_window ? MonitorRect(g_window) : RECT{0, 0, 0, LONG(kCursorDesignHeight)};
+        scale = std::max(1.0, (screen.bottom - screen.top) / kCursorDesignHeight);
+    }
+    HCURSOR cursor = MakeCursor(image, desc.Width, desc.Height, hotX, hotY, scale);
+    if (!cursor) {
+        return false;
+    }
+
+    HCURSOR old = g_cursor;
+    g_cursor = cursor;
+    g_cursorImageHash = hash;
+    ApplyCursor();
+    if (old) {
+        DestroyCursor(old);
+    }
+    T3_LOG("display: cursor %ux%u shown at x%.2f", desc.Width, desc.Height, scale);
+    return true;
+}
+
+HRESULT WINAPI SetCursorPropertiesDetour(void* device, UINT hotX, UINT hotY, void* surface) {
+    ++g_cursorCalls.properties;
+    if (g_ownCursor && surface && TakeCursorImage(surface, hotX, hotY)) {
+        return S_OK;
+    }
+    return g_setCursorProperties(device, hotX, hotY, surface);
+}
+
+void WINAPI SetCursorPositionDetour(void* device, UINT x, UINT y, DWORD flags) {
+    ++g_cursorCalls.position;
+
+    // The Windows cursor follows the mouse on its own.
+    if (!g_ownCursor || !g_cursor) {
+        g_setCursorPosition(device, x, y, flags);
+    }
+}
+
+BOOL WINAPI DeviceShowCursorDetour(void* device, BOOL show) {
+    ++(show ? g_cursorCalls.deviceShow : g_cursorCalls.deviceHide);
+    if (!g_ownCursor || !g_cursor) {
+        return g_deviceShowCursor(device, show);
+    }
+
+    const BOOL wasVisible = g_cursorVisible;
+    if (wasVisible != (show != FALSE)) {
+        g_cursorVisible = show != FALSE;
+        ApplyCursor();
+    }
+    return wasVisible;
+}
+
+int WINAPI ShowCursorDetour(BOOL show) {
+    ++(show ? g_cursorCalls.showCursor : g_cursorCalls.hideCursor);
+    return g_showCursor(show);
+}
+
+HCURSOR WINAPI SetCursorDetour(HCURSOR cursor) {
+    ++g_cursorCalls.setCursor;
+
+    // The game hides the Windows cursor every frame, expecting a fullscreen
+    // hardware cursor: keep showing ours instead.
+    if (g_ownCursor && g_cursor) {
+        return g_setCursor(g_cursorVisible ? g_cursor : nullptr);
+    }
+    return g_setCursor(cursor);
+}
+
+void HookVirtual(void* object, int slot, void* detour, void** original) {
+    void* target = VtableEntry(object, slot);
+    if (MH_CreateHook(target, detour, original) == MH_OK) {
+        MH_EnableHook(target);
+    }
+}
+
+void HookCursor(void* device) {
+    HookVirtual(device, kDevice8SetCursorProperties, reinterpret_cast<void*>(&SetCursorPropertiesDetour),
+                reinterpret_cast<void**>(&g_setCursorProperties));
+    HookVirtual(device, kDevice8SetCursorPosition, reinterpret_cast<void*>(&SetCursorPositionDetour),
+                reinterpret_cast<void**>(&g_setCursorPosition));
+    HookVirtual(device, kDevice8ShowCursor, reinterpret_cast<void*>(&DeviceShowCursorDetour),
+                reinterpret_cast<void**>(&g_deviceShowCursor));
+
+    HMODULE exe = GetModuleHandleW(nullptr);
+    g_showCursor = reinterpret_cast<ShowCursorFn>(
+        PatchImport(exe, "USER32.dll", "ShowCursor", reinterpret_cast<void*>(&ShowCursorDetour)));
+    g_setCursor = reinterpret_cast<SetCursorFn>(
+        PatchImport(exe, "USER32.dll", "SetCursor", reinterpret_cast<void*>(&SetCursorDetour)));
+    g_ownCursor = g_setCursor != nullptr;
 }
 
 void HookPresent(void* device) {
@@ -357,6 +638,9 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
                 MH_EnableHook(reset) == MH_OK) {
                 T3_LOG("display: device Reset hooked");
             }
+        }
+        if (!g_setCursor) {
+            HookCursor(*device);
         }
         if (g_frameStats && !g_present) {
             HookPresent(*device);
@@ -624,6 +908,7 @@ void Install(const Options& options) {
              reinterpret_cast<void**>(&g_placedPosition), "UI placement");
     }
     g_frameStats = options.frameStats;
+    g_cursorScale = options.cursorScale;
     if (options.borderless) {
         HMODULE exe = GetModuleHandleW(nullptr);
         g_direct3DCreate8 = reinterpret_cast<Direct3DCreate8Fn>(

@@ -123,6 +123,9 @@ Settings LoadSettings(const fs::path& ini) {
     s.display.uiLayoutTrace = GetPrivateProfileIntW(L"Display", L"UILayoutTrace", s.display.uiLayoutTrace, file) != 0;
     s.display.pauseInBackground =
         GetPrivateProfileIntW(L"Display", L"PauseInBackground", s.display.pauseInBackground, file) != 0;
+    wchar_t scale[32];
+    GetPrivateProfileStringW(L"Display", L"CursorScale", L"0", scale, 32, file);
+    s.display.cursorScale = wcstod(scale, nullptr);
     s.display.frameStats = GetPrivateProfileIntW(L"Display", L"FrameStats", s.display.frameStats, file) != 0;
     return s;
 }
