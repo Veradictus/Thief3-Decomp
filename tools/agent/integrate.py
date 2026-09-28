@@ -360,8 +360,8 @@ def main() -> None:
     elif args.dry_run:
         print("dry run: nothing written")
     else:
-        print("written. Next: python configure.py && ninja, then compare the report with the previous one "
-              "(objdiff-cli report changes)")
+        print("written. Next: python configure.py && ninja, compare the report with the previous one "
+              "(objdiff-cli report changes), then python tools/progress_report.py write and commit progress/")
 
 
 def integrate(p: Project, args) -> dict:

@@ -1,57 +1,25 @@
-# Builds the matching decompilation and uploads the objdiff report that
-# decomp.dev reads (artifact <version>_report, from pushes to the default
-# branch). The build needs T3Main.exe, which never enters this repository: it
-# comes from a private container image (docs/decomp-dev.md) that the repository
-# variable T3_BUILD_IMAGE names. Until it is set, the baseline job publishes a
-# report with nothing matched instead, built from symbols.txt alone, so the
-# project can be registered on decomp.dev.
-name: build
+# Publishes the progress report decomp.dev reads: the artifact <version>_report
+# of the latest push run on the default branch.
+#
+# This job does not build the decompilation: the build splits T3Main.exe,
+# which never enters the repository or CI. The report is written locally from a
+# real build (python tools/progress_report.py write, after integrating matched
+# functions) and committed as progress/<version>/report.json. It holds names,
+# addresses, sizes and match percentages, no bytes of the game. This job checks
+# that it still describes the tree (its units, and the functions in src/),
+# validates it with objdiff and uploads it. (docs/decomp-dev.md)
+name: progress
 
 on:
   push:
-    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md", "modindex/**", "templates/**"]
   pull_request:
-    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md", "modindex/**", "templates/**"]
   workflow_dispatch:
 
-jobs:
-  build:
-    if: vars.T3_BUILD_IMAGE != ''
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ vars.T3_BUILD_IMAGE }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    strategy:
-      fail-fast: false
-      matrix:
-        version: [PC_20040610]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Original files
-        run: cp -a /orig .
-      - name: Cache tools and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/tools
-            build/compilers
-          key: tools-${{ hashFiles('configure.py') }}
-      - name: Build
-        run: |
-          python3 -m pip install -r requirements.txt
-          python3 configure.py --version ${{ matrix.version }}
-          ninja all_source build/${{ matrix.version }}/report.json progress
-      - name: Upload report
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.version }}_report
-          path: build/${{ matrix.version }}/report.json
-          if-no-files-found: error
+permissions:
+  contents: read
 
-  baseline:
-    if: vars.T3_BUILD_IMAGE == ''
+jobs:
+  report:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -59,11 +27,31 @@ jobs:
         version: [PC_20040610]
     steps:
       - uses: actions/checkout@v4
-      - name: Baseline report (nothing matched)
-        run: python3 tools/baseline_report.py --version ${{ matrix.version }} -o build/${{ matrix.version }}/report.json
-      - name: Upload report
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Fails when src/, splits.txt or symbols.txt changed without the report.
+      - name: Check the committed report is current
+        run: python tools/progress_report.py check --version ${{ matrix.version }}
+
+      - name: Validate the report with objdiff
+        run: |
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/objdiff-cli" \
+            https://github.com/encounter/objdiff/releases/download/v3.8.1/objdiff-cli-linux-x86_64
+          echo "c8290281e82114bcc1a06ff73061110d3902a177822e750337de2537188e358f  $RUNNER_TEMP/objdiff-cli" \
+            | sha256sum --check
+          chmod +x "$RUNNER_TEMP/objdiff-cli"
+          report=progress/${{ matrix.version }}/report.json
+          "$RUNNER_TEMP/objdiff-cli" report changes "$report" "$report" -o "$RUNNER_TEMP/validation.json"
+
+      - name: Summarise
+        run: python tools/progress_report.py summary --version ${{ matrix.version }} >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.version }}_report
-          path: build/${{ matrix.version }}/report.json
+          path: progress/${{ matrix.version }}/report.json
           if-no-files-found: error
