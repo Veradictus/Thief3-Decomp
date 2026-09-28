@@ -6,3 +6,10 @@
 #
 # Functions no unit claims are grouped into automatic auto/text_<ADDRESS> units;
 # data no unit claims stays in __shared_data.
+
+Game/Window.cpp:
+	.text  start:0x109E3820 end:0x109E3855
+	.text  start:0x109E38E0 end:0x109E38E7
+
+Game/Options.cpp:
+	.text  start:0x10AB5AB0 end:0x10AB5ABB
