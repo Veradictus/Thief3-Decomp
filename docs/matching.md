@@ -79,7 +79,7 @@ the cheat-sheet entries for the function's features (EH, x87, switch).
 struct Foo { int a; int b; int Get() const; };   // declarations and headers
 int Helper(int);                                  // callees: declared only
 
-// FUNCTION: 0x10A52530
+// FUNCTION: 0x10A52420
 int Foo::Get() const { return a + Helper(b); }
 ```
 
@@ -91,7 +91,7 @@ its caller.
 ## Pairing and the rulers
 
 The target function and everything it references carry the names
-`symbols.txt` gives them (`FUN_10a52530`, `DAT_...`, or real names); a
+`symbols.txt` gives them (`FUN_10a52420`, `DAT_...`, or real names); a
 compiled candidate uses MSVC decorated names. objdiff pairs by name, and its
 relocation rulers cannot bridge that gap: under `functionRelocDiffs`
 `name_address` or `data_value`, a correct function calling `FUN_10a00000`
