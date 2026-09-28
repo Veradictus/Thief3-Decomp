@@ -12,6 +12,9 @@ on:
       - "tools/sdk.py"
       - "tools/assets/**"
       - "tools/stage_launcher.py"
+      - "tools/t3mod.py"
+      - "tools/mods/**"
+      - "templates/mod/**"
       - "requirements.txt"
       - ".github/workflows/launcher*.yml"
   pull_request:
@@ -21,6 +24,9 @@ on:
       - "tools/sdk.py"
       - "tools/assets/**"
       - "tools/stage_launcher.py"
+      - "tools/t3mod.py"
+      - "tools/mods/**"
+      - "templates/mod/**"
       - "requirements.txt"
       - ".github/workflows/launcher*.yml"
   workflow_dispatch:

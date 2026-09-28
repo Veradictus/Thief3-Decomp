@@ -1,0 +1,55 @@
+# Checks the mod index (modindex/mods/*.json) and the mod package tools:
+# every file is validated, the versions a change adds are downloaded and
+# checked against their entries, and the tools' self-test runs. See
+# modindex/README.md for what a submission needs.
+name: modindex
+
+on:
+  push:
+    paths:
+      - "modindex/**"
+      - "tools/modindex.py"
+      - "tools/t3mod.py"
+      - "tools/mods/**"
+      - "templates/mod/**"
+      - ".github/workflows/modindex.yml"
+  pull_request:
+    paths:
+      - "modindex/**"
+      - "tools/modindex.py"
+      - "tools/t3mod.py"
+      - "tools/mods/**"
+      - "templates/mod/**"
+      - ".github/workflows/modindex.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the base commit, for verify --changed-only
+      - name: Self-test of the mod tools
+        run: python3 tools/mods/selftest.py
+      - name: Validate the index
+        run: python3 tools/modindex.py validate
+      - name: Download and check the versions this change adds
+        env:
+          BEFORE: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          # A pull request is compared with its base branch, a push with the
+          # commit before it (or the default branch for a new branch).
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            base="origin/$GITHUB_BASE_REF"
+          else
+            base="$BEFORE"
+          fi
+          if ! git rev-parse --quiet --verify "$base^{commit}" > /dev/null; then
+            base="origin/$DEFAULT_BRANCH"
+          fi
+          python3 tools/modindex.py verify --changed-only "$base"
