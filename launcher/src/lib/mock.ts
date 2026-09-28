@@ -2,12 +2,14 @@
 // made-up data, no files touched. Lets the UI be developed, tested and
 // screenshotted without Tauri, the game or Godot.
 import type {
+  Backup,
   Config,
   Detected,
   GameCheck,
   MapEntry,
   ModEntry,
   Overview,
+  SavesInfo,
   SdkSettings,
   Setting,
   TaskSpec,
@@ -28,6 +30,10 @@ let config: Config = {
   sdkRoot: firstRun ? null : "C:\\Dev\\Thief3-Decomp",
   projectDir: null,
   setupComplete: !firstRun,
+  savesDir: null,
+  backupBeforeLaunch: false,
+  autoUpdateCheck: null,
+  lastUpdateCheck: null,
 };
 
 const mods: ModEntry[] = [
@@ -138,6 +144,60 @@ const log = [
   "[12:01:08.940] [hello] engine ready: 4488 objects",
   "[12:01:11.377] display: borderless 2560x1440 on monitor 1",
 ];
+
+// Saves and their backups.
+const savesPath = "C:\\Users\\Public\\Documents\\Thief - Deadly Shadows\\SaveGames";
+const savesInfo = (): SavesInfo => ({
+  folder: {
+    path: config.savesDir ?? savesPath,
+    source: config.savesDir ? "Settings" : "Public Documents",
+    exists: true,
+  },
+  exists: true,
+  summary: { count: 7, files: 96, size: 48_600_000, newest: now - 5400 },
+  candidates: [
+    { path: savesPath, source: "Public Documents", exists: true },
+    { path: "D:\\Documents\\Thief - Deadly Shadows\\SaveGames", source: "Documents", exists: false },
+  ],
+});
+type BackupRow = [created: number, label: string | null, saves: number];
+const backups: Backup[] = (
+  [
+    [now - 86400, "before the Cathedral", 6],
+    [now - 3 * 86400, "before launch", 5],
+    [now - 9 * 86400, null, 3],
+  ] satisfies BackupRow[]
+).map(([created, label, saves]) => backup(created, label, saves));
+
+function backup(created: number, label: string | null, saves: number): Backup {
+  const d = new Date(created * 1000);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const stamp = `${d.getFullYear().toString()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const size = saves * 6_900_000;
+  return {
+    file: `${stamp}${label ? ` ${label}` : ""}.zip`,
+    label,
+    created,
+    saves,
+    size,
+    bytes: Math.round(size * 0.62),
+  };
+}
+
+function fakeInstall() {
+  const total = 9_400_000;
+  for (let i = 1; i <= 10; i++) {
+    setTimeout(() => {
+      emit("update-progress", { downloaded: (total * i) / 10, total, finished: false });
+    }, 150 * i);
+  }
+  return new Promise((resolve) =>
+    setTimeout(() => {
+      emit("update-progress", { downloaded: 0, total: null, finished: true });
+      resolve(null);
+    }, 1700),
+  );
+}
 
 function emit(name: string, payload: unknown) {
   handlers.get(name)?.forEach((h) => {
@@ -279,6 +339,44 @@ const commands: Record<string, (args: Args) => unknown> = {
   open_link: () => null,
   cancel_task: () => null,
   start_task: (args) => fakeTask(taskTitle(args.spec as TaskSpec)),
+  saves_info: (args) =>
+    typeof args.path === "string"
+      ? { ...savesInfo(), folder: { path: args.path, source: "Settings", exists: true } }
+      : savesInfo(),
+  list_save_backups: () => ({ dir: "...\\org.t3sdk.launcher\\saves", backups: backups.map((b) => ({ ...b })) }),
+  create_save_backup: (args) => {
+    const made = backup(Math.floor(Date.now() / 1000), typeof args.label === "string" ? args.label : null, 7);
+    backups.unshift(made);
+    return { ...made };
+  },
+  restore_save_backup: () => {
+    const before = backup(Math.floor(Date.now() / 1000), "before restore", 7);
+    backups.unshift(before);
+    return { before: { ...before }, summary: savesInfo().summary };
+  },
+  delete_save_backup: (args) => {
+    const i = backups.findIndex((b) => b.file === text(args, "file"));
+    if (i < 0) throw new Error("mock: no such backup");
+    backups.splice(i, 1);
+    return null;
+  },
+  open_saves_folder: () => null,
+  collect_logs: (args) => ({ path: text(args, "path"), files: 11, bytes: 182_000 }),
+  updater_status: () => ({ enabled: true, portable: false, version: "0.1.0", lastCheck: config.lastUpdateCheck }),
+  // `?update` makes the check find a new version.
+  check_update: () => {
+    config.lastUpdateCheck = Math.floor(Date.now() / 1000);
+    const update = params.has("update")
+      ? {
+          version: "0.2.0",
+          currentVersion: "0.1.0",
+          notes: "T3SDK Launcher 0.2.0: https://github.com/Veradictus/Thief3-Decomp/releases/tag/v0.2.0",
+          date: now - 7200,
+        }
+      : null;
+    return { checked: true, update };
+  },
+  install_update: fakeInstall,
 };
 
 export async function mockCall(cmd: string, args: Args = {}): Promise<unknown> {
@@ -299,4 +397,8 @@ export function mockListen(name: string, handler: Handler): Promise<() => void> 
 
 export function mockPick(directory: boolean, title: string): Promise<string | null> {
   return Promise.resolve(window.prompt(`${title} (${directory ? "folder" : "file"} path)`));
+}
+
+export function mockPickSave(title: string, defaultPath: string): Promise<string | null> {
+  return Promise.resolve(window.prompt(`${title} (file path)`, defaultPath));
 }
