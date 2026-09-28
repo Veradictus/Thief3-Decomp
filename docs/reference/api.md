@@ -20,6 +20,8 @@ T3SDK_EXPORT int  T3SDK_CALL T3Mod_Init(const T3SdkApi* api);  // 0 = loaded
 T3SDK_EXPORT void T3SDK_CALL T3Mod_Shutdown(void);             // optional
 ```
 
+A packaged mod (a .t3mod the launcher installed; docs/mods.md) has a folder of its own there, named after its id, and System/mods/load-order.txt lists its DLL as `"id/file.dll"`. The SDK loads the listed DLLs first, in that order, each with its own folder on the DLL search path, then the DLLs put straight into System/mods/, in name order. In `T3SDK.log` a mod goes by its folder name (a loose DLL by its file name).
+
 `T3Mod_Init` runs before the game's own startup code, so the engine does not exist yet: register callbacks there and wait for `api->EngineReady()`.
 
 The API is plain C so a mod can use any compiler. The table only grows: a member added after version 1 is usable when `api->size` covers it.
