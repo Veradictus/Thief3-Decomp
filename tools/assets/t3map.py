@@ -7,7 +7,7 @@ property table from the script packages.
 
 Output (default build/assets/godot/, itself a Godot 4.7 project):
 
-  project.godot                  the viewer project, rewritten on every export
+  project.godot                  the viewer project, updated on every export
   t3_tools/                      the viewer and the headless check scripts
   addons/t3_map_editor/          the map editor plugin (edits -> <Level>/<Level>.edits.json)
   <Level>/<Level>.actors.json    every actor: class, archetype, transform, mesh,
@@ -16,10 +16,18 @@ Output (default build/assets/godot/, itself a Godot 4.7 project):
                                  .glb files, OmniLight3D/SpotLight3D for lights,
                                  Marker3D for everything else, sorted into folders by
                                  what they are and named after it (a mesh, an archetype,
-                                 the item's in-game name); T3 data in node metadata
+                                 the item's in-game name); T3 data in node metadata.
+                                 The level's saved edits are applied to it.
+  <Level>/<Level>.tscn.bak       the scene an export replaced, if it was saved in Godot
   <Level>/meshes/*.glb           one per (mesh, skin) pair used by the level
   <Level>/textures/*.png
   <Level>/meshes/<Level>_bsp.glb  BSP render blocks from the Level object (t3bsp.py)
+
+An export is stamped with the export format version (formats.json,
+map_export).  Exporting a map again keeps its saved edits
+(<Level>/<Level>.edits.json, written by the map editor plugin): the scene is
+the map with them applied.  While the game holds a patched map (t3pack.py
+install), the original is exported, from its backup.
 
 Not exported yet: emitters, sounds, skeletal meshes, navigation data, zones
 and portals, trigger scripts.  See docs/assets.md.
@@ -29,6 +37,8 @@ Usage:
   t3map.py --all                     every map
   t3map.py Inn --json-only           actor list only
   t3map.py Inn --scale 0.01905 -o DIR
+  t3map.py Inn --without-edits       the map as it is, without its saved edits
+  t3map.py --project-only -o DIR     update the project's viewer and editor plugin only
 """
 
 from __future__ import annotations
@@ -42,15 +52,17 @@ import struct
 import sys
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ibt import IBT  # noqa: E402
-from t3common import run_cli, BUILD_DIR, Reader, fmt_float, game_dir, godot_basis, resolve_map, u2g  # noqa: E402
+from t3common import (run_cli, BUILD_DIR, FORMATS, Reader, fmt_float, game_dir, godot_basis,  # noqa: E402
+                       resolve_map, u2g)
 from t3gamesys import Gamesys, blocks_to_dict, load_gamesys, mesh_of  # noqa: E402
 from t3mesh import DEFAULT_SCALE, UNITS_PER_FOOT, ResourceSet, export_mesh, kernel_bundle, mesh_file_name  # noqa: E402
+from t3pack import BACKUP_DIR, EditsError, load_edits, sha1_of, source_matches  # noqa: E402
 from t3props import PropertyNames, load_table  # noqa: E402
 from t3texture import load_categories  # noqa: E402
 from t3bsp import export_bsp  # noqa: E402
@@ -58,6 +70,12 @@ from upkg import RF_HasStack, GamesysBlock, Package, _jsonable, prop_value, stru
 
 TOOLS_DIR = Path(__file__).resolve().parent
 EDITOR_PLUGIN = "t3_map_editor"  # tools/assets/godot/addons/<name>, installed into every exported project
+
+# The export format (formats.json, map_export).  Raise it when what an export
+# writes changes in a way the viewer or the map editor plugin relies on: an
+# export of an older version is then made again in full (meshes and textures
+# too), and the launcher does that before it opens such a map.
+EXPORT_VERSION: int = FORMATS["map_export"]
 
 
 def light_kind(enum_name: Optional[str]) -> str:
@@ -304,6 +322,18 @@ def _tscn_value(v: Any) -> str:
     return _tscn_str(json.dumps(v, default=str))
 
 
+def _tscn_literal(v: Any) -> str:
+    """`v` as a Godot value in a scene file: Dictionary, Array, String, bool,
+    int or float (unlike _tscn_value(), which stores containers as JSON text)."""
+    if isinstance(v, dict):
+        return "{" + ", ".join(f"{_tscn_str(str(k))}: {_tscn_literal(x)}" for k, x in v.items()) + "}"
+    if isinstance(v, (list, tuple)):
+        return "[" + ", ".join(_tscn_literal(x) for x in v) + "]"
+    if isinstance(v, float):
+        return repr(v) if math.isfinite(v) else "0.0"
+    return _tscn_value(v)
+
+
 def _node_name(name: str, used: Dict[str, int]) -> str:
     n = "".join(c if c.isalnum() or c in "_-" else "_" for c in name) or "Node"
     if n in used:
@@ -447,6 +477,81 @@ def origin_meta(rec: ActorRecord) -> Dict[str, Any]:
             "draw_scale": float(rec.draw_scale)}
 
 
+# --- saved edits -------------------------------------------------------------------------
+# An export shows the map with its saved edits (<Level>.edits.json, from the
+# map editor plugin) applied: changed actors where they were put, with their
+# property edits in t3_gamesys_edits, the new actors (copies) and without the
+# removed ones.  So exporting a map again, after an update of the tools, keeps
+# the work done on it.  Every node keeps t3_origin, its placement in the map
+# file, so the plugin tells the edits from the map as before and saves the
+# same edits file again.
+
+@dataclass
+class SavedEdits:
+    """Saved edits matched with the actors of a map (see resolve_edits())."""
+    placed: Dict[str, ActorRecord] = field(default_factory=dict)  # changed actors, where they now stand
+    gamesys: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # property edits, by actor name
+    # new actors in the file's order: (the actor copied, the copy where it stands, its property edits)
+    copies: List[Tuple[ActorRecord, ActorRecord, Dict[str, Any]]] = field(default_factory=list)
+    removed: Set[str] = field(default_factory=set)
+    problems: List[str] = field(default_factory=list)  # edits that match no actor, left out
+
+    def summary(self) -> str:
+        changed = len(set(self.placed) | set(self.gamesys))
+        return f"{changed} changed, {len(self.copies)} new and {len(self.removed)} removed actors"
+
+
+def read_saved_edits(path: Path) -> Tuple[Optional[Dict[str, Any]], str]:
+    """The edits file at `path` (t3pack.load_edits()), or None and why not
+    ("" when there is none)."""
+    if not path.is_file():
+        return None, ""
+    try:
+        return load_edits(path), ""
+    except EditsError as ex:
+        return None, f"not applied: {ex}"
+
+
+def resolve_edits(actors: List[ActorRecord], doc: Dict[str, Any]) -> SavedEdits:
+    """Matches a loaded edits document with the map's actors, by name as
+    t3pack.py does (exact, else ignoring case); an edit whose actor is not in
+    the map is listed in `problems` and left out."""
+    by_name: Dict[str, ActorRecord] = {}
+    for a in actors:
+        by_name.setdefault(a.name, a)
+        by_name.setdefault(a.name.lower(), a)
+    saved = SavedEdits()
+
+    def find(name: str, what: str) -> Optional[ActorRecord]:
+        rec = by_name.get(name) or by_name.get(name.lower())
+        if rec is None:
+            saved.problems.append(f"{what} {name}: no actor of that name in the map")
+        return rec
+
+    def placed(rec: ActorRecord, e: Dict[str, Any]) -> ActorRecord:
+        return replace(rec, location=tuple(float(c) for c in e.get("location", rec.location)),
+                       rotation=tuple(int(c) for c in e.get("rotation", rec.rotation)),
+                       draw_scale=float(e.get("draw_scale", rec.draw_scale)))
+
+    for name, e in doc.get("actors", {}).items():
+        rec = find(name, "changed actor")
+        if rec is not None:
+            saved.placed[rec.name] = placed(rec, e)
+            if e.get("gamesys"):
+                saved.gamesys[rec.name] = dict(e["gamesys"])
+    for e in doc.get("added", []):
+        rec = find(e["copy_of"], "new actor, a copy of")
+        if rec is not None:
+            saved.copies.append((rec, placed(rec, e), dict(e.get("gamesys") or {})))
+    for name in doc.get("removed", []):
+        rec = find(name, "removed actor")
+        if rec is not None and rec.cls == "LevelInfo":
+            saved.problems.append(f"removed actor {name}: the level needs its LevelInfo, so it stays")
+        elif rec is not None:
+            saved.removed.add(rec.name)
+    return saved
+
+
 def level_environment(actors: List[ActorRecord]) -> Optional[Dict[str, Any]]:
     """Ambient light and distance fog from the LevelInfo actor's properties."""
     info = next((a for a in actors if a.cls == "LevelInfo"), None)
@@ -469,22 +574,36 @@ def level_environment(actors: List[ActorRecord]) -> Optional[Dict[str, Any]]:
 def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Dict[Tuple[str, str], str],
                scale: float, bsp_file: Optional[str] = None, default_start: Optional[str] = None,
                title: str = "", enums: Optional[Dict[str, List[str]]] = None,
-               source: Optional[Dict[str, Any]] = None) -> None:
+               source: Optional[Dict[str, Any]] = None, edits: Optional[SavedEdits] = None) -> None:
     """`enums` (enum type -> value names) supplies the value names of the enum
     properties in the scene; `source` ({file, size, sha1} of the .gmp) is
-    stored on the root for the edits file of the map editor plugin."""
+    stored on the root for the edits file of the map editor plugin.  `edits`
+    (resolve_edits()) are applied: see "saved edits" above."""
+    edits = edits or SavedEdits()
     ext: Dict[str, str] = {}
     lines_nodes: List[str] = []
     pawns = {a.name for a in actors if "Pawn" in (a.base or "")}
-    folders: Dict[Tuple[str, ...], List[ActorRecord]] = {}
-    for rec in actors:
+
+    def folder_of(rec: ActorRecord) -> Tuple[str, ...]:
         key = (rec.mesh or "", rec.skin or "Default")
         # eyes, teeth, hair, armour... attached to NPC skeletons, which are not
         # exported yet: kept, hidden, instead of floating in the air
         part = rec.attached_to in pawns and bool(rec.mesh) and key in mesh_files
-        folders.setdefault(actor_folder(rec, part), []).append(rec)
+        return actor_folder(rec, part)
 
-    def meta(rec: ActorRecord, folder: str) -> List[str]:
+    folders: Dict[Tuple[str, ...], List[ActorRecord]] = {}
+    for rec in actors:
+        if rec.name not in edits.removed:
+            folders.setdefault(folder_of(rec), []).append(rec)
+    # New actors go at the end of the folder of the actor they copy.
+    copies: Dict[Tuple[str, ...], List[Tuple[ActorRecord, ActorRecord, Dict[str, Any]]]] = {}
+    for c in edits.copies:
+        folder = folder_of(c[0])
+        copies.setdefault(folder, []).append(c)
+        folders.setdefault(folder, [])
+
+    def meta(rec: ActorRecord, folder: str, gamesys_edits: Optional[Dict[str, Any]] = None,
+             copy: bool = False) -> List[str]:
         out = [f"metadata/t3_name = {_tscn_str(rec.name)}", f"metadata/t3_class = {_tscn_str(rec.cls)}"]
         if rec.archetype:
             out.append(f"metadata/t3_archetype = {_tscn_str(rec.archetype)}")
@@ -503,6 +622,8 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
             out.append(f"metadata/t3_gamesys = {_tscn_str(json.dumps(rec.gamesys, default=str))}")
             if rec.gamesys_types:
                 out.append(f"metadata/t3_gamesys_types = {_tscn_str(json.dumps(rec.gamesys_types))}")
+        if gamesys_edits:
+            out.append(f"metadata/t3_gamesys_edits = {_tscn_literal(gamesys_edits)}")
         if rec.display_name:
             out.append(f"metadata/t3_display_name = {_tscn_str(rec.display_name)}")
         if rec.family:
@@ -514,18 +635,18 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
             out.append(f"metadata/t3_book = {_tscn_str(rec.book)}")
         out.append(f"metadata/t3_category = {_tscn_str(folder)}")
         out.append(f"metadata/t3_origin = {_tscn_str(json.dumps(origin_meta(rec)))}")
-        if default_start and rec.name == default_start:
+        if default_start and rec.name == default_start and not copy:
             out.append("metadata/t3_default_start = true")
         return out
 
-    def light_lines(rec: ActorRecord, name: str, parent: str, with_transform: bool) -> List[str]:
+    def light_lines(rec: ActorRecord, name: str, parent: str, xform: Optional[str]) -> List[str]:
         lt = rec.light or {}
         kind = lt.get("kind", "omni")
         gtype = {"spot": "SpotLight3D", "projector": "SpotLight3D", "directional": "DirectionalLight3D"}.get(
             kind, "OmniLight3D")
         out = [f'\n[node name="{name}" type="{gtype}" parent="{parent}"]']
-        if with_transform:
-            out.append(f"transform = {transform3d(rec, scale)}")
+        if xform:
+            out.append(f"transform = {xform}")
         r, g, b = lt.get("color", [1, 1, 1])
         out.append(f"light_color = Color({fmt_float(r)}, {fmt_float(g)}, {fmt_float(b)}, 1)")
         out.append(f"light_energy = {fmt_float(max(0.05, float(lt.get('energy', 1.0))))}")
@@ -539,25 +660,33 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
         out.append(f"metadata/t3_light = {_tscn_str(json.dumps(lt))}")
         return out
 
-    def actor_lines(rec: ActorRecord, name: str, parent: str) -> List[str]:
+    def actor_lines(rec: ActorRecord, name: str, parent: str, placed: Optional[ActorRecord] = None,
+                    gamesys_edits: Optional[Dict[str, Any]] = None, copy: bool = False) -> List[str]:
+        """The node of actor `rec`, standing where `placed` (an edited copy of
+        it) stands if given; its metadata stays the actor's own."""
+        xform = transform3d(placed or rec, scale)
         key = (rec.mesh or "", rec.skin or "Default")
         if rec.mesh and key in mesh_files:
             f = mesh_files[key]
             if f not in ext:
                 ext[f] = f"{len(ext) + 1}_mesh"
             out = [f'\n[node name="{name}" parent="{parent}" instance=ExtResource("{ext[f]}")]',
-                   f"transform = {transform3d(rec, scale)}"]
-            out.extend(meta(rec, parent))
+                   f"transform = {xform}"]
+            out.extend(meta(rec, parent, gamesys_edits, copy))
             if rec.light is not None:  # lamps, candles: mesh plus light
-                out.extend(light_lines(rec, "T3Light", f"{parent}/{name}", False))
+                out.extend(light_lines(rec, "T3Light", f"{parent}/{name}", None))
             return out
         if rec.light is not None:
-            out = light_lines(rec, name, parent, True)
+            out = light_lines(rec, name, parent, xform)
         else:
             out = [f'\n[node name="{name}" type="Marker3D" parent="{parent}"]',
-                   f"transform = {transform3d(rec, scale)}"]
-        out.extend(meta(rec, parent))
+                   f"transform = {xform}"]
+        out.extend(meta(rec, parent, gamesys_edits, copy))
         return out
+
+    def node_label(rec: ActorRecord) -> str:
+        number = instance_number(rec.name)
+        return actor_label(rec) + ("" if number is None else f" #{number}")
 
     def folder_order(folder: Tuple[str, ...]) -> Tuple[Any, ...]:
         top = FOLDER_ORDER.index(folder[0]) if folder[0] in FOLDER_ORDER else len(FOLDER_ORDER)
@@ -586,9 +715,13 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
         parent = folder_paths[folder]
         used: Dict[str, int] = {}
         for rec in sorted(folders[folder], key=actor_order):
-            number = instance_number(rec.name)
-            label = actor_label(rec) + ("" if number is None else f" #{number}")
-            lines_nodes.extend(actor_lines(rec, scene_node_name(label, used), parent))
+            lines_nodes.extend(actor_lines(rec, scene_node_name(node_label(rec), used), parent,
+                                           edits.placed.get(rec.name), edits.gamesys.get(rec.name)))
+        # Named like the copies the map editor plugin makes ("... #1920 (copy)"):
+        # a name ending in " #" and the instance number marks the actor's own node.
+        for original, placed, gamesys_edits in copies.get(folder, []):
+            lines_nodes.extend(actor_lines(original, scene_node_name(node_label(original) + " (copy)", used),
+                                           parent, placed, gamesys_edits, copy=True))
 
     env = level_environment(actors)
     steps = len(ext) + 1 + (1 if bsp_file else 0) + (1 if env else 0)
@@ -616,7 +749,8 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
             f"metadata/t3_level = {_tscn_str(level)}",
             f"metadata/t3_title = {_tscn_str(title or level)}",
             f"metadata/t3_units_per_meter = {repr(1.0 / scale)}",
-            f"metadata/t3_actor_count = {len(actors)}"]
+            f"metadata/t3_actor_count = {sum(len(recs) for recs in folders.values())}",
+            f"metadata/t3_export_version = {EXPORT_VERSION}"]
     if source:
         body.append(f"metadata/t3_source = {_tscn_str(json.dumps(source))}")
     used_enums = {t.split(":", 1)[1] for a in actors for t in a.gamesys_types.values() if ":" in t}
@@ -735,16 +869,41 @@ def project_godot_text() -> str:
     return "\n".join(lines)
 
 
-def ensure_project(root: Path) -> None:
+def write_if_changed(path: Path, data: bytes) -> bool:
+    """Writes `data` to `path` unless the file holds exactly that already, so
+    an open Godot editor sees no change; returns whether it wrote."""
+    try:
+        if path.read_bytes() == data:
+            return False
+    except OSError:
+        pass
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return True
+
+
+def sync_tree(src: Path, dst: Path, skip: Tuple[str, ...] = ()) -> int:
+    """Copies the files under `src` that `dst` lacks or holds differently,
+    except under the top-level folders in `skip`; returns how many it wrote.
+    Files Godot adds (.uid, .import) are left alone."""
+    written = 0
+    for f in sorted(src.rglob("*")):
+        rel = f.relative_to(src)
+        if f.is_file() and rel.parts[0] not in skip and "__pycache__" not in rel.parts:
+            written += write_if_changed(dst / rel, f.read_bytes())
+    return written
+
+
+def ensure_project(root: Path) -> int:
     """Make `root` a Godot 4.7 project running the map viewer: project.godot,
     a copy of tools/assets/godot/ in res://t3_tools/, and the map editor
-    plugin in res://addons/t3_map_editor/ (enabled in project.godot)."""
+    plugin in res://addons/t3_map_editor/ (enabled in project.godot).  Only
+    new and changed files are written; returns how many."""
     root.mkdir(parents=True, exist_ok=True)
-    (root / "project.godot").write_text(project_godot_text(), encoding="utf-8")
-    shutil.copytree(TOOLS_DIR / "godot", root / "t3_tools", dirs_exist_ok=True,
-                    ignore=shutil.ignore_patterns("addons"))
-    shutil.copytree(TOOLS_DIR / "godot" / "addons" / EDITOR_PLUGIN, root / "addons" / EDITOR_PLUGIN,
-                    dirs_exist_ok=True)
+    written = int(write_if_changed(root / "project.godot", project_godot_text().encode("utf-8")))
+    written += sync_tree(TOOLS_DIR / "godot", root / "t3_tools", skip=("addons",))
+    written += sync_tree(TOOLS_DIR / "godot" / "addons" / EDITOR_PLUGIN, root / "addons" / EDITOR_PLUGIN)
+    return written
 
 
 def source_info(path: Path) -> Dict[str, Any]:
@@ -815,14 +974,27 @@ def default_player_start(actors: List[ActorRecord]) -> Optional[str]:
     return min(enumerate(starts), key=lambda ia: (rank(ia[1]), ia[0]))[1].name
 
 
-def update_index(root: Path, entry: Dict[str, Any]) -> None:
+def read_index(root: Path) -> Dict[str, Any]:
+    """The project's map index (t3_maps.json), or an empty one."""
     path = root / INDEX_NAME
-    data: Dict[str, Any] = {"generator": "tools/assets/t3map.py", "maps": []}
     if path.is_file():
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and isinstance(data.get("maps"), list):
+                return data
         except (OSError, ValueError):
             pass
+    return {"generator": "tools/assets/t3map.py", "maps": []}
+
+
+def index_entry(root: Path, level: str) -> Optional[Dict[str, Any]]:
+    """The index entry of a level's last export, if any."""
+    return next((m for m in read_index(root)["maps"] if isinstance(m, dict) and m.get("id") == level), None)
+
+
+def update_index(root: Path, entry: Dict[str, Any]) -> None:
+    path = root / INDEX_NAME
+    data = read_index(root)
     maps = [m for m in data.get("maps", []) if m.get("id") != entry["id"]]
     maps.append(entry)
     maps.sort(key=lambda m: str(m.get("title", m.get("id", ""))).lower())
@@ -830,34 +1002,78 @@ def update_index(root: Path, entry: Dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=1), encoding="utf-8")
 
 
+def export_source(gmp: Path, edits: Optional[Dict[str, Any]], backup_dir: Path = BACKUP_DIR) -> Path:
+    """The file to export for the game's map `gmp`: `gmp` itself, unless the
+    game holds a patched copy (t3pack.py install); then the backed-up
+    original, or `gmp` if the saved `edits` were made from that patched copy.
+    An installed patch is so never exported as if it were the map."""
+    backup = backup_dir / gmp.name
+    if not backup.is_file() or backup.resolve() == gmp.resolve():
+        return gmp
+    if backup.stat().st_size == gmp.stat().st_size and sha1_of(backup) == sha1_of(gmp):
+        return gmp
+    src = (edits or {}).get("source") or {}
+    if ("sha1" in src or "size" in src) and source_matches(gmp, src):
+        return gmp
+    return backup
+
+
+def keep_previous_scene(scene: Path, previous: Optional[Dict[str, Any]], edits: Path) -> Optional[Path]:
+    """Before an export replaces `scene`: keeps it as <Level>.tscn.bak if it
+    was saved in Godot since the last export (its hash is not the one the
+    index recorded), in case it holds work its edits file does not.  An
+    export from before the index recorded hashes counts as saved when the
+    level has an edits file.  Returns the copy, if it made one."""
+    if not scene.is_file():
+        return None
+    recorded = (previous or {}).get("scene_sha1")
+    if (sha1_of(scene) == recorded) if recorded else not edits.is_file():
+        return None
+    bak = scene.with_name(scene.name + ".bak")
+    shutil.copyfile(scene, bak)
+    return bak
+
+
 def export_level(gmp: Path, game: Path, root: Path, scale: float, names: PropertyNames, gs: Gamesys,
-                 json_only: bool = False, limit: int = 0, strings: Optional[Dict[str, str]] = None) -> None:
+                 json_only: bool = False, limit: int = 0, strings: Optional[Dict[str, str]] = None,
+                 with_edits: bool = True, backup_dir: Path = BACKUP_DIR) -> None:
+    """Exports the game's map `gmp` into the project `root` (see the module
+    docstring); `with_edits` applies the level's saved edits."""
     level = gmp.stem
     out = root / level
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    pkg = Package(gmp)
+    edits_path = out / f"{level}.edits.json"
+    edits_doc, edits_problem = read_saved_edits(edits_path) if with_edits else (None, "")
+    src = export_source(gmp, edits_doc, backup_dir)
+    if src != gmp:
+        print(f"{level}: the game holds a patched map; exporting the original, {src}")
+    pkg = Package(src)
     actors = extract_actors(pkg, names, gs)
     resolve_display_names(actors, strings or {})
     links = extract_links(pkg)
     apply_attachments(actors, links)
-    source = source_info(gmp)
+    source = source_info(src)
     doc = {"level": level, "source": gmp.name, "source_size": source["size"], "source_sha1": source["sha1"],
-           "units": "unreal (Z up)", "actor_count": len(actors),
+           "export_version": EXPORT_VERSION, "units": "unreal (Z up)", "actor_count": len(actors),
            "actors": [vars(a) for a in actors], "links": links}
     (out / f"{level}.actors.json").write_text(json.dumps(doc, indent=1, default=str), encoding="utf-8")
     print(f"{level}: {len(actors)} actors -> {level}/{level}.actors.json ({time.time() - t0:.1f} s)")
     if json_only:
         return
 
+    # An export by older tools is made again in full: its meshes and textures too.
+    previous = index_entry(root, level)
+    version = (previous or {}).get("export_version")
+    fresh = not isinstance(version, int) or version < EXPORT_VERSION
     ensure_project(root)
-    ibt_path = gmp.with_suffix(".ibt")
+    ibt_path = gmp.with_suffix(".ibt")  # the game's bundle, also when exporting the backed-up map
     bundles = [IBT(ibt_path)] if ibt_path.is_file() else []
     k = kernel_bundle(ibt_path)
     if k:
         bundles.append(k)
     try:
-        res = ResourceSet(bundles, out / "textures")
+        res = ResourceSet(bundles, out / "textures", overwrite=fresh)
         wanted = sorted({(a.mesh, a.skin or "Default") for a in actors if a.mesh})
         mesh_files: Dict[Tuple[str, str], str] = {}
         missing = []
@@ -870,25 +1086,48 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
                 continue
             fname = mesh_file_name(m.name, skin)
             target = out / "meshes" / fname
-            if not target.exists():
+            if fresh or not target.exists():
                 export_mesh(m, skin, res, target, scale)
             mesh_files[(mesh, skin)] = fname
         print(f"  {len(mesh_files)} mesh/skin pairs exported, {len(missing)} meshes not found in the bundles"
               f" ({time.time() - t0:.1f} s)")
         if missing:
             print("  missing: " + ", ".join(sorted(set(missing))[:20]) + (" ..." if len(set(missing)) > 20 else ""))
-        bsp = export_bsp(gmp, out, scale, res)
+        bsp = export_bsp(src, out, scale, res)
         print(f"  BSP: {bsp.name if bsp else 'no render blocks found'} ({time.time() - t0:.1f} s)")
         title = level_title(actors, strings or {}, level)
         start = default_player_start(actors)
-        write_tscn(out / f"{level}.tscn", level, actors, mesh_files, scale, bsp.name if bsp else None,
-                   start, title, names.enums, source)
+        edits = resolve_edits(actors, edits_doc) if edits_doc else SavedEdits()
+        if edits_problem:
+            edits.problems.insert(0, edits_problem)
+        scene = out / f"{level}.tscn"
+        kept = keep_previous_scene(scene, previous, edits_path)
+        write_tscn(scene, level, actors, mesh_files, scale, bsp.name if bsp else None, start, title, names.enums,
+                   source, edits)
         update_index(root, {"id": level, "title": title, "scene": f"res://{level}/{level}.tscn",
                             "actors": len(actors), "meshes": len(mesh_files),
                             "lights": sum(1 for a in actors if a.light is not None),
                             "units_per_meter": round(1.0 / scale, 4), "default_start": start or "",
-                            "source": source})
+                            "source": source, "export_version": EXPORT_VERSION, "scene_sha1": sha1_of(scene)})
         print(f"  scene: {level}/{level}.tscn  ({title})")
+        if kept:
+            print(f"  kept the scene it replaced, which may hold changes made in Godot, as {level}/{kept.name}")
+        if edits_doc:
+            print(f"  saved edits applied ({edits_path.name}): {edits.summary()}")
+
+        # Saving the scene in Godot rewrites the edits file from what the scene
+        # holds: keep a copy of the file when the scene lacks some of its edits.
+        without = not with_edits and edits_path.is_file()
+        if (edits.problems or without) and edits_path.is_file():
+            shutil.copyfile(edits_path, edits_path.with_name(edits_path.name + ".bak"))
+        if without:
+            print(f"  note: the scene is without the saved edits, and saving it in Godot replaces "
+                  f"{edits_path.name} (a copy is kept as {edits_path.name}.bak)")
+        if edits.problems:
+            print(f"  warning: some saved edits could not be applied (a copy of the file is kept as "
+                  f"{edits_path.name}.bak):")
+            for p in edits.problems:
+                print(f"    {p}")
     finally:
         for b in bundles:
             b.close()
@@ -903,7 +1142,15 @@ def main() -> None:
     ap.add_argument("--scale", type=float, default=DEFAULT_SCALE, help="metres per Unreal unit")
     ap.add_argument("--json-only", action="store_true")
     ap.add_argument("--limit", type=int, default=0, help="export at most N meshes (debugging)")
+    ap.add_argument("--without-edits", action="store_true",
+                    help="export the map as it is, without its saved edits (the edits file is kept)")
+    ap.add_argument("--project-only", action="store_true",
+                    help="only update the project's viewer and map editor plugin; export no map")
     args = ap.parse_args()
+    if args.project_only:
+        written = ensure_project(Path(args.output))
+        print(f"{args.output}: " + (f"{written} project files updated" if written else "project files up to date"))
+        return
     if not args.level and not args.all:
         ap.error("give a map name or --all")
 
@@ -917,7 +1164,8 @@ def main() -> None:
         maps = [resolve_map(game, args.level, ".gmp")]
     strings = load_string_tags(game)
     for gmp in maps:
-        export_level(gmp, game, Path(args.output), args.scale, names, gs, args.json_only, args.limit, strings)
+        export_level(gmp, game, Path(args.output), args.scale, names, gs, args.json_only, args.limit, strings,
+                     not args.without_edits)
 
 
 if __name__ == "__main__":

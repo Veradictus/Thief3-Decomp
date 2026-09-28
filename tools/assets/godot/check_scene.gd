@@ -6,15 +6,26 @@ extends SceneTree
 ##   godot --headless --path <project> --script res://t3_tools/check_scene.gd -- res://Inn/Inn.tscn [more scenes...]
 ##
 ## For every scene: loads it, instantiates it, and prints node, mesh, surface,
-## material and texture counts plus the combined AABB. Exits with code 1 when a
-## scene fails to load or contains meshes without surfaces.
+## material and texture counts plus the combined AABB. A scene with saved edits
+## (<Level>.edits.json, which an export applies) must hold exactly those: the
+## map editor plugin collects the same edits from it. Exits with code 1 when a
+## scene fails to load, contains meshes without surfaces or does not hold its
+## saved edits.
 
 # =============================================================================
 # VARIABLES
 # =============================================================================
 
-## Number of scenes that failed to load or came back with an empty mesh.
+## Number of scenes that failed to load, came back with an empty mesh or do
+## not hold their saved edits.
 var failures := 0
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+
+## The map editor plugin's model, which collects a scene's edits.
+const EDITS_MODEL := 'res://addons/t3_map_editor/t3_edits.gd'
 
 # =============================================================================
 # METHODS
@@ -106,7 +117,51 @@ func check(path: String) -> void:
 	if stats.empty_meshes > 0:
 		failures += 1
 
+	check_edits(path, root)
 	root.free()
+
+## Checks that the scene at `path` (instantiated as `root`) holds exactly its
+## saved edits: the map editor plugin collects the same changed, new and
+## removed actors from it as <Level>.edits.json lists. Scenes without an edits
+## file, and projects without the plugin, are skipped.
+func check_edits(path: String, root: Node) -> void:
+	var file := path.get_basename() + '.edits.json'
+	if not FileAccess.file_exists(file) or not ResourceLoader.exists(EDITS_MODEL):
+		return
+
+	var saved = JSON.parse_string(FileAccess.get_file_as_string(file))
+	if not (saved is Dictionary):
+		printerr('FAIL %s: %s is not valid JSON' % [path, file])
+		failures += 1
+		return
+
+	var edits: Script = load(EDITS_MODEL)
+	var got: Dictionary = JSON.parse_string(edits.to_json(edits.collect(root)['doc']))
+	var differ: Array[String] = []
+	for key in ['actors', 'added', 'removed']:
+		var empty = {} if key == 'actors' else []
+		if not edits.same_json(sorted_json(saved.get(key, empty)), sorted_json(got.get(key, empty))):
+			differ.append(key)
+
+	if differ.is_empty():
+		print('   saved edits: the scene holds exactly %s' % file.get_file())
+		return
+
+	printerr('FAIL %s: the scene does not hold its saved edits (%s differ)' % [path, ', '.join(differ)])
+	for key in differ:
+		printerr('   %s saved %s' % [key, JSON.stringify(saved.get(key))])
+		printerr('   %s found %s' % [key, JSON.stringify(got.get(key))])
+	failures += 1
+
+## `v` with an array's items in a fixed order (by their JSON text), so lists
+## compare regardless of the order in which the scene holds their nodes.
+func sorted_json(v: Variant) -> Variant:
+	if not (v is Array):
+		return v
+
+	var items: Array = (v as Array).duplicate()
+	items.sort_custom(func(a, b): return JSON.stringify(a) < JSON.stringify(b))
+	return items
 
 ## `n`'s transform in world space, computed by walking its parents by hand
 ## since it is not yet in the tree (global_transform is not valid here).

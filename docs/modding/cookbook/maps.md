@@ -66,6 +66,9 @@ none of that restriction and can go into a content pack's own
   dragged in) has no T3 metadata and is not saved; the dock warns about it.
 - **Deleting** takes an actor out of the level; the map's LevelInfo cannot
   be deleted.
+- **Exporting again keeps your edits.** The edits file is the record of your
+  work; an export applies it. If the scene you replace was saved in Godot,
+  the old one is kept as `<Level>.tscn.bak`.
 - **This is experimental.** It has been tested on synthetic maps, not
   confirmed on retail ones; keep a backup, and remember `Restore original`
   always works as long as the map's install itself is intact.

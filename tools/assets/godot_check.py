@@ -21,10 +21,12 @@ Usage:
   godot_check.py --editor-selftest [DIR]
       tests the map editor plugin without game files: writes a synthetic level
       (hand-made actors, a generated cube) into a project at DIR (default
-      build/assets/editor_selftest), imports it, runs the plugin's model test
+      build/assets/editor_selftest), and the same level exported with saved
+      edits, imports them, runs the plugin's model test
       (addons/t3_map_editor/selftest.gd: rotator round trip, edits, save,
-      load), checks the edits file it wrote, then opens the level in the
-      headless editor and drives the dock (select, edit, save, undo).
+      load), checks the edits file it wrote, checks that the plugin collects
+      exactly the saved edits from the second level, then opens the first in
+      the headless editor and drives the dock (select, edit, save, undo).
       Afterwards --project DIR --viewer and --project DIR also work on it.
 """
 
@@ -38,16 +40,18 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf import GLTFBuilder  # noqa: E402
 from t3common import BUILD_DIR, run_cli  # noqa: E402
-from t3map import ActorRecord, ensure_project, update_index, write_tscn  # noqa: E402
+from t3map import ActorRecord, SavedEdits, ensure_project, resolve_edits, update_index, write_tscn  # noqa: E402
 from t3mesh import DEFAULT_SCALE  # noqa: E402
-from t3pack import EDITS_VERSION  # noqa: E402
+from t3pack import EDITS_VERSION, load_edits  # noqa: E402
 
 EDIT_TEST_LEVEL = "T3EditTest"
+# The same level exported with saved edits (baked_edits()).
+BAKED_TEST_LEVEL = "T3EditBaked"
 
 
 def godot_exe(explicit: str | None) -> str:
@@ -150,11 +154,29 @@ def edit_fixture_actors() -> List[ActorRecord]:
     ]
 
 
-def build_edit_fixture(project: Path) -> str:
-    """Writes the synthetic level into `project` (a Godot project made by
-    ensure_project()) with the exporter's own writers; returns its scene path."""
-    ensure_project(project)
-    level = EDIT_TEST_LEVEL
+def baked_edits(source: Dict[str, Any]) -> Dict[str, Any]:
+    """Saved edits of the synthetic level, as the plugin writes them: moved,
+    turned (at pitch +90 too) and scaled actors, property edits, a new actor
+    of each kind (a marker, and a lamp: mesh and light, scaled, with an edit)
+    and a removed one."""
+    return {"format": "t3-map-edits", "version": EDITS_VERSION, "level": BAKED_TEST_LEVEL, "source": source,
+            "actors": {
+                "Gimbal_Up": {"rotation": [16384, 5000, 17584]},
+                "Scaled": {"draw_scale": 5.0},
+                "StaticMeshActor0": {"location": [152.99, -250.25, 32.0],
+                                     "gamesys": {"Brightness": 2.5, "Mode": "MODE_D", "Target": "Door2"}},
+                "Yawed": {"rotation": [0, -15384, 0]}},
+            "added": [
+                {"copy_of": "Yawed", "location": [-192.0, 96.0, 16.0], "rotation": [0, 1000, 0]},
+                {"copy_of": "D_100_0", "location": [64.0, 0.0, 128.0], "rotation": [0, -8192, 0], "draw_scale": 2.0,
+                 "gamesys": {"bLightOn": False}}],
+            "removed": ["PlayerStart0"]}
+
+
+def write_fixture_level(project: Path, level: str, title: str, edits: Optional[Dict[str, Any]] = None) -> str:
+    """Writes the synthetic level as `level` with the exporter's own writers,
+    applying the saved `edits` (also written as its edits file) if given;
+    returns its scene path."""
     out = project / level
     if out.is_dir():
         shutil.rmtree(out)
@@ -165,16 +187,33 @@ def build_edit_fixture(project: Path) -> str:
              "EUnusedEnum": ["UNUSED"]}
     blob = b"synthetic T3EditTest map, not game data"
     source = {"file": f"{level}.gmp", "size": len(blob), "sha1": hashlib.sha1(blob).hexdigest()}
+    saved = SavedEdits()
+    if edits is not None:
+        saved = resolve_edits(actors, load_edits(edits))
+        assert not saved.problems, saved.problems
+        (out / f"{level}.edits.json").write_text(json.dumps(edits, indent=1), encoding="utf-8")
     write_tscn(out / f"{level}.tscn", level, actors, {("TestCube", "Default"): "TestCube.glb"}, DEFAULT_SCALE,
-               None, "PlayerStart0", "Editor self-test", enums, source)
+               None, "PlayerStart0", title, enums, source, saved)
     doc = {"level": level, "source": source["file"], "source_size": source["size"], "source_sha1": source["sha1"],
            "units": "unreal (Z up)", "actor_count": len(actors), "actors": [vars(a) for a in actors], "links": []}
     (out / f"{level}.actors.json").write_text(json.dumps(doc, indent=1), encoding="utf-8")
-    update_index(project, {"id": level, "title": "Editor self-test", "scene": f"res://{level}/{level}.tscn",
+    update_index(project, {"id": level, "title": title, "scene": f"res://{level}/{level}.tscn",
                            "actors": len(actors), "meshes": 1, "lights": sum(1 for a in actors if a.light),
                            "units_per_meter": round(1.0 / DEFAULT_SCALE, 4), "default_start": "PlayerStart0",
                            "source": source})
     return f"res://{level}/{level}.tscn"
+
+
+def build_edit_fixture(project: Path) -> Tuple[str, str]:
+    """Writes the synthetic level into `project` (a Godot project made by
+    ensure_project()), and the same level exported with saved edits; returns
+    their scene paths."""
+    ensure_project(project)
+    scene = write_fixture_level(project, EDIT_TEST_LEVEL, "Editor self-test")
+    blob = b"synthetic T3EditTest map, not game data"
+    source = {"file": f"{BAKED_TEST_LEVEL}.gmp", "size": len(blob), "sha1": hashlib.sha1(blob).hexdigest()}
+    baked = write_fixture_level(project, BAKED_TEST_LEVEL, "Saved edits self-test", baked_edits(source))
+    return scene, baked
 
 
 def check_edits_file(path: Path) -> List[str]:
@@ -211,14 +250,14 @@ def check_edits_file(path: Path) -> List[str]:
 
 
 def editor_selftest(exe: str, project: Path, timeout: int) -> int:
-    scene = build_edit_fixture(project)
-    print(f"synthetic level {scene} in {project}")
+    scene, baked = build_edit_fixture(project)
+    print(f"synthetic levels {scene} and {baked} (with saved edits) in {project}")
     failed = import_project(exe, project, timeout)
 
     edits = project / EDIT_TEST_LEVEL / f"{EDIT_TEST_LEVEL}.edits.json"
     edits.unlink(missing_ok=True)
     r = run([exe, "--headless", "--path", str(project), "--script", "res://addons/t3_map_editor/selftest.gd",
-             "--", scene], timeout)
+             "--", scene, baked], timeout)
     out = r.stdout + r.stderr
     for ln in out.splitlines():
         if ln.startswith(("  ok", "  FAIL", "SELFTEST", "T3 ", "  time")):
@@ -234,6 +273,17 @@ def editor_selftest(exe: str, project: Path, timeout: int) -> int:
     if not file_problems:
         print(f"  ok    {edits.name} checked with Python's json (values and types)")
     failed |= 1 if file_problems else 0
+
+    # The exporter applied the saved edits: the plugin must collect exactly them again.
+    r = run([exe, "--headless", "--path", str(project), "--script", "res://t3_tools/check_scene.gd", "--", baked],
+            timeout)
+    out = r.stdout + r.stderr
+    held = r.returncode == 0 and "saved edits: the scene holds exactly" in out
+    print(("  ok    " if held else "  FAIL  ") + "an export with saved edits holds exactly them (check_scene.gd)")
+    for ln in out.splitlines():
+        if ln.startswith(("FAIL", "   actors", "   added", "   removed")):
+            print("        " + ln)
+    failed |= 0 if held else 1
 
     r = run([exe, "--headless", "--editor", "--path", str(project), "--", "--t3-editor-selftest", scene], timeout)
     out = r.stdout + r.stderr
@@ -314,7 +364,7 @@ def main() -> None:
     r = run([exe, "--headless", "--path", str(project), "--script", "res://t3_tools/check_scene.gd", "--",
              *scenes], args.timeout)
     for ln in (r.stdout + r.stderr).splitlines():
-        if ln.startswith(("OK", "FAIL", "   AABB")) or "ERROR" in ln:
+        if ln.startswith(("OK", "FAIL", "   AABB", "   saved edits", "   actors", "   added", "   removed"))                 or "ERROR" in ln:
             print(ln)
     sys.exit(r.returncode or failed)
 

@@ -2,17 +2,19 @@
 extends RefCounted
 
 ## The map editor's model: finds what changed in an exported Thief: Deadly
-## Shadows level since the export, converts it back to Unreal units, and reads
-## and writes the edits file (<Level>/<Level>.edits.json, format
-## "t3-map-edits" version 1, see docs/assets.md section 8).
+## Shadows level, converts it back to Unreal units, and reads and writes the
+## edits file (<Level>/<Level>.edits.json, format "t3-map-edits", see
+## docs/assets.md section 8).
 ##
-## tools/assets/t3map.py stores on every actor node its placement as exported
-## (t3_origin: location and rotation in Unreal units, draw_scale), its own
+## tools/assets/t3map.py stores on every actor node its placement in the map
+## file (t3_origin: location and rotation in Unreal units, draw_scale), its own
 ## gamesys properties (t3_gamesys, JSON) and their types (t3_gamesys_types).
 ## Gamesys values edited in the dock live in t3_gamesys_edits (a Dictionary)
-## until they are saved; t3_gamesys stays the exported original.  An actor's
-## changes are its differences from these originals, so an untouched actor
-## never produces anything.
+## until they are saved; t3_gamesys stays the map's value.  An actor's changes
+## are its differences from these originals, so an untouched actor never
+## produces anything.  An export applies the level's saved edits (moved nodes,
+## t3_gamesys_edits, copies, removed actors), so a scene exported again yields
+## the same edits file.
 ##
 ## Coordinates (docs/assets.md section 5): Unreal (x, y, z) is Godot (x, z, y)
 ## times metres per unit, and an actor's basis is UE2's FRotationMatrix
@@ -26,8 +28,12 @@ extends RefCounted
 ## The edits file's format name.
 const FORMAT := 't3-map-edits'
 
-## The edits file's format version.
+## The edits file's format version (tools/assets/formats.json, map_edits).
 const VERSION := 2
+
+## The export format this plugin is made for (tools/assets/formats.json,
+## map_export); a scene exported by older tools should be exported again.
+const EXPORT_VERSION := 1
 
 ## Radians per Unreal rotator unit (65536 units per turn).
 const ROT_UNIT := TAU / 65536.0
@@ -204,6 +210,16 @@ static func level_name(root: Node) -> String:
 ## Whether `root` is an exported T3 level scene.
 static func is_level(root: Node) -> bool:
 	return root != null and root.has_meta('t3_level')
+
+## The export format version of the level under `root` (0: exported before
+## scenes were stamped with one).
+static func export_version(root: Node) -> int:
+	return int(root.get_meta('t3_export_version', 0))
+
+## Whether the level under `root` was exported by older tools than this
+## plugin is made for (see EXPORT_VERSION).
+static func is_outdated(root: Node) -> bool:
+	return export_version(root) < EXPORT_VERSION
 
 ## The source map ({file, size, sha1}) recorded at export, or {}.
 static func source(root: Node) -> Dictionary:
@@ -544,6 +560,10 @@ static func exported_classes(root: Node) -> Dictionary:
 				out[String(a['name'])] = String(a.get('cls', ''))
 	return out
 
+## Everything that changed in the level under `root`: {doc (the edits file's
+## document), changed ({key: {node, edit, summary, added?}}, for the dock's
+## list), warnings, actors (the number of actor nodes), counts ({changed,
+## added, removed}), not_saved ({nodes})}.
 static func collect(root: Node) -> Dictionary:
 	var upm := units_per_meter(root)
 	var all_enums := enums(root)
@@ -619,6 +639,12 @@ static func collect(root: Node) -> Dictionary:
 		warnings.append(('%d node%s without T3 metadata (%s): new actors are copies of exported ones (Ctrl+D), '
 			+ 'so these are not saved') % [foreign.size(), '' if foreign.size() == 1 else 's',
 			listed(foreign.map(func(n): return String(n.name)))])
+
+	# Edits still save, but the scene may lack what this plugin relies on.
+	if is_outdated(root):
+		warnings.push_front(('exported by older tools (export format %d, this plugin is made for %d): export it '
+			+ 'again, which keeps your saved edits (Map Studio does that when you open the map from it)')
+			% [export_version(root), EXPORT_VERSION])
 
 	var doc := {'format': FORMAT, 'version': VERSION, 'level': level_name(root)}
 	var src := source(root)
@@ -722,13 +748,17 @@ static func read(path: String) -> Dictionary:
 ## with create (the new node), parent and owner for a new actor, or just
 ## {delete: node} for a removed one.  Every actor listed in the file gets
 ## exactly its saved state (keys the file leaves out take their exported
-## values); the other actors are left alone.
+## values); the other actors are left alone.  A new actor the scene already
+## has (a copy standing as saved) is not made again, nor is a removed one
+## that is gone already, so loading into a scene that holds the edits (an
+## export applies them) changes nothing.
 static func plan_load(root: Node, doc: Dictionary) -> Dictionary:
 	var warnings: Array[String] = []
 	var changes: Array = []
 	var upm := units_per_meter(root)
 	var all_enums := enums(root)
-	var nodes: Dictionary = actor_nodes(root)['actors']
+	var found := actor_nodes(root)
+	var nodes: Dictionary = found['actors']
 
 	var src := source(root)
 	var file_src = doc.get('source', {})
@@ -751,12 +781,25 @@ static func plan_load(root: Node, doc: Dictionary) -> Dictionary:
 		changes.append({'node': node, 'transform': local_for_level(node, root, saved_transform(node, e, upm)),
 			'gamesys': saved_gamesys(node, e, all_enums)})
 
+	# The copies already in the scene, as the edits file records them.
+	var present: Array = []
+	for node in found['copies']:
+		if node is Node3D and not origin(node).is_empty():
+			present.append(JSON.parse_string(to_json(copy_record(node as Node3D, root, origin(node), upm,
+				all_enums)['record'])))
+
 	# New actors: copies of the actor each names, placed as saved.
 	var file_added = doc.get('added', [])
 	for e in (file_added if file_added is Array else []):
 		var key := String(e.get('copy_of', '')) if e is Dictionary else ''
 		if not nodes.has(key) or not (nodes[key] is Node3D) or origin(nodes[key]).is_empty():
 			unknown.append(key)
+			continue
+
+		# Standing as saved already: each copy in the scene matches one record.
+		var twin := present.find_custom(func(r): return same_json(r, e))
+		if twin >= 0:
+			present.remove_at(twin)
 			continue
 
 		var original := nodes[key] as Node3D
@@ -766,11 +809,13 @@ static func plan_load(root: Node, doc: Dictionary) -> Dictionary:
 			'transform': local_for_level(original, root, saved_transform(original, e, upm)),
 			'gamesys': saved_gamesys(original, e, all_enums)})
 
+	# Removed actors: deleted, unless they are gone already.
+	var classes := exported_classes(root)
 	var file_removed = doc.get('removed', [])
 	for key in (file_removed if file_removed is Array else []):
 		if nodes.has(String(key)):
 			changes.append({'delete': nodes[String(key)]})
-		else:
+		elif not classes.has(String(key)):
 			unknown.append(String(key))
 
 	if not unknown.is_empty():

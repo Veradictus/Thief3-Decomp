@@ -1,0 +1,5 @@
+{
+  "about": "Format versions of what the map tools write, shared by the tools, the launcher and the map editor plugin (docs/assets.md). Raise map_export when exports made by older tools must be made again: the launcher then exports such maps again, with their saved edits, before opening them.",
+  "map_export": 1,
+  "map_edits": 2
+}
