@@ -12,10 +12,14 @@ changing its properties, works. Adding and removing things does not yet.
 2. Open **Map Studio**, pick a map and click **Export**.
 3. Click **Edit in Godot**. Move, rotate and scale things with Godot's tools,
    or change their properties in the **T3 Map** dock (below the Inspector).
-   Then click **Save T3 edits** in that dock.
+   Then save the scene (Ctrl+S): that also saves the T3 edits (the dock's
+   **Save T3 edits** button does the same). Adding and deleting actors is
+   not supported yet: such changes are not saved.
 4. Back in Map Studio, click **Repack**, then **Install**, and play the map.
 5. **Restore original** puts the unmodified map back. Every original map is
    backed up once, before it is first replaced.
+
+![Map Studio: the game's maps, and the export, edit, repack and install steps for the selected one](../images/launcher-map-studio.png)
 
 **View** opens a map in a fly-through viewer instead. The same steps are in
 the README's [Edit maps](../../README.md#edit-maps) section.

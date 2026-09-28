@@ -77,7 +77,6 @@
       <button class="btn primary play" onclick={play} disabled={!game?.ok || launching || o?.running}>
         <Icon name="play" size={18} />{o?.running ? "Running" : launching ? "Starting…" : "Play"}
       </button>
-      {#if game?.steam}<span class="faint small">Starts through Steam, like its Play button.</span>{/if}
     </div>
   </section>
 
@@ -264,11 +263,6 @@
     font-size: 16px;
     letter-spacing: 0.04em;
     box-shadow: 0 6px 24px #d6ab5230;
-  }
-
-  .hero-play .small {
-    position: relative;
-    text-wrap: balance;
   }
 
   .small {

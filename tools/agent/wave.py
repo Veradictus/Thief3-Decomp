@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Lead only: run a wave of headless matching workers, each in its own git worktree.
 
-    python tools/agent/wave.py --workers 8 [--functions 5] [--unit U] [--budget-usd 5] [--dry-run]
+    python tools/agent/wave.py --workers 8 [--functions 5] [--unit U] [--name REGEX] [--min-size N] [--max-size N]
+                               [--budget-usd 5] [--dry-run]
 
 Each worker is `claude -p` on the t3-matcher agent prompt with the Sonnet
 model, JSON output, and the guard settings (tools/agent/guard-settings.json,
@@ -69,6 +70,9 @@ def main() -> None:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--functions", type=int, default=5, help="functions per worker")
     parser.add_argument("--unit", help="restrict the queue to a split unit (name or prefix)")
+    parser.add_argument("--name", help="only functions whose symbols.txt name matches this regex")
+    parser.add_argument("--min-size", type=lambda v: int(v, 0), help="skip functions smaller than this")
+    parser.add_argument("--max-size", type=lambda v: int(v, 0), help="skip functions larger than this")
     parser.add_argument("--model", default="claude-sonnet-5")
     parser.add_argument("--budget-usd", type=float, help="--max-budget-usd per worker")
     parser.add_argument("--timeout", type=float, default=3 * 3600, help="seconds before a worker is stopped")
@@ -95,13 +99,16 @@ def main() -> None:
     prompt_file = wave_dir / "t3-matcher.md"
     settings_file = wave_dir / "settings.json"
     bin_dir = wave_dir / "bin"
-    unit = f" --unit {args.unit}" if args.unit else ""
+    # The queue filters each worker passes to `next.py claim`.
+    filters = (("--unit", args.unit), ("--name", args.name), ("--min-size", args.min_size),
+               ("--max-size", args.max_size))
+    claim_opts = "".join(f" {flag} {shlex.quote(str(value))}" for flag, value in filters if value)
     workers = []
     for i in range(1, args.workers + 1):
         agent = f"{wave}-w{i:02d}"
         tree = p.state / "worktrees" / wave / f"w{i:02d}"
         prompt = (f"You are matching worker {agent}. Match up to {args.functions} functions from the queue, one "
-                  f"at a time (`python tools/agent/next.py claim{unit}`), following your instructions. Then "
+                  f"at a time (`python tools/agent/next.py claim{claim_opts}`), following your instructions. Then "
                   f"end with the JSON summary line.")
         cmd = [args.claude, "-p", prompt, "--model", args.model, "--output-format", "json",
                "--settings", str(settings_file), "--append-system-prompt-file", str(prompt_file),
@@ -175,7 +182,8 @@ def main() -> None:
     cost = sum(r["cost_usd"] or 0 for r in results)
     report = {
         "wave": wave, "model": args.model, "workers": args.workers, "functions_per_worker": args.functions,
-        "unit": args.unit, "started": started, "finished": time.time(), "total_cost_usd": round(cost, 4),
+        "unit": args.unit, "name": args.name, "min_size": args.min_size, "max_size": args.max_size,
+        "started": started, "finished": time.time(), "total_cost_usd": round(cost, 4),
         "matched": matched, "deferred": deferred,
         "cost_per_match_usd": round(cost / matched, 4) if matched else None,
         "needs": sorted({n for r in results for n in (r["summary"] or {}).get("needs", [])}),

@@ -31,8 +31,9 @@ real build runs.
 Progress categories (set in `configure.py`): **main** "Game & engine" is the
 headline, with **game** and **engine** under it; **libs** is the MSVC runtime,
 STL and D3DX, matched from library objects rather than decompiled. Units get a
-category from `UNITS` or, failing that, from their address (before the CRT
-entry point `0x10D1F7AF` and the `.text$x` funclets: main; after: libs).
+category from `UNITS` or, failing that, from their address (before
+`LIBRARY_START`, `0x10CFBFB0`, where qhull and then the C runtime begin, and
+the `.text$x` funclets: main; after: libs).
 
 ## One-time setup (repository owner)
 

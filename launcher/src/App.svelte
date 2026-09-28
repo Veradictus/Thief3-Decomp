@@ -100,7 +100,7 @@
         {#if !inTauri}<span class="badge info">Browser preview</span>{/if}
       </div>
       <nav>
-        <button class="link" onclick={() => api.openLink("https://discord.gg/hdAXH73tEG")}>
+        <button class="link" onclick={() => api.openLink("https://discord.gg/eaJkC5C6WJ")}>
           <Icon name="discord" size={16} /><span class="grow">Taffer Tavern</span>
         </button>
         <button class="link" onclick={() => api.openLink("https://veradictus.github.io/Thief3-Decomp/")}>

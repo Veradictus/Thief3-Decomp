@@ -239,9 +239,12 @@ def objdiff_rows(project: Project, target_obj: Path, base_obj: Path, symbol: str
     if left is None or right is None:
         raise RuntimeError(f"objdiff did not pair {symbol}")
 
-    def insn(row: dict) -> Optional[Insn]:
+    # objdiff gives section offsets (for the symbol and each instruction), and a
+    # split object holds many functions per section: rows use offsets from the
+    # function's start.
+    def insn(row: dict, start: int) -> Optional[Insn]:
         i = row.get("instruction")
-        return Insn(int(i.get("address", 0)), int(i.get("size", 0)), i.get("formatted", "")) if i else None
+        return Insn(int(i.get("address", 0)) - start, int(i.get("size", 0)), i.get("formatted", "")) if i else None
 
     def mnemonic(row: dict) -> str:
         for part in row.get("instruction", {}).get("parts", []):
@@ -250,9 +253,10 @@ def objdiff_rows(project: Project, target_obj: Path, base_obj: Path, symbol: str
         return ""
 
     rows = []
+    left_start, right_start = int(left.get("address", 0)), int(right.get("address", 0))
     for a, b in zip(left.get("instructions", []), right.get("instructions", [])):
         kind = a.get("diff_kind") or b.get("diff_kind") or ""
-        rows.append(Row(insn(a), insn(b), kind.replace("DIFF_", "").lower()))
+        rows.append(Row(insn(a, left_start), insn(b, right_start), kind.replace("DIFF_", "").lower()))
     return rows, {"mnemonics": [mnemonic(a) for a in left.get("instructions", []) if a.get("instruction")]}
 
 

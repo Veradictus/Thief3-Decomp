@@ -11,7 +11,7 @@ goes to a unit:
     (free functions: <Category>/Unsorted.cpp), where the category is --category,
     or "engine" for Unreal-style class names (UObject, AActor, FName), else
     "game".
-Library code (from the CRT entry point on, outside .text$x) is not published
+Library code (from configure.py's LIBRARY_START on, outside .text$x) is not published
 (CONTRIBUTING.md): it is skipped unless --category libs.
 
 For each unit the tool assembles the file (the accepted files' declarations,

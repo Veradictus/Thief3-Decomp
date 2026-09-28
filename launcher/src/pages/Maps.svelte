@@ -151,7 +151,8 @@
             {#if sel.editedActors}
               {sel.editedActors} actor{sel.editedActors > 1 ? "s" : ""} changed · saved {ago(sel.editsTime)}
             {:else}
-              Move, rotate and scale actors, or change their properties, then use <em>Save T3 edits</em>.
+              Move, rotate and scale actors, or change their properties, then save (Ctrl+S). Adding and deleting actors
+              is not supported yet.
             {/if}
           </p>
         </div>
@@ -174,6 +175,10 @@
               <span class="warn-text">The edits changed after the last repack.</span>
             {:else if sel.patched}
               Patched map built {ago(sel.patchedTime)}.
+            {:else if sel.exported && sel.editedActors === null}
+              Nothing to repack yet: no edits saved in Godot.
+            {:else if sel.editedActors === 0}
+              Nothing to repack: the saved edits change no actors.
             {:else}
               Writes a patched copy of the map; the game folder is not touched.
             {/if}

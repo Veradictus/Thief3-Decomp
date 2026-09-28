@@ -518,17 +518,39 @@ addons/t3_map_editor/          the map editor plugin (enabled in project.godot)
 Scene structure:
 
 - An instance of the BSP `.glb`.
-- A `StaticMeshes` node. It holds a `.glb` instance for every actor that has
-  a mesh (plain `StaticMeshActor`s and archetype instances such as lamps and
-  doors). Actors that also have a light get a `T3Light` child.
-- A `Lights` node with `OmniLight3D`, `SpotLight3D` or `DirectionalLight3D`.
-- A `Markers` node with a `Marker3D` for every other actor: player starts,
-  volumes, AI points, emitters, sounds, cameras, brushes.
-- A hidden `CharacterParts` node. It holds the meshes attached to NPC
-  skeletons (eyes, teeth, hair, armour). The skeletons are not exported yet,
-  so these parts would otherwise float in the air.
+- Folders (`Node3D`, metadata `t3_folder`) that sort the actors by what they
+  are:
+
+  | Folder | Holds | Subfolders |
+  |---|---|---|
+  | `Geometry` | `StaticMeshActor`s | the level designers' editor groups (the `Group` property: Beamwork, Crates, Trees...), then `Ungrouped` |
+  | `Objects` | archetype instances: set dressing, loot and pickups, lamps, doors and other movers, readables, containers | the archetype family, the most generic archetype below `WorldObj` (`SetDressing`, `InventoryObject`, `Light_`, `Moving`, `Readable`...) |
+  | `Characters` | AI pawns | the family below the generic `T3AIPawn*` archetypes (`CityWatchGuard`, `Bartender`, `Rat`...) |
+  | `Lights` | `Light` actors (lamps and torches that are objects are in `Objects/Light_`) | |
+  | `Effects` | emitters and other effects | the archetype family (`CandleFlame`, `WindowLightShaft`...) |
+  | `Sounds`, `Player starts`, `Cameras` | ambient sounds, player starts, camera points | |
+  | `AI navigation` | patrol, wander, flee, look and animation points | the class |
+  | `Volumes and zones` | volumes and zone actors | the class |
+  | `Level and mission` | `LevelInfo`, mission entry and exit, difficulty settings, spawn points, the north marker | |
+  | `Other` | anything else | the class |
+  | `Brushes`, `Editor cameras` (hidden) | builder brushes, and the viewport cameras T3Ed saved into the map | |
+  | `Character parts` (hidden) | the meshes attached to NPC skeletons (eyes, teeth, hair, armour); the skeletons are not exported yet, so these parts would otherwise float in the air | |
+
+  An actor with a mesh is an instance of its `.glb`, and gets a `T3Light`
+  child if it also has a light. A light without a mesh is an
+  `OmniLight3D`, `SpotLight3D` or `DirectionalLight3D`, and anything else a
+  `Marker3D`.
 - A `WorldEnvironment` built from the LevelInfo actor: ambient colour and
   brightness (UE HSV) and depth fog (colour, start and end).
+
+Actor nodes are named after what they are, followed by the object name's
+instance number: the name the game shows for an item (`Copper Goblet #0`,
+from its `InvName` and the string tables), else the archetype
+(`CityWatchGuard_GNormal_06 #0`) or the mesh (`GENxFENCEiron8x8A #364`),
+else the class with a telling detail (`PlayerStart Inn #1`, from its
+`TeleportDestName`). Each folder lists its actors by name, so instances of
+the same mesh sit together. The object name stays in `t3_name`, which is
+what the map editor plugin goes by, so the layout does not affect edits.
 
 Every node carries metadata:
 
@@ -536,6 +558,12 @@ Every node carries metadata:
 - `t3_archetype` (display name) and `t3_base`.
 - `t3_mesh` and `t3_skin`.
 - `t3_tag`.
+- `t3_display_name`: the name the game shows for an item.
+- `t3_family`: the archetype chain, most generic first
+  (`WorldObj > SetDressing > InnSetDressing > TrainingStop`).
+- `t3_groups`: the level designers' editor groups.
+- `t3_book`: a readable's text file (`BookFileName`).
+- `t3_category`: the folder the node is in (`Objects/InventoryObject`).
 - `t3_attached_to` and `t3_attached_bone`, for attachment children.
 - `t3_gamesys`: the instance's own gamesys properties as JSON, with property
   names and enum and bitfield names resolved.
@@ -687,7 +715,8 @@ and save the changes as `<Level>/<Level>.edits.json` for `t3pack.py`.
   `t3_gamesys` keeps the exported values.
 - **Changed actors.** The dock lists the changed actors (click one to select
   it) and reverts one with **Revert**. All changes go through undo/redo.
-- **Save T3 edits** (dock button, or Project > Tools) writes the edits file.
+- **Save T3 edits** (dock button, or Project > Tools) writes the edits file,
+  and so does saving the level's scene (Ctrl+S).
   **Load** (or Load T3 edits) applies it to the scene, for example after a
   re-export: every actor in the file gets its saved state.
 
