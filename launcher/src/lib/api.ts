@@ -90,6 +90,9 @@ export interface MapEntry {
   exported: boolean;
   actors: number | null;
   editedActors: number | null;
+  /** Actors added or removed in Godot, which the edits file cannot save. */
+  notSavedAdded: number;
+  notSavedRemoved: number;
   editsTime: number | null;
   patched: boolean;
   patchedTime: number | null;

@@ -736,7 +736,9 @@ Only changes are written. The plugin compares each actor with its
 
 Adding and removing actors is not supported yet. The dock warns about
 duplicated actor nodes, nodes without T3 metadata in the actor groups and
-removed actors; the edits file does not record them.
+removed actors, and says after each save what it left out. The edits file
+counts them under `not_saved` (not the actors themselves), so Map Studio can
+explain why there is nothing to repack.
 
 The edits file is format `t3-map-edits` version 1, described with
 `t3pack.py` in section 8 ("Getting edits back into the game"). The plugin
@@ -935,7 +937,8 @@ and native tail are copied verbatim.
       "draw_scale": 1.0,
       "gamesys": {"<property name, as in actors.json>": value}
     }
-  }
+  },
+  "not_saved": {"added": 9, "removed": 0}
 }
 ```
 
@@ -946,6 +949,8 @@ and native tail are copied verbatim.
   numbers); `prop<N>` names a property by id.
 - `source` is optional (older exports lack it). When present, `apply`
   refuses a map whose size or SHA-1 differs.
+- `not_saved` (only when non-zero) counts the actors added or removed in
+  Godot, which this version cannot save; `apply` ignores it.
 - Other top-level keys are ignored. An unknown key under an actor, an
   unknown actor or an unsupported property type is an error, and nothing is
   written. `t3pack.load_edits()` checks a file and returns a normalised

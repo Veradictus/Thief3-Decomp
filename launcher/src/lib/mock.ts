@@ -160,6 +160,8 @@ const maps: MapEntry[] = mapRows.map(
     exported,
     actors: exported ? actors : null,
     editedActors: edited,
+    notSavedAdded: 0,
+    notSavedRemoved: 0,
     editsTime,
     patched,
     patchedTime,
