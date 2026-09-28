@@ -27,7 +27,8 @@ python tools/ghidra_headless.py bootstrap                          # rebuild ghi
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
 python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
 python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
-cd launcher && npm run tauri dev                                                   # the launcher (docs/launcher.md)
+cd launcher && yarn install && yarn tauri dev                                      # the launcher (docs/launcher.md)
+cd launcher && yarn verify                                                         # launcher UI: types, lint, format, tests
 python tools/assets/selftest.py; python tools/agent/selftest.py                    # tests that need no game files
 ```
 

@@ -1,8 +1,8 @@
 <script lang="ts">
   // Home: start the game, and the state of the SDK, mods and maps at a glance.
-  import Icon from "../components/Icon.svelte";
-  import { api } from "../lib/api";
-  import { app, enqueue, guard, refresh, running, toast } from "../lib/app.svelte";
+  import Icon from "$components/Icon.svelte";
+  import { api } from "$lib/api";
+  import { app, enqueue, guard, refresh, running, toast } from "$lib/app.svelte";
 
   let log = $state<string[]>([]);
   let launching = $state(false);
@@ -63,7 +63,10 @@
 
   <div class="tiles">
     <div class="tile card">
-      <div class="tile-head"><Icon name="shield" /><h3>Game</h3></div>
+      <div class="tile-head">
+        <Icon name="shield" />
+        <h3>Game</h3>
+      </div>
       {#if game}
         <span class="badge" class:ok={game.supported} class:warn={!game.supported}>
           <span class="dot"></span>{game.supported ? "Supported build" : "Unsupported build"}
@@ -73,44 +76,70 @@
         <span class="badge err"><span class="dot"></span>Not set</span>
       {/if}
       <div class="row tile-actions">
-        <button class="btn small" onclick={() => guard(api.openLocation("game"))} disabled={!game}><Icon name="folder" size={14} />Folder</button>
+        <button class="btn small" onclick={() => guard(api.openLocation("game"))} disabled={!game}
+          ><Icon name="folder" size={14} />Folder</button
+        >
       </div>
     </div>
 
     <div class="tile card">
-      <div class="tile-head"><Icon name="box" /><h3>T3SDK</h3></div>
+      <div class="tile-head">
+        <Icon name="box" />
+        <h3>T3SDK</h3>
+      </div>
       <span class="badge" class:ok={o?.sdk.installed} class:warn={o && !o.sdk.installed}>
         <span class="dot"></span>{sdkTitle()}
       </span>
       <p class="muted small">Fixes, widescreen, borderless window, and the mod loader.</p>
       <div class="row tile-actions">
         {#if o?.sdk.installed}
-          <button class="btn small danger" disabled={busy || !o.sdk.managed}
-            onclick={() => enqueue({ kind: "sdkUndeploy" }, "Remove T3SDK")}>Remove</button>
+          <button
+            class="btn small danger"
+            disabled={busy || !o.sdk.managed}
+            onclick={() => enqueue({ kind: "sdkUndeploy" }, "Remove T3SDK")}>Remove</button
+          >
         {:else}
-          <button class="btn small" disabled={busy || !o?.sdk.built}
-            onclick={() => enqueue({ kind: "sdkDeploy" }, "Install T3SDK")}><Icon name="download" size={14} />Install</button>
+          <button
+            class="btn small"
+            disabled={busy || !o?.sdk.built}
+            onclick={() => enqueue({ kind: "sdkDeploy" }, "Install T3SDK")}
+            ><Icon name="download" size={14} />Install</button
+          >
         {/if}
         {#if o?.sdk.buildable}
-          <button class="btn small ghost" disabled={busy} title="Needs Visual Studio with the C++ tools"
-            onclick={() => enqueue({ kind: "sdkBuild" }, "Build T3SDK")}><Icon name="hammer" size={14} />Build</button>
+          <button
+            class="btn small ghost"
+            disabled={busy}
+            title="Needs Visual Studio with the C++ tools"
+            onclick={() => enqueue({ kind: "sdkBuild" }, "Build T3SDK")}><Icon name="hammer" size={14} />Build</button
+          >
         {/if}
       </div>
     </div>
 
     <div class="tile card">
-      <div class="tile-head"><Icon name="puzzle" /><h3>Mods</h3></div>
-      <p class="big">{o?.modsEnabled ?? 0}<span class="muted small"> enabled{o?.modsDisabled ? `, ${o.modsDisabled} off` : ""}</span></p>
+      <div class="tile-head">
+        <Icon name="puzzle" />
+        <h3>Mods</h3>
+      </div>
+      <p class="big">
+        {o?.modsEnabled ?? 0}<span class="muted small"> enabled{o?.modsDisabled ? `, ${o.modsDisabled} off` : ""}</span>
+      </p>
       <div class="row tile-actions">
         <button class="btn small" onclick={() => (app.page = "mods")}>Manage</button>
       </div>
     </div>
 
     <div class="tile card">
-      <div class="tile-head"><Icon name="map" /><h3>Maps</h3></div>
+      <div class="tile-head">
+        <Icon name="map" />
+        <h3>Maps</h3>
+      </div>
       <p class="big">{o?.maps.exported ?? 0}<span class="muted small"> of {o?.maps.total ?? 0} exported</span></p>
       <p class="muted small">
-        {o?.maps.installed ? `${o.maps.installed} modified map${o.maps.installed > 1 ? "s" : ""} installed` : "All maps original"}
+        {o?.maps.installed
+          ? `${o.maps.installed} modified map${o.maps.installed > 1 ? "s" : ""} installed`
+          : "All maps original"}
       </p>
       <div class="row tile-actions">
         <button class="btn small" onclick={() => (app.page = "maps")}>Map Studio</button>
@@ -122,7 +151,9 @@
     <div class="row log-head">
       <h3 class="grow">T3SDK.log</h3>
       <button class="btn small ghost" onclick={loadLog}><Icon name="refresh" size={14} />Refresh</button>
-      <button class="btn small ghost" onclick={() => guard(api.openLocation("log"))}><Icon name="folder" size={14} />Open</button>
+      <button class="btn small ghost" onclick={() => guard(api.openLocation("log"))}
+        ><Icon name="folder" size={14} />Open</button
+      >
     </div>
     {#if log.length}
       <pre>{log.join("\n")}</pre>
@@ -132,8 +163,12 @@
   </section>
 
   <div class="links row">
-    <button class="btn ghost small" onclick={() => api.openLink("https://discord.gg/hdAXH73tEG")}><Icon name="discord" size={14} />Taffer Tavern</button>
-    <button class="btn ghost small" onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp")}><Icon name="book" size={14} />Documentation</button>
+    <button class="btn ghost small" onclick={() => api.openLink("https://discord.gg/hdAXH73tEG")}
+      ><Icon name="discord" size={14} />Taffer Tavern</button
+    >
+    <button class="btn ghost small" onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp")}
+      ><Icon name="book" size={14} />Documentation</button
+    >
   </div>
 </div>
 
@@ -146,8 +181,7 @@
     align-items: flex-end;
     background:
       radial-gradient(120% 140% at 85% 0%, #3b2e17 0%, transparent 55%),
-      radial-gradient(80% 120% at 10% 120%, #13202a 0%, transparent 60%),
-      linear-gradient(180deg, #16181c, #101114);
+      radial-gradient(80% 120% at 10% 120%, #13202a 0%, transparent 60%), linear-gradient(180deg, #16181c, #101114);
   }
 
   .glow {
