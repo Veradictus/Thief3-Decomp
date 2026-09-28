@@ -26,16 +26,14 @@
 
 <div class="page">
   <div class="page-head">
-    <div>
-      <h1>Mods</h1>
-      <p>
-        T3SDK loads every DLL in <code>System\mods</code> when the game starts, in name order. Changes apply on the next start.
-      </p>
-    </div>
+    <h1>Mods</h1>
     <div class="row">
       <button class="btn" onclick={load}><Icon name="refresh" />Refresh</button>
       <button class="btn" onclick={() => guard(api.openLocation("mods"))}><Icon name="folder" />Open folder</button>
     </div>
+    <p>
+      T3SDK loads every DLL in <code>System\mods</code> when the game starts, in name order. Changes apply on the next start.
+    </p>
   </div>
 
   {#if !app.overview?.sdk.installed}
@@ -44,17 +42,15 @@
     </div>
   {/if}
 
-  <div class="card">
+  <!-- Name order, left to right: the order the SDK loads them in. -->
+  <div class="list card">
     {#each mods as mod (mod.name)}
       <div class="mod">
-        <div class="icon" class:off={!mod.enabled}><Icon name="puzzle" size={18} /></div>
+        <div class="icon" class:off={!mod.enabled}><Icon name="puzzle" size={17} /></div>
         <div class="grow">
-          <h3>{mod.name}</h3>
-          <p class="faint small">
-            <span class="mono">{mod.name}.dll</span> · {bytes(mod.size)} · changed {ago(mod.modified)}
-          </p>
+          <h3 title={`${mod.name}.dll`}>{mod.name}</h3>
+          <p class="faint small">{bytes(mod.size)} · changed {ago(mod.modified)}</p>
         </div>
-        <span class="badge" class:ok={mod.enabled}>{mod.enabled ? "Enabled" : "Off"}</span>
         <Toggle checked={mod.enabled} label={`Enable ${mod.name}`} onchange={(on) => set(mod, on)} />
       </div>
     {:else}
@@ -76,22 +72,46 @@
 </div>
 
 <style>
+  /* As tall as its mods, and no taller than the window: then it scrolls. Two
+     columns where they fit. */
+  .list {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    align-content: start;
+  }
+
+  /* Rules above and to the left of each mod; the card clips those of the
+     first row and column. */
   .mod {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 18px;
-    border-top: 1px solid var(--line);
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 16px;
+    box-shadow:
+      0 -1px 0 var(--line),
+      -1px 0 0 var(--line);
   }
 
-  .mod:first-child {
-    border-top: 0;
+  .mod h3,
+  .mod p {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .empty {
+    grid-column: 1 / -1;
   }
 
   .icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: 8px;
     display: grid;
     place-items: center;
     background: #2a2416;

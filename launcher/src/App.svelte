@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icon from "$components/Icon.svelte";
-  import { inTauri } from "$lib/api";
+  import { api, inTauri } from "$lib/api";
   import { app, jobs, loadConfig, pending, refresh, running, type Page } from "$lib/app.svelte";
   import Maps from "./pages/Maps.svelte";
   import Mods from "./pages/Mods.svelte";
@@ -63,6 +63,26 @@
         {/each}
       </nav>
       <div class="grow"></div>
+      <!-- The running job lives here, not over the page, so it never hides content. -->
+      {#if current}
+        <button
+          class="job"
+          title="Show its output in Tasks"
+          onclick={() => {
+            jobs.selected = current.key;
+            app.page = "tasks";
+          }}
+        >
+          <span class="row">
+            <span class="spinner"></span>
+            <strong class="grow clip">{current.title}</strong>
+            {#if pending() > 1}
+              <span class="faint queued" title={`${pending() - 1} more queued`}>+{pending() - 1}</span>
+            {/if}
+          </span>
+          <span class="mono faint clip">{lastLine || "Starting…"}</span>
+        </button>
+      {/if}
       <div class="status">
         {#if game}
           <span class="badge" class:ok={game.supported} class:warn={!game.supported}>
@@ -74,6 +94,12 @@
         {#if !inTauri}<span class="badge info">Browser preview</span>{/if}
       </div>
       <nav>
+        <button class="link" onclick={() => api.openLink("https://discord.gg/hdAXH73tEG")}>
+          <Icon name="discord" size={16} /><span class="grow">Taffer Tavern</span>
+        </button>
+        <button class="link" onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp")}>
+          <Icon name="book" size={16} /><span class="grow">Documentation</span>
+        </button>
         <button class:active={app.page === "settings"} onclick={() => (app.page = "settings")}>
           <Icon name="gear" size={17} /><span class="grow">Settings</span>
         </button>
@@ -87,21 +113,6 @@
       {:else if app.page === "sdk"}<Sdk />
       {:else if app.page === "tasks"}<Tasks />
       {:else}<Settings />{/if}
-
-      {#if current && app.page !== "tasks"}
-        <button
-          class="taskbar"
-          onclick={() => {
-            jobs.selected = current.key;
-            app.page = "tasks";
-          }}
-        >
-          <span class="spinner"></span>
-          <strong>{current.title}</strong>
-          <span class="mono faint line">{lastLine}</span>
-          {#if pending() > 1}<span class="badge">+{pending() - 1} queued</span>{/if}
-        </button>
-      {/if}
     </main>
   </div>
 {/if}
@@ -186,6 +197,11 @@
     color: var(--accent-2);
   }
 
+  nav button.link {
+    height: 32px;
+    font-size: 13px;
+  }
+
   .count {
     min-width: 20px;
     height: 20px;
@@ -208,7 +224,6 @@
   }
 
   main {
-    position: relative;
     min-width: 0;
     height: 100%;
     overflow: hidden;
@@ -219,31 +234,35 @@
     margin: 0 auto;
   }
 
-  .taskbar {
-    position: absolute;
-    left: 24px;
-    right: 24px;
-    bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    height: 44px;
-    padding: 0 16px;
-    border-radius: var(--radius);
+  .job {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
     border: 1px solid var(--line-2);
-    background: #17191ddd;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 10px 30px #0008;
+    background: var(--panel-2);
     cursor: pointer;
     text-align: left;
   }
 
-  .taskbar .line {
-    flex: 1;
-    min-width: 0;
+  .job:hover {
+    background: var(--panel-3);
+    border-color: #474d57;
+  }
+
+  .job .mono {
+    font-size: 12px;
+  }
+
+  .clip {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+  }
+
+  .queued {
+    font-size: 12px;
   }
 
   .spinner {
@@ -262,10 +281,11 @@
     }
   }
 
+  /* Bottom right: the page's buttons are at the top right. */
   .toasts {
     position: fixed;
     right: 20px;
-    top: 16px;
+    bottom: 16px;
     display: flex;
     flex-direction: column;
     gap: 8px;
