@@ -715,7 +715,8 @@ and save the changes as `<Level>/<Level>.edits.json` for `t3pack.py`.
   `t3_gamesys` keeps the exported values.
 - **Changed actors.** The dock lists the changed actors (click one to select
   it) and reverts one with **Revert**. All changes go through undo/redo.
-- **Save T3 edits** (dock button, or Project > Tools) writes the edits file.
+- **Save T3 edits** (dock button, or Project > Tools) writes the edits file,
+  and so does saving the level's scene (Ctrl+S).
   **Load** (or Load T3 edits) applies it to the scene, for example after a
   re-export: every actor in the file gets its saved state.
 
