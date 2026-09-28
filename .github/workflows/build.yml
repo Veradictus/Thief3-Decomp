@@ -9,9 +9,9 @@ name: build
 
 on:
   push:
-    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md"]
+    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md", "modindex/**", "templates/**"]
   pull_request:
-    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md"]
+    paths-ignore: ["launcher/**", "tools/assets/**", "docs/**", "**.md", "modindex/**", "templates/**"]
   workflow_dispatch:
 
 jobs:

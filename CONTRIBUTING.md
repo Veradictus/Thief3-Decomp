@@ -85,9 +85,12 @@ C++ built with MSVC for 32-bit x86 and must build without warnings. Tools are
 Python using only the standard library, plus Ghidra scripts in Java. The
 launcher is Rust and Svelte/TypeScript: `cargo fmt`, `cargo clippy` and
 `yarn verify` (types, lint, format, tests) must pass (see
-[docs/launcher.md](docs/launcher.md)). Record every engine address you use in
-`docs/engine.md` with its evidence, and its name in
-`config/PC_20040610/symbols.txt`.
+[docs/launcher.md](docs/launcher.md)). The tools' self-tests need no game
+files and must pass too: `python tools/assets/selftest.py`,
+`python tools/agent/selftest.py` and `python tools/mods/selftest.py` (the mod
+package tools, the shared fixtures in `tools/mods/fixtures/` and the mod
+template). Record every engine address you use in `docs/engine.md` with its
+evidence, and its name in `config/PC_20040610/symbols.txt`.
 
 ## Documentation
 
