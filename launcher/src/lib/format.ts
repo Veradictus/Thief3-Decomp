@@ -39,8 +39,13 @@ export function settingDescription(setting: Setting): string {
   return setting.description.replace(/^1 = /, "").replace(/^./, (c) => c.toUpperCase());
 }
 
-/** Settings whose default (or value) is 0 or 1 are on/off switches. */
-export const isSwitch = (setting: Setting) => ["0", "1"].includes(setting.default ?? setting.value);
+/**
+ * On/off switches: a default (or value) of 0 or 1, and a comment that says what
+ * 1 does. A number that merely defaults to 0 ("MaxFPS: 0 = no limit") is not one.
+ */
+export const isSwitch = (setting: Setting) =>
+  ["0", "1"].includes(setting.default ?? setting.value) &&
+  (!setting.description || setting.description.startsWith("1 = "));
 
 /** Settings named ...Key hold a virtual-key code. */
 export const isKeySetting = (setting: Setting) => /key$/i.test(setting.key);
