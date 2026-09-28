@@ -25,6 +25,8 @@ struct Options {
     // have passed, which above 100 fps looks choppy. On unless turned off: a
     // fix, and an older T3SDK.ini has no line for it.
     bool smoothFrames = true;
+    // Highest frame rate; 0 = no limit.
+    int maxFps = 0;
     // Scale of the borderless window's menu cursor; 0 = follow the screen
     // height (1 at 768 lines).
     double cursorScale = 0;

@@ -124,6 +124,7 @@ Settings LoadSettings(const fs::path& ini) {
     s.display.pauseInBackground =
         GetPrivateProfileIntW(L"Display", L"PauseInBackground", s.display.pauseInBackground, file) != 0;
     s.display.smoothFrames = GetPrivateProfileIntW(L"Display", L"SmoothFrames", s.display.smoothFrames, file) != 0;
+    s.display.maxFps = int(GetPrivateProfileIntW(L"Display", L"MaxFPS", s.display.maxFps, file));
     wchar_t scale[32];
     GetPrivateProfileStringW(L"Display", L"CursorScale", L"0", scale, 32, file);
     s.display.cursorScale = wcstod(scale, nullptr);
