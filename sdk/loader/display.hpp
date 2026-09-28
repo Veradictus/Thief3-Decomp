@@ -21,6 +21,8 @@ struct Options {
     // Pause the game while another window has the focus, as the game does on
     // its own. Off: a borderless game keeps running in the background.
     bool pauseInBackground = false;
+    // Log frames per second and the time spent presenting, every 10 seconds.
+    bool frameStats = false;
 };
 
 // Call once at start-up, before the game reads its options, after MinHook is
