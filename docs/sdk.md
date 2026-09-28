@@ -62,6 +62,30 @@ in the manifest.
 | | `Borderless` | 1 | a borderless window instead of exclusive fullscreen (alt-tab, other monitors, screenshots) |
 | | `WidescreenUI` | 1 | lay the UI out for the screen's aspect ratio: menus stay centered as a 4:3 frame, the HUD moves to the screen edges |
 | | `UILayoutTrace` | 0 | log each UI window's placement once (for UI modding) |
+| | `PauseInBackground` | 0 | pause while another window has the focus, as the game does on its own; 0 = a borderless game keeps running |
+| | `SmoothFrames` | 1 | move the game world on every frame: the engine moves it only once 10 ms have passed, which looks choppy above 100 fps |
+| | `MaxFPS` | 0 | highest frame rate; 0 = no limit |
+| | `CursorScale` | 0 | size of the menu cursor in a borderless window: 0 = grow with the screen height (1x at 768 lines), else a fixed factor |
+| | `FrameStats` | 0 | log frames per second and the time spent in `Present` every 10 seconds |
+
+A borderless window also takes over what exclusive fullscreen did on its own:
+
+- **VSync.** The game's VSynch option (Options > Audio/Video, on by default)
+  presents once per monitor refresh; in a window through Direct3D 8's
+  `COPY_VSYNC` swap effect (not with multisampling).
+- **The cursor.** Direct3D imitates the game's 32-pixel hardware cursor in a
+  window by rebuilding a Windows cursor on every call, and the game makes
+  those calls every frame: it flickered, and it was tiny on large screens.
+  The SDK shows one Windows cursor made from the game's image, scaled to the
+  screen.
+- **Focus.** The game window comes to the front when it starts, even when
+  Steam or the game's launcher started it.
+- **Level changes.** The game restarts for every level (New Game, each
+  mission). The outgoing game draws the next level's loading screen; the SDK
+  keeps it on the monitor (a helper process, `rundll32` running
+  `dinput8.dll`'s `T3SDK_Curtain`) until the incoming game has drawn its own,
+  then hands that game the foreground. Any click or key removes it early, and
+  it gives up after 20 seconds.
 
 `T3SDK.log` also receives a crash report for the first faults in the process
 (access violations and the like): the location as `T3Main.exe+offset`, the
