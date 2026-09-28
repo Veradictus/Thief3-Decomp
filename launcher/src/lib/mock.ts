@@ -344,6 +344,7 @@ const commands: Record<string, (args: Args) => unknown> = {
     return null;
   },
   open_saves_folder: () => null,
+  collect_logs: (args) => ({ path: text(args, "path"), files: 11, bytes: 182_000 }),
 };
 
 export async function mockCall(cmd: string, args: Args = {}): Promise<unknown> {
@@ -364,4 +365,8 @@ export function mockListen(name: string, handler: Handler): Promise<() => void> 
 
 export function mockPick(directory: boolean, title: string): Promise<string | null> {
   return Promise.resolve(window.prompt(`${title} (${directory ? "folder" : "file"} path)`));
+}
+
+export function mockPickSave(title: string, defaultPath: string): Promise<string | null> {
+  return Promise.resolve(window.prompt(`${title} (file path)`, defaultPath));
 }

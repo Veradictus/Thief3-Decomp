@@ -17,13 +17,13 @@ Python, and shows their output live.
 | Screen | What it does |
 |---|---|
 | Setup | First run: finds the game (installer registry entry, Steam libraries, `T3_GAME_DIR`), Godot (`GODOT`, `PATH`, common folders), Python (the bundled one, the T3SDK `.venv`, the `py` launcher, `PATH`) and the T3SDK folder (the bundled one, or a checkout found by walking up from the launcher). Each path is checked: the game's `T3Main.exe` SHA-1, `godot --version` (4.7+), Python 3.10+, the tools. |
-| Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it from a checkout (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log`. The Game box says when the saves were last backed up. |
+| Play | Starts the game (through Steam for a Steam install, as the Play button does), shows whether the build is supported, installs or removes T3SDK (`sdk.py deploy`/`undeploy`), builds it from a checkout (`sdk.py build`, needs Visual Studio), and shows the end of `T3SDK.log` with **Collect logs** and **Report a problem** next to it. The Game box says when the saves were last backed up. |
 | Map Studio | Per map: export to Godot (then a headless Godot import), open it in the Godot editor or the viewer, repack the saved edits into a patched `.gmp`, install it into the game, restore the original. Also a byte-exact round-trip check of the unchanged map. |
 | Mods | Lists `System/mods/*.dll`. Turning a mod off moves its `.dll` (and `.pdb`/`.ini`) into `System/mods/disabled/`, which the SDK does not load. |
 | Saves | The game's saves folder (how many saves, their size, the newest), **Back up now** with an optional label, and the backups: restore (after a confirmation, and not while the game runs), delete, open the folder. A switch backs the saves up whenever the launcher starts the game. See Saves below. |
 | SDK settings | `System/T3SDK.ini` as switches. The list, order and descriptions come from the comments in the SDK's own `sdk/T3SDK.ini`, so new settings appear without launcher changes. Values are edited in place; the file's comments and line endings are kept. |
 | Tasks | The job queue. Jobs run one at a time, in order; a job that depends on another (the import after an export) is skipped when that one fails. Output streams live and can be copied; a running job can be cancelled (its whole process tree on Windows). |
-| Settings | The paths again, plus the Godot project folder (default `build/assets/godot` in the T3SDK folder) and the saves folder (default: found automatically). |
+| Settings | The paths again, plus the Godot project folder (default `build/assets/godot` in the T3SDK folder) and the saves folder (default: found automatically). **Collect logs** and **Report a problem**. |
 
 The launcher's own settings are `launcher.json` in the per-user config folder
 (`%APPDATA%\org.t3sdk.launcher\` on Windows); save backups go to `saves\` in
@@ -89,6 +89,26 @@ With **Back up the saves when the launcher starts the game** on, Play makes a
 "before launch" backup first, unless the saves are unchanged since the newest
 backup. The launcher keeps the ten newest automatic backups of each kind and
 never deletes the ones made with **Back up now**.
+
+## Collect logs
+
+**Collect logs** (Play page and Settings) asks where to save a zip for a bug
+report and fills it with:
+
+- `System/T3SDK*.log` (the last 4 MB of each), `System/T3SDK.ini`, and
+  `System/mods/load-order.txt`, `state.json` and `overlay.json` when present;
+- `listing.txt`: the names and sizes in `System/` and (two levels deep)
+  `System/mods/`, with the SHA-256 of every DLL;
+- `overview.json`: the game check (`T3Main.exe` SHA-1, supported or not,
+  Steam), the SDK status, whether the game runs, the saves folder;
+- `launcher.json` (the launcher's settings), `about.txt` (launcher and
+  Windows version), the SDK's deploy manifest (`deployed.json`), and
+  `tasks.txt`, the output of the last ten tasks.
+
+Every file passes through a redaction first (`src-tauri/src/diag.rs`): the
+user's home folder becomes `%USERPROFILE%` and the user name `<user>`,
+ignoring case, with backslashes, forward slashes or JSON's doubled
+backslashes. **Report a problem** opens the repository's bug report form.
 
 ## Map files the launcher reads
 
@@ -171,7 +191,7 @@ screen).
 | TypeScript 6, strict (`noUncheckedIndexedAccess`, unused checks) | `yarn typecheck` runs svelte-check over `.ts` and `.svelte` |
 | ESLint 10 flat config: typescript-eslint strict + stylistic (type-checked), eslint-plugin-svelte | `yarn lint` |
 | Prettier 3 with the Svelte plugin, 120 columns | `yarn format`, `yarn format:check` |
-| Vitest | `yarn test`: display helpers (`src/lib/format.ts`) and the job queue, run against the mock with fake timers |
+| Vitest | `yarn test`: display helpers (`src/lib/format.ts`), the report's task log (`diag.ts`), and the job queue, run against the mock with fake timers |
 | Vite 8 + Svelte 5 (runes) | `yarn dev`, `yarn build`; imports use the `$lib/` and `$components/` aliases |
 
 `yarn verify` runs typecheck, lint, format check and tests, as CI does.

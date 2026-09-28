@@ -4,6 +4,7 @@
   import { onMount } from "svelte";
   import Icon from "$components/Icon.svelte";
   import PathField from "$components/PathField.svelte";
+  import ReportCard from "$components/ReportCard.svelte";
   import { api, emptyConfig, launcherVersion, type Candidate, type Config, type Detected } from "$lib/api";
   import { app, guard, saveConfig, toast } from "$lib/app.svelte";
   import { ago, bytes } from "$lib/format";
@@ -176,6 +177,8 @@
   </div>
 
   {#if !setup}
+    <ReportCard />
+
     <div class="about card">
       <h3>About</h3>
       <p class="muted">

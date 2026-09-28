@@ -3,6 +3,7 @@
   import Icon from "$components/Icon.svelte";
   import { api, type Backup } from "$lib/api";
   import { app, enqueue, guard, refresh, running, toast } from "$lib/app.svelte";
+  import { collectLogs, reportProblem } from "$lib/diag";
   import { ago } from "$lib/format";
 
   let log = $state<string[]>([]);
@@ -164,6 +165,13 @@
   <section class="log card">
     <div class="row log-head">
       <h3 class="grow">T3SDK.log</h3>
+      <button
+        class="btn small ghost"
+        onclick={collectLogs}
+        title="Save the logs and settings a bug report needs as a zip"
+        ><Icon name="download" size={14} />Collect logs</button
+      >
+      <button class="btn small ghost" onclick={reportProblem}><Icon name="bug" size={14} />Report a problem</button>
       <button class="btn small ghost" onclick={loadLog}><Icon name="refresh" size={14} />Refresh</button>
       <button class="btn small ghost" onclick={() => guard(api.openLocation("log"))}
         ><Icon name="folder" size={14} />Open</button

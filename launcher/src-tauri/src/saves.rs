@@ -320,7 +320,7 @@ fn check_file(file: &str) -> Result<(), String> {
 
 // ---- backups ----------------------------------------------------------------------
 
-fn zip_time(time: SystemTime) -> zip::DateTime {
+pub(crate) fn zip_time(time: SystemTime) -> zip::DateTime {
     let local: DateTime<Local> = time.into();
     let (Ok(year), Ok(month), Ok(day), Ok(hour), Ok(minute), Ok(second)) = (
         u16::try_from(local.year()),

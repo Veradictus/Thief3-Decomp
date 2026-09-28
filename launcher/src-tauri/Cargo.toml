@@ -19,9 +19,10 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha1 = "0.10"
-# Save backups (saves.rs).
+# Save backups and the logs zip (saves.rs, diag.rs).
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 dirs = "7"
+sha2 = "0.10"
 zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [target.'cfg(windows)'.dependencies]
