@@ -108,16 +108,18 @@ evidence source for a docs entry.
 ## Checking your work
 
 ```sh
-python tools/baseline_report.py
+python tools/progress_report.py check
 ```
 
-This rebuilds the no-exe-needed progress report straight from `symbols.txt`
-(by way of `configure.py`'s unit planner) and needs nothing but the Python
+This parses `symbols.txt`, plans its units the way `configure.py` does and
+compares them with the committed progress report, with nothing but the Python
 standard library. It's a fast way to catch a broken edit before you run
 anything heavier: a malformed line or a name reused at a different address
 makes `tools/symbols.py`'s parser raise immediately, naming the exact line.
-It doesn't check that a name is *correct* — only that the file still parses
-and plans into units the way `configure.py` expects.
+It doesn't check that a name is *correct*. Renaming never makes the report
+stale; adding or resizing a function does, since it changes the units: then
+run `python tools/progress_report.py write` (it needs the exe) and commit the
+report with your change. CI runs the same check ([decomp-dev.md](../decomp-dev.md)).
 
 ## What not to record
 
