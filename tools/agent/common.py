@@ -86,6 +86,19 @@ def atomic_write(path: Path, text: str) -> None:
             time.sleep(0.05)
 
 
+def unlink(path: Path) -> None:
+    """Deletes `path` if it exists, retrying while a reader has it open (Windows
+    refuses to delete an open file)."""
+    for attempt in range(20):
+        try:
+            path.unlink(missing_ok=True)
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.05)
+
+
 def read_json(path: Path, default=None):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -483,7 +496,7 @@ class Claims:
         with Lock(self.lock, stale=60, wait=30):
             if path.exists() and self._live(path):
                 return None
-            path.unlink(missing_ok=True)  # expired
+            unlink(path)  # expired
             return claim if self._create(path, claim) else None
 
     def renew(self, address: int, agent: str, ttl: float = CLAIM_TTL) -> Optional[dict]:
@@ -501,7 +514,7 @@ class Claims:
             if claim is None or (agent and claim.get("agent") != agent):
                 return False
             try:
-                path.unlink()
+                unlink(path)
             except OSError:
                 return False
             return True
