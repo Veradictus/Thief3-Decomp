@@ -6,9 +6,11 @@
         t3sdk/tools/        sdk.py and the asset tools (tools/assets/)
         t3sdk/sdk/T3SDK.ini the settings template (descriptions for the launcher)
         t3sdk/build/sdk/bin the prebuilt SDK (dinput8.dll, mods, T3SDK.ini)
+        t3sdk/LICENSE, t3sdk/THIRD_PARTY_NOTICES.md
+                            the repository's notices, when it has them
         python/             CPython's embeddable build for Windows (x64), so
                             players need no Python of their own
-      `npx tauri build --config src-tauri/bundle/tauri.bundle.conf.json` then
+      `yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json` then
       installs t3sdk/ and python/ next to the launcher.
   portable <launcher.exe> <out.zip>
       zip the built launcher with the staged folders: unzip anywhere and run.
@@ -40,6 +42,9 @@ PYTHON_SHA256 = "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c
 
 SKIP = shutil.ignore_patterns("__pycache__", "*.pyc")
 
+# Shipped with the tools when the repository has them.
+NOTICES = ("LICENSE", "THIRD_PARTY_NOTICES.md")
+
 
 def stage_tools(dest: Path) -> None:
     (dest / "tools").mkdir(parents=True)
@@ -47,6 +52,15 @@ def stage_tools(dest: Path) -> None:
     shutil.copytree(ROOT / "tools" / "assets", dest / "tools" / "assets", ignore=SKIP)
     (dest / "sdk").mkdir()
     shutil.copy2(ROOT / "sdk" / "T3SDK.ini", dest / "sdk" / "T3SDK.ini")
+
+
+def stage_notices(dest: Path) -> list[str]:
+    copied = []
+    for name in NOTICES:
+        if (ROOT / name).is_file():
+            shutil.copy2(ROOT / name, dest / name)
+            copied.append(name)
+    return copied
 
 
 def stage_sdk(dest: Path, sdk_bin: Path) -> int:
@@ -81,6 +95,9 @@ def cmd_stage(args: argparse.Namespace) -> None:
     stage_tools(t3sdk)
     resources = {"bundle/t3sdk/": "t3sdk/"}
     note = "tools"
+    notices = stage_notices(t3sdk)
+    if notices:
+        note += f", {' and '.join(notices)}"
     if not args.no_sdk:
         note += f", {stage_sdk(t3sdk, Path(args.sdk_bin))} SDK files"
     if not args.no_python:
