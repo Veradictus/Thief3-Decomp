@@ -13,8 +13,9 @@ and the workbench for a matching decompilation of the game.
 ![The T3SDK Launcher's Play page: the game's build check, T3SDK, mods, maps and T3SDK's log](docs/images/launcher-play.png)
 
 **Documentation**: <https://veradictus.github.io/Thief3-Decomp/>, with the
-player guide, the mod author guide, the API reference and the engineering
-notes (the same pages as in [docs/](docs/)).
+player guide (settings, FAQ, troubleshooting), the mod author guide and its
+cookbook, how the game works under the hood, the API reference, the decomp
+handbook and the engineering notes (the same pages as in [docs/](docs/)).
 
 **What do you want to do?**
 

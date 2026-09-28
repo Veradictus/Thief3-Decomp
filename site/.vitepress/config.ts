@@ -78,8 +78,9 @@ export default defineConfig({
     nav: [
       { text: "Play", link: "/guide/getting-started", activeMatch: "^/guide/" },
       { text: "Make mods", link: "/modding/first-mod", activeMatch: "^/modding/" },
+      { text: "How it works", link: "/game/", activeMatch: "^/game/" },
       { text: "API", link: "/reference/api", activeMatch: "^/reference/" },
-      { text: "Decomp", link: "/matching" },
+      { text: "Decomp", link: "/decomp/", activeMatch: "^/decomp/" },
       { text: "Download", link: `${repo}/releases/latest` },
     ],
     sidebar: [
@@ -88,9 +89,13 @@ export default defineConfig({
         items: [
           { text: "Getting started", link: "/guide/getting-started" },
           { text: "Playing with T3SDK", link: "/guide/playing" },
+          { text: "Settings explained", link: "/guide/settings" },
           { text: "Installing mods", link: "/guide/mods" },
           { text: "Save backups", link: "/guide/saves" },
+          { text: "Other mods and tools", link: "/guide/compatibility" },
           { text: "Troubleshooting", link: "/guide/troubleshooting" },
+          { text: "FAQ", link: "/guide/faq" },
+          { text: "Glossary", link: "/guide/glossary" },
         ],
       },
       {
@@ -102,6 +107,37 @@ export default defineConfig({
           { text: "Content and texture packs", link: "/modding/content-packs" },
           { text: "Publishing to the mod index", link: "/modding/publishing" },
           { text: "Map editing", link: "/modding/maps" },
+          {
+            text: "Cookbook",
+            link: "/modding/cookbook/",
+            collapsed: true,
+            items: [
+              { text: "Run code every frame", link: "/modding/cookbook/every-frame" },
+              { text: "Write to the log", link: "/modding/cookbook/logging" },
+              { text: "Find and inspect objects", link: "/modding/cookbook/objects" },
+              { text: "Hook a game function", link: "/modding/cookbook/hooks" },
+              { text: "Give your mod its own settings", link: "/modding/cookbook/settings" },
+              { text: "Replace game files with a content pack", link: "/modding/cookbook/content" },
+              { text: "Map edit recipes", link: "/modding/cookbook/maps" },
+              { text: "Debug a mod", link: "/modding/cookbook/debugging" },
+              { text: "Play well with other mods", link: "/modding/cookbook/compatibility" },
+            ],
+          },
+        ],
+      },
+      {
+        text: "Game and engine",
+        items: [
+          { text: "How the game works", link: "/game/" },
+          { text: "Architecture", link: "/game/architecture" },
+          { text: "Objects, names and classes", link: "/game/objects" },
+          { text: "The gamesys property system", link: "/game/gamesys" },
+          { text: "Levels and maps", link: "/game/levels" },
+          { text: "The install and its files", link: "/game/files" },
+          { text: "INI files and settings", link: "/game/config" },
+          { text: "The game loop and level changes", link: "/game/runtime" },
+          { text: "Display, UI and HUD", link: "/game/display" },
+          { text: "Console commands", link: "/game/console" },
         ],
       },
       {
@@ -111,6 +147,17 @@ export default defineConfig({
           { text: "Mod packages (.t3mod)", link: "/mods" },
           { text: "SDK settings and tools", link: "/sdk" },
           { text: "Launcher", link: "/launcher" },
+        ],
+      },
+      {
+        text: "Decomp handbook",
+        items: [
+          { text: "Overview", link: "/decomp/" },
+          { text: "Setting up the workbench", link: "/decomp/setup" },
+          { text: "Reverse engineering a function", link: "/decomp/reverse-engineering" },
+          { text: "Naming and documenting", link: "/decomp/naming" },
+          { text: "Your first match", link: "/decomp/first-match" },
+          { text: "Techniques and patterns", link: "/decomp/techniques" },
         ],
       },
       {
