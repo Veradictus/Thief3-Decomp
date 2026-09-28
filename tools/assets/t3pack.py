@@ -811,12 +811,16 @@ def install(patched: Path, game: Path, level: Optional[str] = None, backup_dir: 
         raise EditsError(f"no such file: {patched}")
     if patched.resolve() == target.resolve():
         raise EditsError(f"{patched} is the installed map itself")
-    new, cur = Package(patched), Package(target)
-    if (new.file_version, new.licensee_version, len(new.exports)) != (cur.file_version, cur.licensee_version,
-                                                                      len(cur.exports)):
-        raise EditsError(f"{patched.name} does not look like a patched {target.name} "
-                         "(package version or export count differ)")
     backup = backup_dir / target.name
+    # A patch is made from the original map (the backup once one exists): it
+    # keeps the original's objects in order, and new actors come after them.
+    original = Package(backup if backup.exists() else target)
+    new = Package(patched)
+    same = [(e.name.lower(), e.class_ref) for e in original.exports]
+    if ((new.file_version, new.licensee_version) != (original.file_version, original.licensee_version)
+            or [(e.name.lower(), e.class_ref) for e in new.exports[:len(same)]] != same):
+        raise EditsError(f"{patched.name} is not a patched {target.name}: its package version or its objects "
+                         f"differ from the original's (repack it from the current edits)")
     if backup.exists():
         log(f"backup kept (it exists already): {backup}")
     else:
