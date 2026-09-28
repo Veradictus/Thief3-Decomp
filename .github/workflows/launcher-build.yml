@@ -63,6 +63,18 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
       - run: python tools/sdk.py build
+      - name: MSVC for x86 (for the mod template)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Mod template, configured against sdk/include
+        working-directory: templates/mod
+        run: cmake --preset release "-DT3SDK_INCLUDE_DIR=${{ github.workspace }}/sdk/include"
+      - name: Mod template, built and packed
+        working-directory: templates/mod
+        run: cmake --build --preset package
+      - name: Mod template, package validated
+        run: python tools/t3mod.py validate (Get-Item templates/mod/build/release/*.t3mod).FullName
       - uses: actions/upload-artifact@v4
         with:
           name: sdk-bin
