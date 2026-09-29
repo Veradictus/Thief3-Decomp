@@ -40,7 +40,7 @@ from verify import TargetImage, Verifier  # noqa: E402
 ADDRESS = re.compile(r"\b[0-9A-F]{6,8}h\b")
 # A reference by name: decorated, placeholder or Class::Method, or an address nothing names.
 NAME = re.compile(r"\?[^\s,\]]+|\b(?:FUN|DAT|LAB)_[0-9a-f]+\b|\b[A-Za-z_]\w*::\w+|\b__real@[0-9a-f]+\b"
-                  r"|\b0x[0-9a-f]+\b|\b[0-9A-F]{6,8}h\b")
+                  r"|(?<=call )[A-Za-z_]\w*|\b_\w+|\b0x[0-9a-f]+\b|\b[0-9A-F]{6,8}h\b")
 
 
 def decode(data: bytes, base: int, names: Dict[int, str]) -> List[Tuple[int, str]]:
