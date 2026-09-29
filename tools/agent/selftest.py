@@ -25,6 +25,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import coff  # noqa: E402
 import fixture  # noqa: E402
 from common import ROOT, Project, splitslib, symbolslib  # noqa: E402
 
@@ -134,6 +135,21 @@ def test_different_expression_rejected(base: Path) -> None:
         "case 5: return v / 3;", "case 5: return v << 2;").replace("#", "")
     proc = e.run("try.py", e.addr(sw), e.candidate(sw, body))
     check(proc.returncode == 1 and "switch tables" in proc.stdout, "a reordered switch should fail", proc)
+
+
+def test_labelled_switch_table(base: Path) -> None:
+    """delink labels the jump table after a function's code (jpt_..., storage class LABEL), and objdiff does
+    not end a function at a label: the target must still end at its code, as the candidate does."""
+    e = Env(base, "jpt")
+    sw = "?Sw@@YAHHH@Z"
+    table = e.target.addr(sw) + e.target.sizes[sw]
+    for path in (e.root / "build" / "PC_20040610" / "obj" / "auto").glob("*.obj"):
+        obj = coff.Coff.load(path)
+        fn = next(s for s in obj.symbols if s.name == e.target.names[sw])
+        path.write_bytes(obj.rewrite(add=[(f"jpt_{table:08X}", fn.value + e.target.sizes[sw], fn.section, 0,
+                                           coff.IMAGE_SYM_CLASS_LABEL)]))
+    proc = e.run("try.py", e.addr(sw), e.candidate(sw))
+    check(proc.returncode == 0 and "MATCH" in proc.stdout, "a switch whose table delink labelled should match", proc)
 
 
 def test_wrong_callee_rejected(base: Path) -> None:
@@ -481,7 +497,8 @@ def test_categories_and_except_list(base: Path) -> None:
 
 
 TESTS = [
-    test_exact_match_accepted, test_different_expression_rejected, test_wrong_callee_rejected,
+    test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table,
+    test_wrong_callee_rejected,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,

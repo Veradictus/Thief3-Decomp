@@ -365,8 +365,10 @@ class Verifier:
         tsec = tobj.section(tfn.section)
         t_code = code_end - address
         add = []
+        # delink labels a jump table after the code (jpt_...), but objdiff does not end a function at a label.
         if tfn.value + t_code < len(tsec.data) and not any(
-                s.section == tfn.section and s.value == tfn.value + t_code for s in tobj.symbols):
+                s.section == tfn.section and s.value == tfn.value + t_code
+                and s.storage != coff.IMAGE_SYM_CLASS_LABEL for s in tobj.symbols):
             add = [(BOUNDARY, tfn.value + t_code, tfn.section, 0, coff.IMAGE_SYM_CLASS_STATIC)]
         tcopy = workdir / "target.obj"
         tcopy.write_bytes(tobj.rewrite(add=add))
