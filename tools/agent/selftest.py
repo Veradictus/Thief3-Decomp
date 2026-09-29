@@ -152,6 +152,22 @@ def test_labelled_switch_table(base: Path) -> None:
     check(proc.returncode == 0 and "MATCH" in proc.stdout, "a switch whose table delink labelled should match", proc)
 
 
+def test_sidebyside(base: Path) -> None:
+    """sidebyside.py: every row of an exact match lines up (named callee, float literal, switch), a
+    different expression shows, a build error fails, and no attempt is spent."""
+    e = Env(base, "sidebyside")
+    for sym in ("?Get@Foo@@QBEHXZ", "?Scale@@YAMPAUFoo@@@Z", "?Sw@@YAHHH@Z"):
+        proc = e.run("sidebyside.py", e.addr(sym), e.candidate(sym))
+        check(proc.returncode == 0 and "\n0 differing rows," in proc.stdout, f"{sym} should line up", proc)
+    sym = "?Get@Foo@@QBEHXZ"
+    proc = e.run("sidebyside.py", e.addr(sym), e.candidate(sym, "int Foo::Get() const { return a * 3 + b + Helper(g_counter); }"))
+    check(proc.returncode == 0 and "\n~ " in proc.stdout and "\n0 differing rows," not in proc.stdout,
+          "a different expression should show", proc)
+    proc = e.run("sidebyside.py", e.addr(sym), e.candidate(sym, "int Foo::Get() const { return nope; }"))
+    check(proc.returncode != 0 and "BUILD FAILED" in proc.stderr, "a build error should fail", proc)
+    check(not (e.root / "build/agent/attempts").exists(), "sidebyside.py records no attempt")
+
+
 def test_wrong_callee_rejected(base: Path) -> None:
     sym, body = "?Get@Foo@@QBEHXZ", "int Foo::Get() const { return a + b * 3 + Other(g_counter); }"
     # 1. symbols.txt names the callee: the instruction bytes are identical, the callee is not.
@@ -497,7 +513,7 @@ def test_categories_and_except_list(base: Path) -> None:
 
 
 TESTS = [
-    test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table,
+    test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
     test_wrong_callee_rejected,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
