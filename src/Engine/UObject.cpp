@@ -7,6 +7,14 @@ float appFrand();
 
 FVector appVRand();
 
+extern char DAT_10e76d64[];
+
+// FUNCTION: 0x10AFD2C0 ?execUndefined@UObject@@QAEXAAVFFrame@@QAX@Z
+void UObject::execUndefined(FFrame& Stack, RESULT_DECL)
+{
+    Stack.Logf((EName)0x2F9, DAT_10e76d64, Stack.Code[-1]);
+}
+
 // FUNCTION: 0x10AFD470 ?execDynArrayLength@UObject@@QAEXAAVFFrame@@QAX@Z
 void UObject::execDynArrayLength(FFrame& Stack, RESULT_DECL)
 {
