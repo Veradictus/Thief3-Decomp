@@ -66,6 +66,9 @@ under a short lock. `--unit` restricts a worker to one split unit.
 and demangled signature; the target's instructions (objdiff on the split
 object); every callee and global the target references, with unnamed ones
 flagged and any name another accepted function proposed for them; the
+vtable slots that hold the function (read-only tables of function pointers
+whose start the code uses as a constant, cached in
+`build/agent/cache/vtables.json`), so a virtual method is declared as one; the
 cached Ghidra decompile (`build/agent/cache/ghidra/<ADDR>.c`, filled by
 `fill-ghidra`, which runs `Decompile.java ... out:<dir>` once for many
 functions); `include/` headers declaring the classes involved; up to three

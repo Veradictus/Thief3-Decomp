@@ -18,6 +18,7 @@ Sections, each left out when its input is missing:
 
 import argparse
 import difflib
+import json
 import re
 import subprocess
 import sys
@@ -25,9 +26,9 @@ from typing import Dict, List
 
 import coff
 import features as featurelib
-from common import (ROOT, Claims, Ledger, Project, addr_key, class_of, demangle, emit, fmt_addr, is_placeholder,
-                    qualified_name)
-from verify import target_listing, target_symbol
+from common import (ROOT, Claims, Ledger, Project, addr_key, atomic_write, class_of, demangle, emit, fmt_addr,
+                    is_placeholder, qualified_name, read_json)
+from verify import TargetImage, target_listing, target_symbol
 
 CHEATSHEET = ROOT / ".claude" / "skills" / "t3-match" / "CHEATSHEET.md"
 
@@ -132,6 +133,57 @@ def cheatsheet(tags: List[str]) -> List[str]:
     return out
 
 
+def vtable_slots(p: Project, address: int) -> List[dict]:
+    """The read-only tables of function pointers (vtables, in practice) that hold a function, with its slot.
+
+    Runs of consecutive function addresses in the exe's read-only data are indexed once, cached in
+    build/agent/cache/vtables.json. Without RTTI (/GR-) vtables sit back to back, so a run is cut
+    wherever the code uses an address inside it as a constant (a constructor storing its vtable). A
+    function found in a table is a virtual method of the class that owns it, which workers name after
+    the table's address when nothing names it. Only tables whose start the code uses are reported."""
+    cache_path = p.state / "cache" / "vtables.json"
+    key = featurelib._key(p)
+    cache = read_json(cache_path, {}) or {}
+    if cache.get("key") != key:
+        from iced_x86 import Decoder, OpKind
+
+        index: Dict[str, List[List[int]]] = {}
+        pe_image = TargetImage(p).pe
+        starts = {f.address for f in p.functions}
+        runs: List[List[int]] = []  # [first slot address, function, function, ...]
+        used = set()  # addresses the code uses as 32-bit constants
+        for sec in (pe_image.sections if pe_image else []):
+            data = pe_image.read_rva(sec.va, min(sec.vsize, sec.raw_size)) if sec.raw_size else b""
+            base = pe_image.image_base + sec.va
+            if sec.executable:
+                for insn in Decoder(32, data, ip=base):
+                    for i in range(insn.op_count):
+                        if insn.op_kind(i) == OpKind.IMMEDIATE32:
+                            used.add(insn.immediate32)
+                continue
+            if sec.writable:
+                continue
+            run: List[int] = []
+            for k in range(0, len(data) - 3, 4):
+                value = int.from_bytes(data[k:k + 4], "little")
+                if value in starts:
+                    run.append(value)
+                    continue
+                if run:
+                    runs.append([base + k - 4 * len(run)] + run)
+                run = []
+        for run in runs:
+            table = None
+            for slot, fn in enumerate(run[1:]):
+                if run[0] + 4 * slot in used:
+                    table = run[0] + 4 * slot
+                if table is not None:
+                    index.setdefault(f"{fn:08X}", []).append([table, (run[0] + 4 * slot - table) // 4])
+        cache = {"key": key, "functions": index}
+        atomic_write(cache_path, json.dumps(cache))
+    return [{"table": fmt_addr(t), "slot": s} for t, s in cache["functions"].get(f"{address:08X}", [])[:4]]
+
+
 def packet(p: Project, address: int, n_similar: int) -> dict:
     f = p.function(address)
     out: dict = {}
@@ -167,6 +219,9 @@ def packet(p: Project, address: int, n_similar: int) -> dict:
     found = headers(p, sorted(classes))
     if found:
         out["headers"] = found
+    slots = vtable_slots(p, address)
+    if slots:
+        out["vtables"] = slots
     sims = similar(p, address, mnemonics, refs, n_similar)
     if sims:
         out["similar"] = sims
@@ -216,6 +271,10 @@ def print_packet(pk: dict) -> None:
     if "ghidra" in pk:
         print("\n== ghidra (a starting point, not the answer)")
         print(pk["ghidra"].rstrip())
+    if "vtables" in pk:
+        print("\n== vtable slots (a virtual method: of Class_<table> unless a header names the class)")
+        for v in pk["vtables"]:
+            print(f"slot {v['slot']} (+{4 * v['slot']:#x}) of the table at {v['table']}")
     for h in pk.get("headers", []):
         print(f"\n== header {h['path']} ({h['class']})")
         print(h["excerpt"])
