@@ -119,7 +119,8 @@ So objdiff only aligns the instructions, and the checks are done by
    operand differences.
 3. Each aligned row is compared byte for byte outside relocated fields; a
    relocation on one side only is a difference. `__except_list` is accepted
-   against the exe's plain `fs:[0x0]`.
+   against the exe's plain `fs:[0x0]` and against the split objects, which
+   `tools/split.py` relocates against it.
 4. Every relocation pair is resolved to target *addresses*:
    - **Code references** (callees, globals, imports): the candidate's symbol
      must be the one `symbols.txt` names at that address, either the same
@@ -343,8 +344,11 @@ The self-test cannot cover these, so they were checked on the real split:
 The report under-counts what the gate matched in two cases, both to fix in
 how the split objects are made rather than in the gate:
 
-- EH frames: the split objects read `fs:[0x0]` where compiled code refers to
-  `__except_list`, so every function with an EH frame scores 99.x%.
+- A constructor's vtable: the compiled object references `??_7Class@@6B@`,
+  the split object the `DAT_` label of that address, while `symbols.txt` has
+  no vtable name there (identical vtables the linker folded share one
+  address, so one name cannot fit all of their classes); the store scores as
+  a different reference (about 20 constructors at 99.5%).
 - A reference into a named array at an offset (`GNatives[2 * 256 + B]`): the
   model gives the address a `DAT_` label of its own, and delink turns an
   unnamed one into `<section> + offset`; either way objdiff's name ruler

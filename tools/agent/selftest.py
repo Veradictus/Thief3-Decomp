@@ -14,6 +14,7 @@ import json
 import os
 import shlex
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -446,11 +447,44 @@ def test_compile_command_matches_configure(base: Path) -> None:
               "compiling through build.ninja's rule (paths with spaces)", out)
 
 
+def test_categories_and_except_list(base: Path) -> None:
+    """categories.txt gives units their progress category; the split relocates fs:[0] (tools/split.py)."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import categories as categorieslib
+    import coff
+    import split
+    path = base / "categories.txt"
+    categorieslib.save(path, [(0x1000, 0x2000, "game"), (0x2000, 0x2800, "engine")])
+    index = categorieslib.Index(categorieslib.load(path))
+    check(index.at(0x1800) == "game" and index.at(0x2000) == "engine" and index.at(0x2800) == "",
+          "categories by address, nothing outside the ranges")
+    check(index.boundaries() == [0x1000, 0x2000, 0x2800], "the boundaries auto units must not span")
+    unit_categories = Project().configure.unit_categories
+    check(unit_categories(splitslib.Unit(source="Game/X.cpp", text=[(0x2100, 0x2200)]), index) == ["engine"],
+          "a unit takes the category of its range")
+    check(unit_categories(splitslib.Unit(source="Game/Y.cpp", text=[(0x1100, 0x1200)]), index) == ["main"],
+          "game code is the headline category")
+    # mov eax, fs:[0]; push eax; mov fs:[0], esp; ret: two SEH chain accesses, as the exe holds them.
+    code = bytes.fromhex("64a100000000" "50" "64892500000000" "c3")
+    symtab = 20 + 40 + len(code)
+    obj = (struct.pack("<HHIIIHH", 0x14C, 1, 0, symtab, 1, 0, 0)
+           + struct.pack("<8sIIIIIIHHI", b".text", 0, 0, len(code), 60, 0, 0, 0, 0, 0x60000020)
+           + code + struct.pack("<8sIhHBB", b".text", 0, 1, 0, 3, 0) + struct.pack("<I", 4))
+    target = base / "seh.obj"
+    target.write_bytes(obj)
+    check(split.add_except_list(target) == 2, "both fs:[0] operands are relocated")
+    c = coff.Coff.load(target)
+    relocs = [(r.offset, c.slots[r.symbol].name, r.type) for r in c.section(1).relocations]
+    check(relocs == [(2, "__except_list", 6), (10, "__except_list", 6)], f"relocations against __except_list: {relocs}")
+    check(c.section(1).data == code, "the code itself is unchanged")
+    check(split.add_except_list(target) == 0, "an operand that already has a relocation is left alone")
+
+
 TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_wrong_callee_rejected,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
-    test_wave_dry_run, test_compile_command_matches_configure,
+    test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
 
 

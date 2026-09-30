@@ -476,7 +476,8 @@ class _Check:
         for k in sorted(set(c_rel) | set(t_rel)):
             cr = c_rel.get(k)
             csym = cobj.slots[cr.symbol] if cr else None
-            if csym is not None and csym.name in ABSOLUTE and k not in t_rel:
+            # A plain value in the exe; tools/split.py relocates __except_list in the split objects.
+            if csym is not None and csym.name in ABSOLUTE and (k not in t_rel or t_rel[k][1] == csym.name):
                 if struct.unpack_from("<I", t_bytes, k)[0] != ABSOLUTE[csym.name] + cobj.addend(csec.index, cr):
                     notes.append(f"reloc: {csym.name} does not match the target's value")
                 continue
