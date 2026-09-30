@@ -7,10 +7,13 @@ Without addresses, every accepted function not yet integrated is taken. Each
 goes to a unit:
   - --unit, if given;
   - else the declared splits.txt unit whose .text ranges already hold it;
-  - else a unit named after its class: `Class::Method` -> <Category>/<Class>.cpp
-    (free functions: <Category>/Unsorted.cpp), where the category is --category,
-    or "engine" for Unreal-style class names (UObject, AActor, FName), else
-    "game".
+  - else a unit named after its class: `Class::Method` -> <Category>/<Class>.cpp,
+    where the category is --category, or "engine" for Unreal-style class names
+    (UObject, AActor, FName), else "game";
+  - free functions go to <Category>/Unsorted_<start>.cpp, one per auto unit of
+    the split (<start> is its address): the functions of one original object
+    file together. In a single file for all, MSVC would inline a small callee
+    into callers the game compiled apart from it.
 Library code (from configure.py's LIBRARY_START on, outside .text$x) is not published
 (CONTRIBUTING.md): it is skipped unless --category libs.
 
@@ -136,6 +139,15 @@ def compose(unit: str, declarations: List[str], blocks: Dict[int, str]) -> str:
 
 
 # -- units and ranges ----------------------------------------------------------------------
+_units: Dict[int, List[splitslib.Unit]] = {}
+
+
+def auto_unit(p: Project, address: int) -> str:
+    """The name of the split unit holding an address (auto/text_<start> for most)."""
+    units = _units.setdefault(id(p), p.units())
+    return next((u.name for u in units if any(a <= address < b for a, b in u.text)), "")
+
+
 def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tuple[str, str]:
     """(source path relative to src/, category) for an accepted record."""
     address = int(rec["addr"], 16)
@@ -150,6 +162,9 @@ def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tup
     for u in declared:  # the class's unit may exist already
         if cls and Path(u.source).stem == cls:
             return u.source, category
+    auto = auto_unit(p, address) if not cls else ""
+    if auto.startswith("auto/text_"):
+        return f"{CATEGORY_DIRS[category]}/Unsorted_{auto[len('auto/text_'):]}.cpp", category
     return f"{CATEGORY_DIRS[category]}/{cls or 'Unsorted'}.cpp", category
 
 
