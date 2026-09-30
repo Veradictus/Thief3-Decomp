@@ -42,8 +42,10 @@ decompilation** worked mostly by Claude agents under the strict gate in
   code compiles against. Matching runs as the [tiered
   agent workflow](agent-workflow.md): Haiku sub-agents on functions up to 31
   bytes, Sonnet from 32 bytes and on Haiku's deferrals, six at a time, from
-  the one-file protocol `tools/agent/worker.md`. decomp.dev shows the committed
-  report `progress/PC_20040610/report.json` (hidden from its list below 0.5%
+  the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,503
+  matched functions in 90 units, one per original object file
+  (`Unsorted_<start>.cpp`). decomp.dev shows the committed report
+  `progress/PC_20040610/report.json` (hidden from its list below 0.5%
   matched): regenerate it after integrating, see next step 2.
 
 ## What exists
@@ -182,18 +184,25 @@ Later the same day, played by the user:
    stays local) and CI checks against `src/` ([decomp-dev.md](decomp-dev.md)).
    After each integration: write it and commit it with the source. On
    decomp.dev, set the project's default category to **main** (owner).
-3. **Matching**:
+3. **Matching** (game code only):
+   - Tell Epic's code from Ion Storm's. The two are interleaved in the exe
+     and most classes are still placeholders (`Class_<address>`), so the
+     report's headline ("Game & engine") still counts the engine. Planned: an
+     SDK dump of every `UClass` (name, package, the default object's vtable)
+     once the engine is ready, run once in the game. The objects holding an
+     engine package's methods then leave the headline, and any engine
+     function among the matches leaves `src/`.
    - Make objdiff's report count what the gate matched. The split objects
      read `fs:[0x0]` where compiled code refers to `__except_list`, so every
      function with an EH frame scores 99.x% (a post-split fixup adding those
      relocations would do), and a reference into a named array at an offset
      (`GNatives[2 * 256 + B]`) becomes a `DAT_` label of its own
      (execHighNative1-15 score 99.67%).
-   - Continue the natives (`wave.py --name '^UObject::exec'`, about 180
-     left). Review every accepted file before integrating: workers stand in
-     for what the header lacks (local types, `Shim` subclasses to reach
+   - Review every accepted file before integrating: workers stand in for
+     what the header lacks (local types, `Shim` subclasses to reach
      undeclared members, `DAT_` slices of tables); add the real declarations
-     to `include/Core/Core.h`, redo those functions and accept them again.
+     to `include/`, redo those functions and accept them again.
+     `integrate.py` skips library code and Unreal-style classes (Epic's).
    - Still unchecked on the real split: a switch table and the data ruler on
      float literals ([matching.md](matching.md)). Pin the compiler flags with
      varied functions (`/G6` vs `/G7`, `/GS`) before large waves outside the
