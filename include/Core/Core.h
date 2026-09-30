@@ -64,6 +64,13 @@ public:
     INT ArrayMax;
 };
 
+// A typed dynamic array; element access is inline, as in stock Unreal Engine 2.
+template <class T> class TArray : public FArray
+{
+public:
+    T& operator()(INT i) { return ((T*)Data)[i]; }
+};
+
 // A string: its characters and terminator in an array (TArray<ANSICHAR> in
 // stock Unreal Engine 2), with these members out of line in this build.
 class FString : public FArray
@@ -107,6 +114,8 @@ class FOutputDevice
 {
 public:
     virtual void Serialize(const ANSICHAR* V, EName Event) = 0;
+
+    void Logf(EName Event, const ANSICHAR* Fmt, ...);  // 0x10AF5230
 };
 
 // --- Objects ------------------------------------------------------------------------
@@ -374,6 +383,7 @@ public:
     DECLARE_FUNCTION(execSubtract_VectorVector)
     DECLARE_FUNCTION(execSwitch)
     DECLARE_FUNCTION(execTan)
+    DECLARE_FUNCTION(execUndefined)
     DECLARE_FUNCTION(execUnicodeStringConst)
     DECLARE_FUNCTION(execVRand)
     DECLARE_FUNCTION(execVSize)
@@ -409,6 +419,9 @@ public:
 
 class UStruct : public UField
 {
+public:
+    BYTE Unknown34[0x14];           // 0x34
+    TArray<BYTE> Script;            // 0x48: the bytecode (FFrame's constructor, 0x10B0FCA0)
 };
 
 class UFunction : public UStruct
@@ -419,12 +432,12 @@ class UState : public UStruct
 {
 };
 
-// UStruct and UState have no known fields yet, so UClass's padding covers
-// theirs: shrink it when they get some.
+// UStruct's fields end at 0x54 and UState has none known yet, so UClass's
+// padding covers the rest: shrink it when they get more.
 class UClass : public UState
 {
 public:
-    BYTE Unknown34[0xB4];
+    BYTE Unknown54[0x94];
     UObject* ClassDefaultObject;    // 0xE8 (docs/engine.md: static, probable)
 };
 
@@ -453,6 +466,7 @@ enum ERuntimeUCFlags
 class FFrame : public FOutputDevice
 {
 public:
+    FFrame(UObject* InObject, UStruct* InNode, INT CodeOffset, void* InLocals);  // 0x10B0FCA0
     virtual void Serialize(const ANSICHAR* V, EName Event);
 
     // Runs the next expression, writing its value to Result. Out of line in
