@@ -18,12 +18,12 @@ with your mod's own description when you are done.
    the release tag follow it.
 3. In `mod.json.in`, fill in `name`, `authors`, `description` and `tags`, and
    add `homepage`, `license`, `requires` or `conflicts` as needed. The fields
-   are described in [docs/mods.md](https://github.com/Veradictus/Thief3-Decomp/blob/master/docs/mods.md).
+   are described in [docs/mods.md](https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/mods.md).
 4. Choose a license: replace `LICENSE` with its text and add
    `"license": "<SPDX id>"` (for example `"MIT"`) to `mod.json.in`.
 5. Write the mod in `src/mod.cpp`. The API is `t3sdk/t3sdk.h`; its lifecycle
    and threading rules are in
-   [docs/sdk.md](https://github.com/Veradictus/Thief3-Decomp/blob/master/docs/sdk.md).
+   [docs/sdk.md](https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/sdk.md).
    Content (textures, maps, loose game files) goes into `files/`, see
    [files/README.md](files/README.md).
 
@@ -70,7 +70,7 @@ never changes: fix a problem with a new version.
 ## Submit it to the mod index
 
 The launcher's mod browser lists the mods in T3SDK's
-[mod index](https://github.com/Veradictus/Thief3-Decomp/tree/master/modindex).
+[mod index](https://github.com/Veradictus/Thief3-Decomp/tree/main/modindex).
 In a fork of T3SDK, with the released package downloaded:
 
 ```sh
