@@ -1,10 +1,4 @@
 {
-  "Engine/FFrame.cpp": {
-    "category": "engine"
-  },
-  "Engine/UObject.cpp": {
-    "category": "engine"
-  },
   "Game/Class_10908f80.cpp": {
     "category": "game"
   },

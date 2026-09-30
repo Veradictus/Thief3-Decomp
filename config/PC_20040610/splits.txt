@@ -1874,35 +1874,6 @@ Game/Class_10AFC490.cpp:
 Game/Class_10AFCF40.cpp:
 	.text  start:0x10AFCF40 end:0x10AFCF44
 
-Engine/UObject.cpp:
-	.text  start:0x10AFD2C0 end:0x10AFD2E2
-	.text  start:0x10AFD470 end:0x10AFD4AA
-	.text  start:0x10AFD550 end:0x10AFD56E
-	.text  start:0x10AFD810 end:0x10AFD819
-	.text  start:0x10AFD900 end:0x10AFD924
-	.text  start:0x10AFDB70 end:0x10AFDB82
-	.text  start:0x10AFDBB0 end:0x10AFDBE5
-	.text  start:0x10AFDC10 end:0x10AFDC26
-	.text  start:0x10AFDC90 end:0x10AFDD3F
-	.text  start:0x10AFDDC0 end:0x10AFDE17
-	.text  start:0x10AFDEA0 end:0x10AFDFDC
-	.text  start:0x10AFE360 end:0x10AFE39B
-	.text  start:0x10AFE9C0 end:0x10AFE9F6
-	.text  start:0x10AFEA60 end:0x10AFEA96
-	.text  start:0x10AFEB60 end:0x10AFEBB2
-	.text  start:0x10AFF490 end:0x10AFF4E0
-	.text  start:0x10AFFCE0 end:0x10AFFCF5
-	.text  start:0x10AFFE10 end:0x10AFFE64
-	.text  start:0x10B00580 end:0x10B005F2
-	.text  start:0x10B00F30 end:0x10B00F61
-	.text  start:0x10B014C0 end:0x10B01521
-	.text  start:0x10B02200 end:0x10B02277
-	.text  start:0x10B028B0 end:0x10B02BA6
-	.text  start:0x10B02C90 end:0x10B02CC4
-	.text  start:0x10B02E50 end:0x10B02E9D
-	.text  start:0x10B04810 end:0x10B04835
-	.text  start:0x10E1C7C0 end:0x10E1C7D2  # .text$x: EH handlers and unwind funclets
-
 Game/Class_10AFDBF0.cpp:
 	.text  start:0x10AFDBF0 end:0x10AFDBFD
 
@@ -1968,9 +1939,6 @@ Game/Class_10B0E9B0.cpp:
 
 Game/Unsorted_10B0E9C0.cpp:
 	.text  start:0x10B0F7C0 end:0x10B0F7E4
-
-Engine/FFrame.cpp:
-	.text  start:0x10B0FCA0 end:0x10B0FCCC
 
 Game/Unsorted_10B0D8E0.cpp:
 	.text  start:0x10B0FDB0 end:0x10B0FDB6
