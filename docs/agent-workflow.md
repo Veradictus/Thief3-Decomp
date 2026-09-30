@@ -1,14 +1,14 @@
-# Tiered agent workflow
+# Agent workflow
 
 How the matching decompilation runs day to day: one lead model orchestrates
-cheap and mid-tier Claude sub-agents, and a strict tool gate decides what
-counts as a match. [matching.md](matching.md) describes the tools
+batches of Sonnet sub-agents, and a strict tool gate decides what counts as a
+match. [matching.md](matching.md) describes the tools
 (queue, context packets, try, accept, integrate) and their rulers; this page
 describes the combination of agents on top of them and why each setting is
 what it is, so the same setup can be reused for another decompilation.
 
-The goal is the most matches per token. Every choice below was measured on
-this project (pilot of 2026-09-29, numbers in [Why this
+The goal is the most matches per token. The choices below were measured on
+this project (pilots of 2026-09-29 and 2026-09-30, numbers in [Why this
 combination](#why-this-combination)).
 
 ## At a glance
@@ -16,24 +16,36 @@ combination](#why-this-combination)).
 | Role | Model | Takes | Prompt parameters |
 |---|---|---|---|
 | Lead | Opus | nothing from the queue: prepares, launches, sweeps, verifies, integrates | (the session) |
-| Tier 1 | Haiku 4.5 | functions of at most 31 bytes | `FILTERS=--max-size 31 N=20 COUNT=4 CAP=5` |
-| Tier 2 | Sonnet 5.5 | functions of 32 bytes or more | `FILTERS=--min-size 32 N=12 COUNT=2 CAP=8` |
-| Second pass | Sonnet 5.5 | what tier 1 deferred | `FILTERS=--only-deferred N=<deferred> COUNT=1 CAP=8` |
+| Head band | Sonnet 5.5 | the queue head: functions of at most 31 bytes | `FILTERS=--max-size 31 N=20 COUNT=4 CAP=5` |
+| Main band | Sonnet 5.5 | functions of 32 bytes or more | `FILTERS=--min-size 32 N=10 COUNT=2 CAP=8` |
+| Second pass | Sonnet 5.5 | deferrals whose blocker the lead removed | `FILTERS=--only-deferred N=<deferred> COUNT=1 CAP=8` |
 
-At most six workers run at once. A worker's whole prompt is one line:
+Workers run in batches: as many at once as Claude Code allows (20 by
+default; `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` raises it, set before the
+session starts), and the lead launches the next one into each slot a worker
+frees until the batch is done. A worker's whole prompt is one line:
 
 ```
-Read tools/agent/worker.md and follow it exactly. ID=h05 FILTERS=--max-size 31 N=20 COUNT=4 CAP=5
+Read tools/agent/worker.md and follow it exactly. ID=b05 FILTERS=--min-size 32 N=10 COUNT=2 CAP=8
 ```
 
-`ID` is the worker's id for claims and ledgers (`h01`, `h02`, ... for Haiku,
-`s01`, ... for Sonnet, `t01`, ... for the second pass; never reused), `N` how
-many functions it handles, `COUNT` how many it claims at a time, `CAP` its
-attempts per function.
+`ID` is the worker's id for claims and ledgers, never reused: each batch
+takes new prefixes (`h`, `s`, `t` were the Haiku pilot's; the first Sonnet
+batch used `a01`... for the head band and `b01`... for the main band). `N` is
+how many functions it handles, `COUNT` how many it claims at a time, `CAP` its
+attempts per function. The bands keep a worker's claims alike: many tiny
+functions with a low cap, or fewer larger ones with a higher cap.
 
 ## Why this combination
 
-Pilot on the queue head (easy first), counted by
+Since 2026-09-30 every worker runs Sonnet 5.5: on the user's experience with
+the RAC1 decompilation (rac1-decomp's `match-worker` agent runs Sonnet on the
+same kind of queue protocol), Sonnet costs less per match than Haiku once
+Haiku's retries and the Sonnet passes over its failures count, and the table
+below already shows it from 32 bytes on. The first Sonnet-only batch is in
+[Sonnet batches](#sonnet-batches).
+
+The Haiku pilot on the queue head (easy first), counted by
 [sweep.py](../tools/agent/sweep.py) from the records and the workers'
 transcripts. Tokens are input-side (input, cache writes and cache reads):
 the transcripts under-count streamed output, which is small next to them.
@@ -65,16 +77,57 @@ the transcripts under-count streamed output, which is small next to them.
   the user's CLAUDE.md files. A sub-agent of the `t3-matcher` type starts at
   about 12.6K.
 
+## Sonnet batches
+
+The first Sonnet-only batch (2026-09-30): 56 workers in two bands, 20 at a
+time, after a smoke test. Counted by sweep.py; "priced" weighs cache reads at
+0.1 and cache writes at 1.25 of uncached input, as billed.
+
+| Band | Workers | Matched | First try | Input-side tokens per match | Priced |
+|---|---|---|---|---|---|
+| head, up to 31 bytes | 20 | 373 of 400 (93%) | 82% | 126K | 20K |
+| main, 32 to 78 bytes | 36 | 259 of 360 (72%) | 56% | 479K | 71K |
+
+Not a like-for-like comparison with the Haiku pilot above: the pilot took the
+easiest head of the queue, this batch what was left of the tiny functions and
+the next 360 larger ones, and most of its deferrals are functions no worker
+could match:
+
+- **Wrong callee names** (the largest group, most of the main band's): an
+  early accepted jump wrapper records its callee as `void FUN_x()`, and every
+  real caller then fails the name ruler although its bytes match (bindings of
+  `this`, arguments or a return value the guess lacks). The global
+  `operator delete` alone (`0x10AD1DC0`, recorded as a free function) blocked
+  a dozen. They go to the lead's naming pass ([Name conflicts](#name-conflicts)).
+- **Compiler-generated code** the queue still held: deleting destructors
+  calling a sized delete (139 more were excluded mid-batch), adjustor thunks,
+  a global object's initializer. The protocol now defers them at once.
+- **Library code** inside game objects: STL instantiations without strings
+  the classifier could see (`_Copy_opt`, `_Ufill`, `basic_string`).
+- **Bad function bounds** in symbols.txt (a function split in two) and a few
+  codegen puzzles (a `call; ret` MSVC turns into a tail jump, dead stack
+  temporaries, registers kept across a call only for a callee in the same
+  unit).
+
+Lessons: exclude compiler-generated shapes and known library code before a
+batch; settle name conflicts between batches, since each one blocks several
+callers; and the claim must re-check the records after taking the lock
+(next.py now does), or a worker can be handed a function another one has just
+accepted.
+
 ## Workers are Agent-tool sub-agents
 
 The lead launches workers with the Agent tool: `subagent_type: t3-matcher`,
-`model: haiku` or `sonnet`, in the background. A notification arrives when
-each finishes, and the lead refills its slot.
+`model: sonnet`, in the background, all of a batch's first workers in one
+message. A notification arrives when each finishes, and the lead refills its
+slot.
 
 - The agent definition, [t3-matcher](../.claude/agents/t3-matcher.md), gives
-  the tools (Read, Write, Edit, Glob, Grep, Bash), a default model and a
-  PreToolUse hook that runs the guard. Its body tells workers to read the
-  skill and the cheat sheet; the protocol replaces both.
+  the tools (Read, Write, Edit, Glob, Grep, Bash), Sonnet as the default
+  model and a PreToolUse hook that runs the guard. Its body only points to
+  the protocol, like rac1-decomp's `match-worker`: an earlier body sent
+  workers to the t3-match skill and cheat sheet, about 6K tokens each that the
+  protocol replaces.
 - Sub-agents run in the lead's checkout, not in worktrees. They see the
   lead's uncommitted headers and tool changes at once; claims keep them
   apart, and each writes only `build/scratch/<ADDR>/`.
@@ -106,8 +159,8 @@ close a failure seen in the pilot:
   a per-worker id.
 - **Handled means accepted or deferred; claim again until N.** A Haiku
   worker stopped after its first claim without that sentence.
-- **Caps:** 5 attempts for tier 1 (fail fast, Sonnet picks it up), 8 for
-  Sonnet, and defer at once on a systemic blocker.
+- **Caps:** 5 attempts in the head band, 8 in the main band, and defer at
+  once on a systemic blocker.
 - **The final message is only the JSON line**, with at most three `needs`
   and `idioms` of 25 words: the reports land in the lead's context.
 - **Plausible source only:** no variables named after registers, no data
@@ -125,19 +178,21 @@ close a failure seen in the pilot:
 ## The lead's loop
 
 1. **Prepare.** `python tools/agent/next.py status`. Cache Ghidra decompiles
-   for the functions Sonnet will reach next:
-   `python tools/agent/next.py list --min-size 97 --max-size 300 --limit 300`,
-   then `python tools/agent/context.py fill-ghidra <addrs>`.
+   for the functions the main band will reach:
+   `python tools/agent/next.py list --min-size 32 --limit 450`, then
+   `python tools/agent/context.py fill-ghidra <addrs>` (a few minutes).
 2. **Smoke test** after any change to the tools or the protocol: one worker,
    two functions, in the foreground; check the records (below), not the
    report.
-3. **Keep six workers busy.** On each completion, launch the next worker for
-   the band the tier rule gives, with a new id.
+3. **Run the batch.** Launch as many workers as the limit allows in one
+   message, mixing the bands; on each completion, launch the next worker of
+   the batch with a new id.
 4. **Sweep each finished batch:** `python tools/agent/sweep.py <ids>`. It
    accepts the MATCHes a worker left unaccepted (not for functions the lead
    rejected or deferred), releases leftover claims and prints matches,
    deferrals, attempts and tokens per worker.
-5. **Second pass** whenever tier-1 deferrals pile up: a Sonnet worker with
+5. **Second pass** once the lead has removed blockers (a header, a name):
+   `next.py requeue` those deferrals, then workers with
    `FILTERS=--only-deferred`.
 6. **Checkpoint every few batches.** Stop launching and let the running
    workers finish (re-splitting rewrites the target objects that try.py
@@ -210,7 +265,7 @@ patterns that need no judgement:
 - A report's `matched` is a claim. `build/agent/accepted/` is the truth:
   a worker reported a MATCH that it never passed to accept.py (sweep.py
   now accepts such ledger entries).
-- Tier-1 blocker notes are often wrong. All seven Haiku deferrals blamed
+- Blocker notes are often wrong. All seven of the Haiku pilot's deferrals blamed
   register allocation, a calling convention or `mov eax, ecx`; the causes
   were a missing `return this;`, a call through a global object pointer
   and a double indirection.
@@ -224,7 +279,7 @@ A stub that only jumps to an unmatched function (`jmp FUN_x`) has to guess
 guess into symbols.txt. When `FUN_x` itself is matched later with its real
 signature (an `int` return, `__stdcall` parameters, a method), the gate
 rejects its name: such deferrals score 99.9 with no differing row, or 50
-on a two-instruction stub. They are a few percent of tier 1's output.
+on a two-instruction stub. They are a few percent of the head band's output.
 The lead parks them in `excluded.json`, so no second pass spends tokens on
 them, and fixes free functions in batches with
 [fixnames.py](../tools/agent/fixnames.py): `fixnames.py prepare <addrs>`
@@ -255,7 +310,7 @@ call (the protocol says so), which avoids most of these.
 
 ## Porting to another project
 
-Reusable as is: the roles and tiers, the shape of the protocol, the lead's
+Reusable as is: the roles and bands, the shape of the protocol, the lead's
 loop, sweep.py's accounting and the pilot method. To replace:
 
 - the gate: a queue with atomic claims, a context packet, a try tool that
@@ -266,9 +321,8 @@ loop, sweep.py's accounting and the pilot method. To replace:
 - the protocol's tool lines and codegen section, for that compiler;
 - the size bands, measured by a pilot.
 
-The pilot: a smoke test first, then six workers on one size band, half on
-each model. Their claims interleave, so both get functions of the same
-difficulty. Compare matches, the first-try rate and input tokens per match
-with sweep.py, and set the tier-1 band where the cheap model's first-try
-rate falls off. Repeat it when the queue moves into larger functions: the
-tiers here were measured up to 96 bytes.
+The pilot: a smoke test first, then a batch on the size bands. To compare
+models, run half of a band's workers on each: their claims interleave, so
+both get functions of the same difficulty. Compare matches, the first-try
+rate and input tokens per match with sweep.py. Repeat it when the queue
+moves into larger functions.

@@ -109,9 +109,11 @@ addresses; no `*(int*)((char*)p + 0x10)`: declare a struct with the field at
 that offset. Never define callees or call a different function than the
 target calls. Write only under build/scratch/, with relative forward-slash
 paths (a Windows path in Bash loses its backslashes). No git commands.
-Library code is not published: an STL, CRT, D3DX or Havok template or
-function (`std::...`, `#include <...>`) is deferred at once with the blocker
-"library". Neither is Epic's engine: a method of an Unreal Engine class
+Library code is not published: a target that is itself part of the STL,
+CRT, D3DX or Havok (a member of a `std::` template, a CRT routine) is
+deferred at once with the blocker "library". Game code that uses a library
+is game code: include the compiler's header (`#include <vector>`) and use its
+types, as Ion Storm did. Neither is Epic's engine: a method of an Unreal Engine class
 (`UObject`, `UClass`, `FName`, `FString`, `FArchive`, `AActor`, `UEngine`,
 `ULevel`, `UViewport`, the render device, ...) is deferred at once with the
 blocker "engine". Never pass `--replace` or `--cap`, never run integrate.py,
@@ -120,7 +122,11 @@ every change outside build/scratch/.
 
 `add ecx, N` (or `sub ecx, N`) then `jmp`: a this-adjustor thunk the compiler
 makes for multiple inheritance, not source anyone wrote. Defer it at once
-with the blocker "adjustor thunk".
+with the blocker "adjustor thunk". So is a deleting destructor (a destructor
+call, `test byte ptr [esp+8], 1`, a delete call, `return this`) and a global
+object's initializer (a constructor call, then `atexit`): the compiler emits
+them from a virtual destructor or a global's definition. Defer them at once
+with the blocker "compiler-generated"; never write them as functions.
 
 ## Names need evidence
 

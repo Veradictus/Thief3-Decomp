@@ -225,8 +225,8 @@ their parent instead.
 
 ## Waves (lead)
 
-The day-to-day setup is now the [tiered agent workflow](agent-workflow.md):
-Haiku and Sonnet sub-agents launched by the lead, with a one-file protocol.
+The day-to-day setup is now the [agent workflow](agent-workflow.md):
+batches of Sonnet sub-agents launched by the lead, with a one-file protocol.
 The headless waves below remain for sessions that may start `claude -p`
 workers.
 
