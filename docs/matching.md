@@ -50,7 +50,7 @@ code by `config/<version>/categories.txt` (`tools/classify.py`,
 (`Unwind@`, `.text$x`), import thunks, and functions already accepted,
 integrated (a `// FUNCTION:` line in `src/`), deferred or claimed.
 `--all-regions` adds unclassified and library code; Epic's engine is never
-queued. With the current files that leaves about 10,300 functions. They are
+queued. With the current files that leaves about 10,500 functions. They are
 ordered easy first by a difficulty score when iced-x86 and the target's
 bytes are available (instructions, plus 3 per conditional branch, 2 per
 call, 10 per switch, 10 for an EH frame and 1 per x87 instruction), else by

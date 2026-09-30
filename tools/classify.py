@@ -23,7 +23,9 @@ evidence in T3Main.exe (orig/) and symbols.txt:
     game classes' vtables is game, only in engine classes' is engine; one in
     both (an inherited engine method, or identical code the linker folded) is
     left to its neighbours.
-  * Names in symbols.txt of Epic's classes (UObject::..., FName::...).
+  * Names in symbols.txt of Epic's classes (UObject::..., FName::...) and of
+    Ion Storm's systems (Window, Options, Config, ...), and the vtables that
+    hold a method of the latter.
   * Strings a function uses (LIB_STRINGS, ION_STRINGS, EPIC_STRINGS).
   * Libraries: from configure.py's LIBRARY_START on, except game evidence.
 
@@ -76,6 +78,10 @@ ION_CLASSES = {
         "VulnerabilityObject", "ZoneProperties",
     },
 }
+# Ion Storm's own systems that symbols.txt names (docs/engine.md: the INI layer, options, the
+# loading screen, UI windows, the clock).
+ION_NAMED = re.compile(r"^(?:\?[^@]+@|\?\?[0-9A-Z_])(Window|WindowManager|Options|Config|LoadingScreen|TimeManager"
+                       r"|T3[A-Za-z]\w*)@@|^(?:Window|WindowManager|Options|Config|LoadingScreen|TimeManager)::")
 # C++ classes of Epic's Core and Engine that symbols.txt names (not UObject classes).
 EPIC_NAMED = re.compile(r"^(?:\?[^@]+@|\?\?[0-9A-Z_])(U|A|F)(Object|Name|String|Array|Frame|OutputDevice\w*|Archive"
                         r"|WindowsViewport|D3DRenderDevice|Malloc\w*|Canvas\w*|URL)@@")
@@ -257,6 +263,15 @@ def evidence(img: Image) -> Tuple[Dict[int, Set[str]], Dict[int, List[str]]]:
     for f in img.functions:
         if EPIC_NAMED.match(f.name):
             add(f.address, ENGINE, f"named {f.name}")
+        elif ION_NAMED.match(f.name):
+            add(f.address, GAME, f"named {f.name}")
+    # The vtables of Ion Storm's named classes (and of the classes derived from them).
+    for table, slots in tables.items():
+        named = next((img.at[fn].name for fn in slots if ION_NAMED.match(img.at[fn].name)), None)
+        if named:
+            for slot, fn in enumerate(slots):
+                if img.at[fn].size > TRIVIAL:
+                    add(fn, GAME, f"slot {slot} of vtable 0x{table:08X}, which holds {named}")
     from iced_x86 import OpKind
     funclets = configure.FUNCLETS
     for f in img.functions:
