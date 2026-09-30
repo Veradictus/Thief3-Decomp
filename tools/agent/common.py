@@ -144,6 +144,11 @@ class Lock:
                 os.write(fd, json.dumps({"pid": os.getpid(), "time": time.time()}).encode())
                 os.close(fd)
                 return self
+            except PermissionError:
+                # Windows refuses to create a file that its holder is still deleting: retry briefly.
+                if time.time() >= deadline + 1:
+                    raise
+                time.sleep(0.05)
             except FileExistsError:
                 try:
                     if time.time() - self.path.stat().st_mtime > self.stale:
