@@ -57,6 +57,7 @@ FUNCTIONS = {
     "?Name@@YAPBDXZ": 'const char* Name() { return "hello world"; }',
     "?Callee@@YAHH@Z": "int Callee(int x) { return x * 5 + 3; }",
     "?Caller@@YAHH@Z": "int Caller(int x) { return Callee(x) + 1; }",
+    "?Fib@@YAHH@Z": "int Fib(int n) { return n < 2 ? n : Fib(n - 1) + Fib(n - 2); }",
 }
 # In the reference, Callee stays a call (as if it lived in another file); a unit defining it would inline it.
 REFERENCE = DECLS + "\n".join(("__declspec(noinline) " if s == "?Callee@@YAHH@Z" else "") + body
@@ -201,6 +202,27 @@ def test_wrong_callee_rejected(base: Path) -> None:
                                                    "r2.n); }", extra=extra))
     check(proc.returncode == 1 and "unwind funclet" in proc.stdout, "wrong destructors must fail in the funclets",
           proc)
+
+
+def test_self_call(base: Path) -> None:
+    """A function's calls to itself carry no relocation in the split (delink resolves them in the unit)."""
+    e = Env(base, "self-call")
+    fib = "?Fib@@YAHH@Z"
+    t_obj = coff.Coff.load(e.root / "build/PC_20040610/obj/auto" / f"text_{fixture.TEXT:08X}.obj")
+    fn = next(s for s in t_obj.symbols if s.name == f"FUN_{e.target.addr(fib):08x}")
+    sec = t_obj.section(fn.section)
+    start = fn.value
+    calls = [r for _, r in t_obj.relocations(sec.index, start, start + e.target.sizes[fib])
+             if t_obj.slots[r.symbol] is fn]
+    check(not calls, "the fixture drops the self-call relocations, as delink does")
+    proc = e.run("try.py", e.addr(fib), e.candidate(fib))
+    check(proc.returncode == 0 and "MATCH" in proc.stdout, "a recursive function matches", proc)
+    proc = e.run("accept.py", e.addr(fib), e.candidate(fib))
+    check(proc.returncode == 0 and "ACCEPTED" in proc.stdout, "and is accepted", proc)
+    other = "int Fib(int n) { return n < 2 ? n : Helper(n - 1) + Fib(n - 2); }"
+    proc = e.run("try.py", e.addr(fib), e.candidate(fib, other))
+    check(proc.returncode == 1 and "where the target calls itself" in proc.stdout,
+          "a call elsewhere where the target calls itself fails", proc)
 
 
 def test_class_method_names(base: Path) -> None:
@@ -514,7 +536,7 @@ def test_categories_and_except_list(base: Path) -> None:
 
 TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
-    test_wrong_callee_rejected,
+    test_wrong_callee_rejected, test_self_call,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,

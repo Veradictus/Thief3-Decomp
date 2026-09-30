@@ -492,6 +492,16 @@ class _Check:
                     notes.append(f"reloc: the target has no pointer at {fmt_addr(t_addr + k)}")
                     continue
                 target, tname = ref
+            elif k not in t_rel and cr.type == coff.IMAGE_REL_I386_REL32:
+                # delink resolves a call that stays inside the unit (a function calling itself): the split holds
+                # the displacement and no relocation, so the destination is read from the target's bytes.
+                target = (view.address + k + 4 + struct.unpack_from("<i", t_bytes, k)[0]) & 0xFFFFFFFF
+                sym = self.p.by_addr.get(target)
+                tname = sym.name if sym else fmt_addr(target)
+                own = csym is self.cfn or (csym.defined and csym.section == self.cfn.section)
+                if not own and self.address <= target < self.p.code_extent(self.address)[0]:
+                    notes.append(f"reloc: the candidate calls {csym.name} where the target calls itself")
+                    continue
             elif k not in t_rel:
                 notes.append(f"reloc: the candidate references {csym.name} where the target has a constant")
                 continue

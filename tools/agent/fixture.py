@@ -131,6 +131,17 @@ def build(ref: Path, root: Path, named: Set[str] = frozenset(), extra_symbols: O
                                                            - fn.value)
     drop = [(sec.index, i) for sec in obj.sections for i, r in enumerate(sec.relocations)
             if obj.slots[r.symbol].name == "__except_list"]
+    # A function's calls to itself: delink resolves them in the unit, so the split holds the displacement
+    # and no relocation.
+    for fn in obj.symbols:
+        if fn.name not in t.sizes:
+            continue
+        sec = obj.section(fn.section)
+        for i, r in enumerate(sec.relocations):
+            if (r.type == coff.IMAGE_REL_I386_REL32 and obj.slots[r.symbol] is fn
+                    and fn.value <= r.offset < fn.value + t.sizes[fn.name]):
+                drop.append((sec.index, i))
+                patch[(sec.index, r.offset)] = struct.pack("<i", obj.addend(sec.index, r) + fn.value - r.offset - 4)
     rename = dict(t.names)
     data_names = [s.name for s in obj.symbols if s.defined and not s.is_section and not obj.section(s.section).is_code]
     objdir = root / "build" / version / "obj"
