@@ -384,6 +384,17 @@ def test_integrate(base: Path) -> None:
     check(status["integrated"] == 5, f"src/ markers count as integrated: {status}")
 
 
+def test_integrate_keeps_distinct_includes(base: Path) -> None:
+    """Declarations that differ only inside a string literal, such as two #include lines, are both kept."""
+    import integrate
+    decls = integrate.items('#include "A.h"\n#include "B.h"\n// again\n#include "A.h"\n'
+                            'const char* F() { return "x"; }\nconst char* F() { return "x"; }\n'
+                            'const char* G() { return "y"; }\n')
+    text = integrate.compose("Game/X.cpp", decls, {})
+    check(text.count('#include "A.h"') == 1 and '#include "B.h"' in text, f"both includes, once each: {text}")
+    check(text.count('return "x"') == 1 and 'return "y"' in text, f"literals tell items apart: {text}")
+
+
 def test_integrate_drops_what_breaks(base: Path) -> None:
     """A function that matches alone but not in its unit is left out of it."""
     e = Env(base, "integrate-context")
@@ -538,7 +549,8 @@ TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
     test_wrong_callee_rejected, test_self_call,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
-    test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
+    test_claims_concurrency, test_integrate, test_integrate_keeps_distinct_includes, test_integrate_drops_what_breaks,
+    test_context_and_queue, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
 
