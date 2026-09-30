@@ -125,37 +125,6 @@ public:
     float FUN_10a3a9c0();
 };
 
-class Class_10A3D840_Target {
-public:
-    char Unknown00[0x218];
-    int Field218;
-};
-
-class Class_10A3D840 {
-public:
-    char Unknown00[0x94];
-    Class_10A3D840_Target* Field94;
-    void FUN_10a3d840();
-};
-
-class Class_10AF8250
-{
-public:
-    Class_10AF8250(const Class_10AF8250& Other);
-    ~Class_10AF8250();
-
-    char Unknown00[0xC];
-};
-
-class Class_10A3D9E0
-{
-public:
-    Class_10AF8250 FUN_10a3d9e0();
-
-    char Unknown00[0x14];
-    Class_10AF8250 Unknown14;
-};
-
 // FUNCTION: 0x10A35300 ?FUN_10a35300@Class_10A35300@@QAEXH@Z
 void Class_10A35300::FUN_10a35300(int A)
 {
@@ -267,4 +236,3 @@ float Class_10A3A9C0::FUN_10a3a9c0()
 {
     return Field12c;
 }
-

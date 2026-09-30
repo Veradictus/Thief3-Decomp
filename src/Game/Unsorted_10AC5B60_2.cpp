@@ -311,41 +311,6 @@ public:
     Class_10AD0B00* FUN_10ad0b00();
 };
 
-extern void* DAT_10e70a50[];
-
-class Class_10E70A50 {
-public:
-    void* Field00;
-
-    Class_10E70A50();
-};
-
-struct Info_10AD1B70
-{
-    char Unknown00[0x34];
-    int Unknown34;
-    int Unknown38;
-};
-
-class Class_10AD1B70
-{
-public:
-    void FUN_10ad1b70(const Info_10AD1B70* In);
-
-    int Unknown00;
-    int Unknown04;
-    int Unknown08;
-    int Unknown0C;
-};
-
-extern int DAT_10f3e42c;
-
-extern void* DAT_10f3e424;
-
-extern void* DAT_10f3e43c;
-
-extern int DAT_10f010c0;
-
 // FUNCTION: 0x10AC67F0 ?FUN_10ac67f0@Class_10AC67F0@@QAE?AUStruct_10AC67F0@@XZ
 Struct_10AC67F0 Class_10AC67F0::FUN_10ac67f0()
 {
@@ -634,4 +599,3 @@ Class_10AD0B00* Class_10AD0B00::FUN_10ad0b00()
     Field00 = DAT_10e70914;
     return this;
 }
-

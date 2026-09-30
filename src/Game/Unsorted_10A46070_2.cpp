@@ -10,21 +10,6 @@ public:
     int FUN_10a46380();
 };
 
-class Class_10a46e00
-{
-public:
-    char Unknown00[0x1f8];
-    int Unknown1f8;
-
-    int FUN_10a46e00();
-};
-
-void FUN_10a46c10();
-
-void FUN_10a46c70();
-
-void FUN_10a46cd0();
-
 void FUN_10991270();
 
 void FUN_10a47530();

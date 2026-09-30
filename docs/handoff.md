@@ -35,18 +35,26 @@ decompilation** worked mostly by Claude agents under the strict gate in
   in the game yet. The launcher builds and runs on Windows (`yarn tauri
   dev`); it needs Rust's MSVC toolchain, which `yarn tauri` selects on its
   own (see [launcher.md](launcher.md)).
-- Matching covers Ion Storm's game code only: Epic's engine code (the
-  `UObject` script natives among it) was removed from the repository and its
-  history, and the queue excludes Epic's classes (CONTRIBUTING.md,
-  "Game code only"). `include/Core/Core.h` keeps the declarations the game
-  code compiles against. Matching runs as the [tiered
+- Matching covers Ion Storm's game code only (CONTRIBUTING.md, "Game code
+  only"). `config/PC_20040610/categories.txt`, written by
+  `tools/classify.py` from evidence in the exe (native class registrations
+  with their packages, vtables, strings), says whose each function is: 2.6 MB
+  of game code, 0.8 MB of Epic's engine, 1.4 MB of libraries and 0.3 MB still
+  unclassified ([decomp-dev.md](decomp-dev.md), "Whose code it is"). The
+  queue offers game code only, integrate.py publishes nothing else, and
+  `progress_report.py check` enforces it. Epic's engine code (the `UObject`
+  natives) was removed from `src/`, and with it 414 matched functions the
+  classifier does not call game code (244 Epic's, 53 library, 117
+  unclassified); `include/Core/Core.h` keeps the declarations the game code
+  compiles against. Matching runs as the [tiered
   agent workflow](agent-workflow.md): Haiku sub-agents on functions up to 31
   bytes, Sonnet from 32 bytes and on Haiku's deferrals, six at a time, from
-  the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,503
-  matched functions in 90 units, one per original object file
-  (`Unsorted_<start>.cpp`). decomp.dev shows the committed report
-  `progress/PC_20040610/report.json` (hidden from its list below 0.5%
-  matched): regenerate it after integrating, see next step 2.
+  the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,128
+  matched functions in 54 units, one per auto unit of the split
+  (`Unsorted_<start>.cpp`, chunks of up to 64 KB). decomp.dev shows the
+  committed report `progress/PC_20040610/report.json`, whose headline is the
+  game code (1,107 of 12,078 functions at 100%; hidden from decomp.dev's list
+  below 0.5% matched): regenerate it after integrating, see next step 2.
 
 ## What exists
 
@@ -185,19 +193,18 @@ Later the same day, played by the user:
    After each integration: write it and commit it with the source. On
    decomp.dev, set the project's default category to **main** (owner).
 3. **Matching** (game code only):
-   - Tell Epic's code from Ion Storm's. The two are interleaved in the exe
-     and most classes are still placeholders (`Class_<address>`), so the
-     report's headline ("Game & engine") still counts the engine. Planned: an
-     SDK dump of every `UClass` (name, package, the default object's vtable)
-     once the engine is ready, run once in the game. The objects holding an
-     engine package's methods then leave the headline, and any engine
-     function among the matches leaves `src/`.
-   - Make objdiff's report count what the gate matched. The split objects
-     read `fs:[0x0]` where compiled code refers to `__except_list`, so every
-     function with an EH frame scores 99.x% (a post-split fixup adding those
-     relocations would do), and a reference into a named array at an offset
-     (`GNatives[2 * 256 + B]`) becomes a `DAT_` label of its own
-     (execHighNative1-15 score 99.67%).
+   - Shrink the unclassified 0.3 MB (`tools/classify.py stats`): most of it
+     sits where Epic's and Ion Storm's files meet (the launcher, the ends of
+     the Engine and Core packages, Window and Havok). More evidence (strings
+     of stock UE2 files, non-UObject vtables) moves it to a side; the 117
+     functions taken out of `src/` as unclassified can come back once it is
+     game code.
+   - Make objdiff's report count what the gate matched: about 20
+     constructors score 99.5% because `symbols.txt` has no `??_7` vtable name
+     at the address they store ([matching.md](matching.md), "objdiff's
+     report and the gate"). Functions with an EH frame now count:
+     `tools/split.py` relocates the split objects' `fs:[0]` against
+     `__except_list`.
    - Review every accepted file before integrating: workers stand in for
      what the header lacks (local types, `Shim` subclasses to reach
      undeclared members, `DAT_` slices of tables); add the real declarations
