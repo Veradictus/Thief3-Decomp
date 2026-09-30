@@ -10,7 +10,7 @@ publishes a tag, and both call `launcher-build.yml`.
 A release is a tag named `v<semver>`:
 
 ```sh
-git checkout master && git pull          # the commit to release, with a green launcher workflow
+git checkout main && git pull          # the commit to release, with a green launcher workflow
 git tag v0.2.1
 git push origin v0.2.1
 ```
@@ -41,7 +41,7 @@ push the tag again:
 ```sh
 git push origin :refs/tags/v0.2.1      # delete the tag on GitHub
 git tag -d v0.2.1                      # and locally
-git checkout master && git pull
+git checkout main && git pull
 git tag v0.2.1 && git push origin v0.2.1
 ```
 

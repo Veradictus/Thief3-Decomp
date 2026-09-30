@@ -4,7 +4,7 @@ contact_links:
     url: https://veradictus.github.io/Thief3-Decomp/
     about: Player guide, mod-author guide and API reference.
   - name: Add a mod to the mod index
-    url: https://github.com/Veradictus/Thief3-Decomp/blob/master/modindex/README.md
+    url: https://github.com/Veradictus/Thief3-Decomp/blob/main/modindex/README.md
     about: Mods are added with a pull request, not an issue.
   - name: Report a security problem
     url: https://github.com/Veradictus/Thief3-Decomp/security/advisories/new

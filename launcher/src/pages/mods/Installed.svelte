@@ -239,7 +239,7 @@
         <p class="row center">
           <button
             class="btn small"
-            onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp/blob/master/docs/mods.md")}
+            onclick={() => api.openLink("https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/mods.md")}
           >
             <Icon name="book" size={14} />The mod package format
           </button>
