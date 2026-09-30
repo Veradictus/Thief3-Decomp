@@ -42,7 +42,7 @@ void FUN_10b3ae90();
 class UnknownClass_10B4BD70 {
 public:
     char Unknown00[0x450];
-    int Field450;
+    int Unknown450;
 };
 
 extern void __stdcall FUN_10b4bd70(UnknownClass_10B4BD70* p1);
@@ -153,7 +153,7 @@ extern void FUN_10a51620(void);
 class Class_10B53FA0 {
 public:
     char Unknown00[0x118];
-    void* Field118;
+    void* Unknown118;
     void FUN_10b53fa0();
 };
 
@@ -189,7 +189,7 @@ void FUN_10b4bc20()
 // FUNCTION: 0x10B4BD70 ?FUN_10b4bd70@@YGXPAVUnknownClass_10B4BD70@@@Z
 void __stdcall FUN_10b4bd70(UnknownClass_10B4BD70* p1)
 {
-    p1->Field450 |= 0x10;
+    p1->Unknown450 |= 0x10;
 }
 
 // FUNCTION: 0x10B4BDF0 ?FUN_10b4bdf0@@YAXXZ
@@ -288,7 +288,7 @@ Class_10B53F70* Class_10B53F70::FUN_10b53f70()
 void Class_10B53FA0::FUN_10b53fa0()
 {
     *(void**)this = DAT_10e81740;
-    Field118 = DAT_10e7edb8;
+    Unknown118 = DAT_10e7edb8;
     FUN_10a51620();
 }
 

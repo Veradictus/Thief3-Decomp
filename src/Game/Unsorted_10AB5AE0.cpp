@@ -92,6 +92,35 @@ public:
 
 void FUN_10ac2fb0();
 
+class Object_10AB5B20
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+};
+
+class Class_10AB5B20
+{
+public:
+    Class_10AB5B20(const Class_10AB5B20& Other)
+    {
+        Unknown00 = Other.Unknown00;
+        if (Unknown00)
+            Unknown00->Virtual1();
+    }
+    ~Class_10AB5B20();
+
+    Class_10AB5B20 FUN_10ab5b20();
+
+    Object_10AB5B20* Unknown00;
+};
+
+// FUNCTION: 0x10AB5B20 ?FUN_10ab5b20@Class_10AB5B20@@QAE?AV1@XZ
+Class_10AB5B20 Class_10AB5B20::FUN_10ab5b20()
+{
+    return *this;
+}
+
 // FUNCTION: 0x10ABA160 ?FUN_10aba160@@YAXXZ
 void FUN_10aba160()
 {

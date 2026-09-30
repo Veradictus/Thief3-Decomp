@@ -15,11 +15,11 @@ public:
     void FUN_10b39710();
 
     char Unknown00[0xc];
-    Class_Field04* Field0c;
+    Class_Field04* Unknown0c;
 };
 
 // FUNCTION: 0x10B39710 ?FUN_10b39710@Class_10B39710@@QAEXXZ
 void Class_10B39710::FUN_10b39710()
 {
-    Field0c->FUN_10b46fb0();
+    Unknown0c->FUN_10b46fb0();
 }

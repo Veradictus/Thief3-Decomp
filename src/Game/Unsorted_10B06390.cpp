@@ -39,7 +39,7 @@ void FUN_10b13180();
 class Class_10B138F0 {
 public:
     char Unknown00[0x30];
-    int Field30;
+    int Unknown30;
     void FUN_10b138f0(int param);
 };
 
@@ -83,7 +83,7 @@ void FUN_10b131f0()
 // FUNCTION: 0x10B138F0 ?FUN_10b138f0@Class_10B138F0@@QAEXH@Z
 void Class_10B138F0::FUN_10b138f0(int param)
 {
-    Field30 = param;
+    Unknown30 = param;
 }
 
 // FUNCTION: 0x10B154C0 ?FUN_10b154c0@@YAPAXXZ

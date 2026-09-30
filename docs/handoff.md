@@ -46,14 +46,14 @@ decompilation** worked mostly by Claude agents under the strict gate in
   natives) was removed from `src/`, and with it 414 matched functions the
   classifier does not call game code (244 Epic's, 53 library, 117
   unclassified); `include/Core/Core.h` keeps the declarations the game code
-  compiles against. Matching runs as the [tiered
-  agent workflow](agent-workflow.md): Haiku sub-agents on functions up to 31
-  bytes, Sonnet from 32 bytes and on Haiku's deferrals, six at a time, from
-  the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,128
-  matched functions in 54 units, one per auto unit of the split
-  (`Unsorted_<start>.cpp`, chunks of up to 64 KB). decomp.dev shows the
+  compiles against. Matching runs as the [agent
+  workflow](agent-workflow.md): batches of Sonnet sub-agents, 20 at a time,
+  from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,734
+  matched functions in 413 units, one per auto unit of the split
+  (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
+  functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (1,107 of 12,078 functions at 100%; hidden from decomp.dev's list
+  game code (1,693 of 12,078 functions at 100%, 1.0% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 
 ## What exists
@@ -193,6 +193,23 @@ Later the same day, played by the user:
    After each integration: write it and commit it with the source. On
    decomp.dev, set the project's default category to **main** (owner).
 3. **Matching** (game code only):
+   - Settle the name conflicts before the next batch: the first Sonnet
+     batch deferred dozens of functions whose bytes already match, blocked
+     only by a callee's wrong name in `symbols.txt` (a jump wrapper recorded
+     it as `void FUN_x()`); `build/agent/lead-backlog.md` lists them with the
+     scratch file that matches once the name is right. First: `0x10AD1DC0`
+     is the global `operator delete` (`??3@YAXPAX@Z`), then `FUN_1090af50`
+     (an `operator=`), `FUN_10bca010` (a virtual at slot 64) and the
+     getters recorded as `void`. Then stop the source of them: integrate.py
+     should not record a guessed name for a callee that is not matched yet.
+   - Gate: let one address carry several names (identical functions the
+     linker folded: `operator delete` and a class's sized one), and resolve
+     the weak `??_E` symbol in vtable checks, so deleting destructors match
+     from a real virtual destructor instead of being excluded.
+   - symbols.txt: merge the functions split in two (0x10B4FD60, 0x10C1B000,
+     0x10B21B30, 0x109323A0); retype the globals recorded as `int` or `void*`
+     that are class pointers. Headers for `TimeManager` and `Window` (matches
+     are waiting on one declaration of each).
    - Shrink the unclassified 0.3 MB (`tools/classify.py stats`): most of it
      sits where Epic's and Ion Storm's files meet (the launcher, the ends of
      the Engine and Core packages, Window and Havok). More evidence (strings

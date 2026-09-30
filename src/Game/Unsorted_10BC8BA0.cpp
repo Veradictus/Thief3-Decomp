@@ -43,7 +43,7 @@ public:
     void FUN_10bd0260();
 
     char Unknown00[0x4];
-    Class_Field04* Field04;
+    Class_Field04* Unknown04;
 };
 
 void FUN_10bc4200();
@@ -158,7 +158,7 @@ class Class_10BD8460
 {
 public:
     char Unknown00[0x78];
-    int Field78;
+    int Unknown78;
     void FUN_10bd8460();
 };
 
@@ -251,7 +251,7 @@ int FUN_10bce960()
 // FUNCTION: 0x10BD0260 ?FUN_10bd0260@Class_10BD0260@@QAEXXZ
 void Class_10BD0260::FUN_10bd0260()
 {
-    Field04->FUN_10bb83e0();
+    Unknown04->FUN_10bb83e0();
 }
 
 // FUNCTION: 0x10BD1810 ?FUN_10bd1810@@YAHXZ
@@ -313,7 +313,7 @@ void FUN_10bd8450()
 // FUNCTION: 0x10BD8460 ?FUN_10bd8460@Class_10BD8460@@QAEXXZ
 void Class_10BD8460::FUN_10bd8460()
 {
-    Field78++;
+    Unknown78++;
     FUN_10bd8300();
 }
 

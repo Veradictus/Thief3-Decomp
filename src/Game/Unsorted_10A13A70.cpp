@@ -4,7 +4,7 @@
 class InnerObject {
 public:
     char Unknown00[0xb4];
-    int FieldB4;
+    int UnknownB4;
 };
 
 extern int DAT_10f323fc;
@@ -17,7 +17,7 @@ public:
 // FUNCTION: 0x10A1E610 ?FUN_10a1e610@@YAHPAVInnerObject@@@Z
 int FUN_10a1e610(InnerObject* obj)
 {
-    return obj->FieldB4;
+    return obj->UnknownB4;
 }
 
 // FUNCTION: 0x10A1F940 ?FUN_10a1f940@@YAXXZ

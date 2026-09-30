@@ -10,12 +10,12 @@ public:
 class Class_10C60C50
 {
 public:
-    Class_Field00* Field00;
+    Class_Field00* Unknown00;
     void FUN_10c60c50();
 };
 
 // FUNCTION: 0x10C60C50 ?FUN_10c60c50@Class_10C60C50@@QAEXXZ
 void Class_10C60C50::FUN_10c60c50()
 {
-    Field00->FUN_10c60a90();
+    Unknown00->FUN_10c60a90();
 }
