@@ -161,10 +161,12 @@ close a failure seen in the pilot:
      `fixnames.py prepare` with the addresses excluded as name conflicts,
      `python configure.py && ninja`, `fixnames.py accept`;
    - integrate the accepted addresses minus library code
-     (`integrate.py --dry-run` first). Free functions go to one unit per
-     auto unit of the split (`Unsorted_<start>.cpp`), close to the game's
-     own object files: with all of them in one file, MSVC inlined a small
-     callee into callers the game had compiled apart from it;
+     (`integrate.py --dry-run` first). Free functions, and methods of
+     classes known only by a placeholder name (`Class_<address>`), go to one
+     unit per auto unit of the split (`Unsorted_<start>.cpp`), close to the
+     game's own object files: with all of them in one file, MSVC inlined a
+     small callee into callers the game had compiled apart from it, and with
+     one file per placeholder class the tree held a file per function;
    - `python configure.py && ninja`, compare the objdiff report with the
      previous one and reject regressions, then
      `python tools/progress_report.py write`;

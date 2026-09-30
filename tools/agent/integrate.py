@@ -10,10 +10,12 @@ goes to a unit:
   - else a unit named after its class: `Class::Method` -> <Category>/<Class>.cpp,
     where the category is --category, or "engine" for Unreal-style class names
     (UObject, AActor, FName), else "game";
-  - free functions go to <Category>/Unsorted_<start>.cpp, one per auto unit of
-    the split (<start> is its address): the functions of one original object
-    file together. In a single file for all, MSVC would inline a small callee
-    into callers the game compiled apart from it.
+  - free functions, and members of classes known only by a placeholder name
+    (Class_<address>, Struct_<address>, ...), go to
+    <Category>/Unsorted_<start>.cpp, one per auto unit of the split (<start> is
+    its address): the functions of one original object file together, not one
+    file per placeholder class. In a single file for all, MSVC would inline a
+    small callee into callers the game compiled apart from it.
 Library code (from configure.py's LIBRARY_START on, outside .text$x) is not published
 (CONTRIBUTING.md): it is skipped unless --category libs.
 
@@ -140,6 +142,8 @@ def compose(unit: str, declarations: List[str], blocks: Dict[int, str]) -> str:
 
 # -- units and ranges ----------------------------------------------------------------------
 _units: Dict[int, List[splitslib.Unit]] = {}
+# A class named after an address because nothing names it yet (docs/agent-workflow.md).
+PLACEHOLDER_CLASS = re.compile(r"[A-Za-z]+_[0-9A-Fa-f]{8}")
 
 
 def auto_unit(p: Project, address: int) -> str:
@@ -162,7 +166,7 @@ def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tup
     for u in declared:  # the class's unit may exist already
         if cls and Path(u.source).stem == cls:
             return u.source, category
-    auto = auto_unit(p, address) if not cls else ""
+    auto = auto_unit(p, address) if not cls or PLACEHOLDER_CLASS.fullmatch(cls) else ""
     if auto.startswith("auto/text_"):
         return f"{CATEGORY_DIRS[category]}/Unsorted_{auto[len('auto/text_'):]}.cpp", category
     return f"{CATEGORY_DIRS[category]}/{cls or 'Unsorted'}.cpp", category
