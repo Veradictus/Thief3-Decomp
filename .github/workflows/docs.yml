@@ -1,12 +1,12 @@
 # Builds the documentation site (site/, from the pages in docs/) whenever it
-# or what it is generated from changes. On main it also publishes the site,
+# or what it is generated from changes. On master it also publishes the site,
 # with the mod index, to GitHub Pages: https://veradictus.github.io/Thief3-Decomp/
 # Pages must be set to the source "GitHub Actions" (docs/site.md).
 name: docs
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "docs/**"
       - "site/**"
@@ -50,14 +50,14 @@ jobs:
         run: |
           if [ -f tools/modindex.py ]; then python3 tools/modindex.py build -o site/.vitepress/dist/modindex/index.json; fi
       - uses: actions/configure-pages@v6
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
       - uses: actions/upload-pages-artifact@v5
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
         with:
           path: site/.vitepress/dist
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     needs: build
     runs-on: ubuntu-latest
     permissions:

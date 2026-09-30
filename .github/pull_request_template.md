@@ -17,4 +17,4 @@
 
 - [ ] No game files, extracted assets, raw decompiler output or disassembly
 - [ ] No personal data (local paths, user names, keys)
-- [ ] Commit messages follow Conventional Commits ([CONTRIBUTING.md](https://github.com/Veradictus/Thief3-Decomp/blob/main/CONTRIBUTING.md))
+- [ ] Commit messages follow Conventional Commits ([CONTRIBUTING.md](https://github.com/Veradictus/Thief3-Decomp/blob/master/CONTRIBUTING.md))

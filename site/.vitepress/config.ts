@@ -181,8 +181,8 @@ export default defineConfig({
       // Runs in the browser: no references to this module's variables.
       pattern: ({ filePath }) =>
         filePath === "reference/api.md"
-          ? "https://github.com/Veradictus/Thief3-Decomp/edit/main/sdk/include/t3sdk/t3sdk.h"
-          : `https://github.com/Veradictus/Thief3-Decomp/edit/main/docs/${filePath}`,
+          ? "https://github.com/Veradictus/Thief3-Decomp/edit/master/sdk/include/t3sdk/t3sdk.h"
+          : `https://github.com/Veradictus/Thief3-Decomp/edit/master/docs/${filePath}`,
       text: "Edit this page on GitHub",
     },
     socialLinks: [
