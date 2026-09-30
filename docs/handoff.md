@@ -20,7 +20,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
   deploy the current build before testing those. `System/T3SDK.log` is
   appended to on every run.
 - GitHub: `Veradictus/Thief3-Decomp`, Conventional Commits (see
-  [CONTRIBUTING.md](../CONTRIBUTING.md)). Agents commit on `main` and never
+  [CONTRIBUTING.md](../CONTRIBUTING.md)). Agents commit on `master` and never
   push: the user pushes. Commits and PRs carry no session links.
 - The Ghidra database in `ghidra/` is analysed and has the names from
   `symbols.txt` applied (the export round-trips byte for byte).
