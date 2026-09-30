@@ -2,6 +2,7 @@
 """The work queue: which function to match next, with claims so parallel workers never collide.
 
     python tools/agent/next.py claim [--agent ID] [--count N] [--unit U] [--name REGEX] [--min-size N] [--max-size N]
+                                     [--only-deferred] [--context]
     python tools/agent/next.py release [--agent ID] [addr ...]
     python tools/agent/next.py status
     python tools/agent/next.py list [--limit N] [--unit U]        # the queue head, unclaimed
@@ -9,11 +10,17 @@
 
 The queue holds every function in symbols.txt except EH unwind funclets
 (`Unwind@`, `.text$x`), import thunks, the library region from configure.py's
-LIBRARY_START on (--all-regions includes it), and functions already accepted,
-integrated into src/, deferred or claimed. It is ordered easy first: by a
+LIBRARY_START on (--all-regions includes it), functions the lead excluded in
+build/agent/excluded.json (address -> reason: library code elsewhere, an
+inline-asm original), and functions already accepted, integrated into src/,
+deferred or claimed. It is ordered easy first: by a
 difficulty score from the target's instructions (instructions, branches,
 calls, switches, EH, x87; needs iced-x86 and the exe or split objects), else
 by size.
+
+--only-deferred queues deferred functions only, for a second pass by a
+stronger model. `claim --context` prints each claimed function's context
+packet (context.py) after the JSON, which is then one line.
 
 A claim is a file in build/agent/claims/ created atomically; it expires after
 --ttl seconds (try.py renews it on every attempt) and can then be taken over.
@@ -22,8 +29,11 @@ Output is JSON.
 
 import argparse
 import bisect
+import json
 import re
+import subprocess
 import sys
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import features as featurelib
@@ -46,16 +56,21 @@ def queue(p: Project, args, claimed: Optional[set] = None) -> List[dict]:
     text_x = p.text_x_range()
     imports = {s.name[len("__imp_"):] for s in p.symbols if s.name.startswith("__imp_")}
     done = set(p.accepted()) | set(p.integrated())
-    deferred = set() if getattr(args, "include_deferred", False) else set(p.deferred())
+    only_deferred = getattr(args, "only_deferred", False)
+    deferred = set() if getattr(args, "include_deferred", False) or only_deferred else set(p.deferred())
+    wanted = set(p.deferred()) if only_deferred else None
     claimed = claimed if claimed is not None else {int(c["addr"], 16) for c in Claims(p).all()}
+    excluded_file = p.state / "excluded.json"
+    excluded = ({int(a, 16) for a in json.loads(excluded_file.read_text(encoding="utf-8"))}
+                if excluded_file.is_file() else set())
     unit_of = unit_index(p)
     out = []
     for f in p.functions:
         a = f.address
         if (f.name.startswith("Unwind@") or text_x[0] <= a < text_x[1] or f.name in imports
-                or (a >= lib and not args.all_regions) or a in done or a in deferred or a in claimed
+                or (a >= lib and not args.all_regions) or a in done or a in deferred or a in claimed or a in excluded
                 or (args.min_size and f.size < args.min_size) or (args.max_size and f.size > args.max_size)
-                or (args.name and not re.search(args.name, f.name))):
+                or (args.name and not re.search(args.name, f.name)) or (wanted is not None and a not in wanted)):
             continue
         unit = unit_of(a)
         if args.unit and not (unit == args.unit or unit.startswith(args.unit)):
@@ -102,10 +117,12 @@ def main() -> None:
         s.add_argument("--max-size", type=lambda v: int(v, 0), help="skip functions larger than this")
         s.add_argument("--all-regions", action="store_true", help="include the library region (from LIBRARY_START on)")
         s.add_argument("--include-deferred", action="store_true")
+        s.add_argument("--only-deferred", action="store_true", help="only deferred functions (a second pass)")
         if name == "claim":
             s.add_argument("--agent", help="worker id (default: $T3_AGENT_ID)")
             s.add_argument("--count", type=int, default=1)
             s.add_argument("--ttl", type=float, default=CLAIM_TTL, help="claim lifetime in seconds")
+            s.add_argument("--context", action="store_true", help="print each claimed function's context packet")
         else:
             s.add_argument("--limit", type=int, default=20)
     rel = sub.add_parser("release")
@@ -126,13 +143,24 @@ def main() -> None:
         agent = agent_id(args.agent)
         accepted = p.accepted()
         taken = []
+        # A second pass never hands a worker back its own deferral.
+        own = {a for a, rec in p.deferred().items() if rec.get("agent") == agent} if args.only_deferred else set()
         for entry in queue(p, args):
             if len(taken) >= args.count:
                 break
+            if int(entry["addr"], 16) in own:
+                continue
             if claims.take(int(entry["addr"], 16), agent, args.ttl, {"symbol": entry["symbol"]}):
-                entry["siblings"] = siblings(p, entry, accepted)
+                if not args.context:  # the packet has the references and similar functions
+                    entry["siblings"] = siblings(p, entry, accepted)
                 taken.append(entry)
-        emit({"agent": agent, "claimed": taken, "empty": not taken})
+        if not args.context:
+            emit({"agent": agent, "claimed": taken, "empty": not taken})
+            sys.exit(0 if taken else 4)
+        short = [{k: e[k] for k in ("addr", "symbol", "size", "difficulty")} for e in taken]
+        print(json.dumps({"agent": agent, "claimed": short, "empty": not taken}), flush=True)
+        for entry in taken:
+            subprocess.run([sys.executable, str(Path(__file__).with_name("context.py")), entry["addr"]])
         sys.exit(0 if taken else 4)
     elif args.cmd == "release":
         agent = None if args.all else agent_id(args.agent)
