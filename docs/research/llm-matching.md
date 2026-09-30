@@ -66,7 +66,7 @@ report, which decomp.dev's code does not forbid but does not document either.
    - An adversarial reviewer agent plus human spot checks (all pragma/asm exceptions, 5-10% sample) run before merge.
 6. **List on decomp.dev.**
    - Public repo, workflow artifact `PC_20040610_report` built on push to the default branch in a **private GHCR container that holds `T3Main.exe`** (dtk-template's pattern).
-   - Set decomp.dev's default category to game+engine so libraries don't inflate the headline.
+   - Set decomp.dev's default category to the game code (`main`) so neither Epic's engine nor the libraries inflate the headline.
    - Projects are hidden below 0.5% matched code, which is about 21-27 KB here.
 
 **Cost and throughput (order of magnitude, [mine]; no source publishes $/function).**
@@ -408,7 +408,7 @@ From the site's source ([encounter/decomp.dev](https://github.com/encounter/deco
     objdiff report (JSON or protobuf), and runs `migrate()`.
   - For this repo the artifact name would be `PC_20040610_report` and the file `build/PC_20040610/report.json`.
 - **Visibility threshold:** projects are hidden when `matched_code_percent < 0.5` (`crates/core/src/models.rs`).
-  Here that means ~26.6 KB of 5.32 MB, or ~21 KB if the default category is the 4.18 MB game+engine range.
+  Here that means ~13 KB if the default category is the 2.6 MB of game code (`main`, [decomp-dev.md](../decomp-dev.md)).
 - **Progress categories:** set them on units (`metadata.progress_categories`) and list them in `objdiff.json`; this repo's
   `configure.py` already does both. The project setting `default_category` chooses which category's measures drive
   the headline and visibility. **"Fully linked"** is `complete_code_percent`, from units whose metadata is `complete`.

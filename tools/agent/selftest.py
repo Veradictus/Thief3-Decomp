@@ -412,7 +412,7 @@ def test_compile_command_matches_configure(base: Path) -> None:
     tmp = base / "configure-copy"
     (tmp / "tools").mkdir(parents=True)
     shutil.copy(ROOT / "configure.py", tmp)
-    for name in ("splits.py", "symbols.py", "ninja_syntax.py"):
+    for name in ("categories.py", "splits.py", "symbols.py", "ninja_syntax.py"):
         shutil.copy(ROOT / "tools" / name, tmp / "tools")
     shutil.copytree(Env(base, "configure-fixture").root / "config", tmp / "config")
     proc = subprocess.run([sys.executable, "configure.py"], cwd=tmp, capture_output=True, text=True)

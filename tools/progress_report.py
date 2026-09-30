@@ -14,11 +14,21 @@ report to progress/<version>/report.json, which is committed, and which CI
 checks and uploads. The report holds names, addresses, sizes and match
 percentages; no bytes of the game.
 
+Its categories come from config/<version>/categories.txt (tools/classify.py):
+the headline, "main", is Ion Storm's game code, which the decompilation
+covers; Epic's engine, the libraries and unclassified code are reported for
+reference. The .text$x funclets no declared unit takes are left out (the
+compiler emits them with their parent function), and so is data: nothing is
+split into units yet, so `write` drops the data measures (decomp.dev then shows
+none) and the data-only __shared_data unit.
+
 `check` fails when the committed report no longer describes the tree:
-  - its units are not the ones configure.py plans from splits.txt and
-    symbols.txt, each with the same functions (by address);
+  - its units are not the ones configure.py plans from splits.txt,
+    symbols.txt and categories.txt, each with the same functions (by address);
   - the functions in its units with source are not exactly those with a
-    `// FUNCTION:` line in src/ (their EH handlers and unwind funclets aside).
+    `// FUNCTION:` line in src/ (their EH handlers and unwind funclets aside);
+  - a function in src/ is not game code by categories.txt: only Ion Storm's
+    code is published (CONTRIBUTING.md).
 It cannot tell whether those functions still match: that takes the exe. The
 gate (tools/agent/accept.py) is what proves a match; the report displays it.
 Standard library only (and configure.py).
@@ -41,8 +51,10 @@ sys.path.insert(0, str(ROOT))
 import configure  # noqa: E402
 
 FORMAT_VERSION = 2
-# Units objdiff adds on its own: the data no unit claims.
+# Units objdiff adds on its own: the data no unit claims (dropped by `write`).
 EXTRA_UNITS = {"__shared_data"}
+# Measures of data, which no unit has yet (see the module docstring).
+DATA_MEASURES = ("total_data", "matched_data", "matched_data_percent", "complete_data", "complete_data_percent")
 # Compiled with their parent function, and named after it: no `// FUNCTION:` line.
 COMPANIONS = ("Unwind@", "__ehhandler$")
 FUNCTION_LINE = re.compile(r"^// FUNCTION: 0x([0-9A-Fa-f]{8})\b", re.M)
@@ -60,6 +72,8 @@ def planned_units(version: str) -> Dict[str, Set[int]]:
     starts = [f.address for f in functions]
     units = {}
     for unit in configure.plan_units(config_dir):
+        if not configure.reported(unit):
+            continue
         addresses = set()
         for start, end in unit.text:
             addresses.update(f.address for f in functions[bisect.bisect_left(starts, start):bisect.bisect_left(starts, end)])
@@ -107,6 +121,24 @@ def problems(report: dict, version: str) -> List[str]:
         out.append(f"0x{address:08X} has a // FUNCTION: line in src/, but the report does not compile it")
     for address in sorted(with_source - in_src):
         out.append(f"0x{address:08X} is compiled in the report, but no // FUNCTION: line in src/ has it")
+    index = configure.category_index(ROOT / "config" / version)
+    for address in sorted(in_src):
+        category = index.at(address) if index.ranges else ""
+        if category and category != "game":
+            out.append(f"0x{address:08X} in src/ is {category} code (categories.txt): only Ion Storm's game code "
+                       f"is published (CONTRIBUTING.md)")
+    return out
+
+
+def without_data(report: dict) -> dict:
+    """The report without data measures and without the data-only units."""
+    def strip(measures: dict) -> dict:
+        return {k: v for k, v in measures.items() if k not in DATA_MEASURES}
+
+    out = dict(report, measures=strip(report.get("measures", {})))
+    out["categories"] = [dict(c, measures=strip(c.get("measures", {}))) for c in report.get("categories", [])]
+    out["units"] = [dict(u, measures=strip(u.get("measures", {}))) for u in report.get("units", [])
+                    if u.get("name") not in EXTRA_UNITS]
     return out
 
 
@@ -117,8 +149,11 @@ def load(path: Path) -> dict:
 
 
 def headline(report: dict) -> str:
-    m = report["measures"]
-    return (f"{m.get('matched_functions', 0)}/{m.get('total_functions', 0)} functions, "
+    """The headline category's progress: Ion Storm's game code."""
+    category = next((c for c in report.get("categories", []) if c.get("id") == "main"), None)
+    m = category.get("measures", {}) if category else report["measures"]
+    name = category.get("name", "main") if category else "all"
+    return (f"{name}: {m.get('matched_functions', 0)}/{m.get('total_functions', 0)} functions, "
             f"{float(m.get('matched_code_percent', 0.0)):.3f}% of the code "
             f"({m.get('matched_code', '0')}/{m.get('total_code', '0')} bytes)")
 
@@ -148,7 +183,7 @@ def write(version: str) -> None:
     if subprocess.run([ninja, str(built.relative_to(ROOT))], cwd=ROOT).returncode != 0:
         sys.exit("the build failed: fix it before writing the report")
 
-    report = load(built)
+    report = without_data(load(built))
     found = problems(report, version)
     if found:
         print("\n".join(found))

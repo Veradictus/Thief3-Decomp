@@ -100,6 +100,12 @@ def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int,
         i = bisect.bisect_left(starts, lo)
         return i < len(starts) and starts[i] < hi
 
+    breaks = sorted(breaks)
+
+    def break_between(lo: int, hi: int) -> bool:
+        """Whether a break b has lo < b <= hi."""
+        return bisect.bisect_right(breaks, hi) > bisect.bisect_right(breaks, lo)
+
     auto: List[Unit] = []
     chunk = None
     for f in sorted(functions, key=lambda s: s.address):
@@ -113,7 +119,7 @@ def plan(declared: Sequence[Unit], functions: Sequence[Symbol], chunk_size: int,
         # `chunk` already; without this check the auto chunk would silently
         # swallow bytes a declared unit owns.
         if (chunk is None or f.address - chunk.text[0][0] >= chunk_size or claim_between(chunk.text[0][1], f.address)
-                or any(chunk.text[0][0] < b <= f.address for b in breaks)):
+                or break_between(chunk.text[0][0], f.address)):
             chunk = Unit(source=f"auto/text_{f.address:08X}", auto=True, text=[(f.address, f.end)])
             auto.append(chunk)
         else:

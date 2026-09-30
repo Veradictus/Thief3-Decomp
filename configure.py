@@ -18,6 +18,7 @@ from typing import Dict, List
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "tools"))
 
+import categories as categorieslib  # noqa: E402
 import ninja_syntax  # noqa: E402
 import splits as splitslib  # noqa: E402
 import symbols as symbolslib  # noqa: E402
@@ -56,43 +57,61 @@ CFLAGS = [
 
 # Per-unit options, keyed by source path relative to src/ (as in splits.txt):
 #   "status":   "NonMatching" (default) | "Matching"
-#   "category": "game", "engine" or "libs" (default: from the unit's address)
 #   "cflags":   replaces CFLAGS for this unit
 UNITS: Dict[str, dict] = {}
 
-# objdiff/decomp.dev progress categories. "main" is the headline (decomp.dev's
-# default category): the game and its engine, without the libraries that are
-# matched from their own objects or sources rather than decompiled.
+# objdiff/decomp.dev progress categories, from config/<version>/categories.txt
+# (tools/classify.py). "main" is the headline (decomp.dev's default category):
+# Ion Storm's game code, which the decompilation covers. Epic's engine and the
+# third-party libraries stay in the binary; they are reported for reference.
 CATEGORIES = {
-    "main": "Game & engine",
-    "game": "Game",
-    "engine": "Engine",
+    "main": "Game",
+    "engine": "Engine (Epic)",
     "libs": "Libraries",
+    "unknown": "Unclassified",
+}
+PROGRESS_CATEGORY = {
+    categorieslib.GAME: "main",
+    categorieslib.ENGINE: "engine",
+    categorieslib.LIBS: "libs",
+    categorieslib.UNKNOWN: "unknown",
 }
 
-# Where code comes from, by address, for units without a category. Code before
-# LIBRARY_START is the game and its engine (with some CppUnit and Havok glue).
-# The libraries linked after it start there: qhull, then the static C runtime
-# from 0x10D1EE33 (entry point 0x10D1F7AF), then mostly STL, D3DX, Havok and
-# libjpeg, with a few game objects among them (TimeManager, 0x10D3EB80).
-# .text$x holds the exception-handling funclets of every function, which the
-# compiler emits with their parents (docs/target.md).
+# Where code comes from by address, when categories.txt has no range for it.
+# Code before LIBRARY_START is the game and Epic's engine (tools/classify.py
+# tells them apart), with Havok before it too. The libraries linked after it
+# start there: qhull, then the static C runtime from 0x10D1EE33 (entry point
+# 0x10D1F7AF), then mostly STL, D3DX, Havok and libjpeg. .text$x holds the
+# exception-handling funclets of every function, which the compiler emits with
+# their parents (docs/target.md): a declared unit takes its functions'
+# funclets, and the rest are not reported.
 LIBRARY_START = 0x10CFBFB0
 FUNCLETS = (0x10E02DA0, 0x10E3BF77)
 
 
-def unit_categories(unit: splitslib.Unit, category: str = "") -> List[str]:
-    if category in ("game", "engine"):
-        return ["main", category]
-    if category:
-        return [category]
+def category_index(config_dir: Path) -> categorieslib.Index:
+    return categorieslib.Index(categorieslib.load(config_dir / "categories.txt"))
+
+
+def unit_categories(unit: splitslib.Unit, index: categorieslib.Index) -> List[str]:
+    """The progress categories of a unit: its first .text range's in categories.txt."""
     start = unit.text[0][0] if unit.text else 0
-    return ["main"] if start < LIBRARY_START or FUNCLETS[0] <= start < FUNCLETS[1] else ["libs"]
+    if FUNCLETS[0] <= start < FUNCLETS[1]:
+        return []
+    category = index.at(start)
+    if not category:
+        return ["main"] if start < LIBRARY_START else ["libs"]
+    return [PROGRESS_CATEGORY[category]]
+
+
+def reported(unit: splitslib.Unit) -> bool:
+    """Whether the progress report holds a unit: all but the leftover .text$x funclets."""
+    return not (unit.auto and unit.text and FUNCLETS[0] <= unit.text[0][0] < FUNCLETS[1])
 
 
 def unit_options(config_dir: Path) -> Dict[str, dict]:
-    """UNITS, plus the per-unit options tools/agent/integrate.py records in
-    units.json (categories); UNITS wins where both set one."""
+    """UNITS, plus per-unit options from config/<version>/units.json, if there
+    is one; UNITS wins where both set one."""
     options = {source: dict(opts) for source, opts in UNITS.items()}
     units_json = config_dir / "units.json"
     if units_json.is_file():
@@ -101,12 +120,17 @@ def unit_options(config_dir: Path) -> Dict[str, dict]:
     return options
 
 
+def breaks(config_dir: Path) -> List[int]:
+    """Addresses no auto unit may span: the category boundaries and the regions' edges."""
+    return sorted({LIBRARY_START, *FUNCLETS, *category_index(config_dir).boundaries()})
+
+
 def plan_units(config_dir: Path) -> List[splitslib.Unit]:
     """The translation units: those declared in splits.txt, plus auto chunks
     covering every other function in symbols.txt."""
     functions = [s for s in symbolslib.load(config_dir / "symbols.txt") if s.is_function and s.size > 0]
     return splitslib.plan(splitslib.load(config_dir / "splits.txt"), functions, CHUNK_SIZE,
-                          breaks=(LIBRARY_START, *FUNCLETS))
+                          breaks=breaks(config_dir))
 
 
 def main() -> None:
@@ -129,7 +153,9 @@ def main() -> None:
     exe = Path("orig") / version / info["exe"]
     symbols_txt = config_dir / "symbols.txt"
     splits_txt = config_dir / "splits.txt"
+    categories_txt = config_dir / "categories.txt"
     options = unit_options(config_dir)
+    index = category_index(config_dir)
 
     if not exe.is_file():
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
@@ -184,16 +210,18 @@ def main() -> None:
     n.rule(
         "model",
         f"$python tools/delink_model.py --exe $exe --sha1 $sha1 --symbols $symbols --splits $splits "
-        f"--chunk-size {CHUNK_SIZE:#x} {' '.join(f'--break {b:#x}' for b in (LIBRARY_START, *FUNCLETS))} "
-        f"--model $model --groups $groups",
+        f"--categories $categories --chunk-size {CHUNK_SIZE:#x} "
+        f"{' '.join(f'--break {b:#x}' for b in (LIBRARY_START, *FUNCLETS))} --model $model --groups $groups",
         description="MODEL $model",
     )
     n.build(
         [str(model), str(groups)], "model",
         inputs=[str(exe), str(symbols_txt), str(splits_txt)],
-        implicit=["tools/delink_model.py", "tools/splits.py", "tools/symbols.py", "tools/pe.py"],
+        implicit=["tools/delink_model.py", "tools/splits.py", "tools/symbols.py", "tools/pe.py",
+                  "tools/categories.py"] + ([str(categories_txt)] if categories_txt.is_file() else []),
         variables={"exe": str(exe), "sha1": info["sha1"], "symbols": str(symbols_txt),
-                   "splits": str(splits_txt), "model": str(model), "groups": str(groups)},
+                   "splits": str(splits_txt), "categories": str(categories_txt), "model": str(model),
+                   "groups": str(groups)},
     )
     n.rule(
         "split",
@@ -248,12 +276,14 @@ def main() -> None:
                     implicit=[str(cl), *runtime_dlls] + ([str(wibo)] if wibo else []),
                     variables={"cflags": " ".join(opts.get("cflags", CFLAGS))})
             base_objs.append(str(base))
+        if not reported(u):
+            continue
         metadata = {"auto_generated": u.auto}
         if base:
             metadata["source_path"] = str(source).replace(os.sep, "/")
         if opts.get("status") == "Matching":
             metadata["complete"] = True
-        metadata["progress_categories"] = unit_categories(u, opts.get("category", ""))
+        metadata["progress_categories"] = unit_categories(u, index)
         unit_json.append({
             "name": u.name,
             "target_path": str(obj_dir / u.object).replace(os.sep, "/"),
@@ -283,7 +313,8 @@ def main() -> None:
         reconfigure += f' --msvc-runtime "{args.msvc_runtime}"'
     n.rule("configure", reconfigure, generator=True, description="CONFIGURE")
     n.build(["build.ninja", "objdiff.json"], "configure",
-            implicit=["configure.py", "tools/splits.py", "tools/symbols.py", str(symbols_txt), str(splits_txt)])
+            implicit=["configure.py", "tools/splits.py", "tools/symbols.py", "tools/categories.py", str(symbols_txt),
+                      str(splits_txt)] + ([str(categories_txt)] if categories_txt.is_file() else []))
     n.default("progress")
     n.close()
 

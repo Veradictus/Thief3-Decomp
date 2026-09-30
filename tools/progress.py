@@ -11,13 +11,12 @@ def num(measures: dict, key: str) -> float:
 
 
 def line(label: str, m: dict) -> str:
-    """One report line from an objdiff "measures" object (overall or one category)."""
+    """One report line from an objdiff "measures" object (overall or one category). No data:
+    nothing is split into units yet (tools/progress_report.py)."""
     code = num(m, "matched_code_percent")
-    data = num(m, "matched_data_percent")
     return (
         f"{label:<14} code {code:6.2f}% ({int(num(m, 'matched_code'))}/{int(num(m, 'total_code'))} bytes)  "
-        f"functions {int(num(m, 'matched_functions'))}/{int(num(m, 'total_functions'))}  "
-        f"data {data:6.2f}%"
+        f"functions {int(num(m, 'matched_functions'))}/{int(num(m, 'total_functions'))}"
     )
 
 
@@ -29,7 +28,7 @@ def main() -> None:
     print(line("All", report.get("measures", {})))
     for cat in report.get("categories", []):
         # Skip categories with nothing assigned to them yet.
-        if num(cat.get("measures", {}), "total_code") or num(cat.get("measures", {}), "total_data"):
+        if num(cat.get("measures", {}), "total_code"):
             print(line(cat.get("name", cat.get("id", "?")), cat.get("measures", {})))
 
 
