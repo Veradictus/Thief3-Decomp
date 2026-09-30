@@ -175,7 +175,9 @@ first) and puts each into a unit:
   The category is `--category`, else `engine` for Unreal-style names
   (`UObject`, `AActor`, `FName`), else `game`. Library code (from the CRT
   entry point on, outside `.text$x`) is not published (CONTRIBUTING.md), so
-  it is skipped unless `--category libs`.
+  it is skipped unless `--category libs`; so is Epic's engine: an
+  Unreal-style class is skipped unless `--category` is given (`game` once the
+  class is known to be Ion Storm's).
 - The unit file gets the accepted files' declarations, deduplicated, then the
   functions in address order, each behind `// FUNCTION: 0x<ADDR> <decorated
   name>`.

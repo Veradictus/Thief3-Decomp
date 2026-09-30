@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lead only: move accepted functions into translation units under src/ and declare them in splits.txt.
 
-    python tools/agent/integrate.py [addr ...] [--unit Engine/Window.cpp] [--category engine] [--dry-run]
+    python tools/agent/integrate.py [addr ...] [--unit Game/Unsorted_10B06290_2.cpp] [--category game] [--dry-run]
 
 Without addresses, every accepted function not yet integrated is taken. Each
 goes to a unit:
@@ -17,7 +17,9 @@ goes to a unit:
     file per placeholder class. In a single file for all, MSVC would inline a
     small callee into callers the game compiled apart from it.
 Library code (from configure.py's LIBRARY_START on, outside .text$x) is not published
-(CONTRIBUTING.md): it is skipped unless --category libs.
+(CONTRIBUTING.md): it is skipped unless --category libs. Neither is Epic's engine: a
+method of an Unreal-style class is skipped unless --category is given (--category game
+once the class is known to be Ion Storm's).
 
 For each unit the tool assembles the file (the accepted files' declarations,
 deduplicated, then the functions in address order behind their
@@ -401,6 +403,11 @@ def integrate(p: Project, args) -> dict:
         if category == "libs" and args.category != "libs":
             summary["warnings"].append(f"{fmt_addr(a)} is library code, which is not published (CONTRIBUTING.md); "
                                        f"skipped (--category libs integrates it anyway)")
+            continue
+        if category == "engine" and not args.category:
+            summary["warnings"].append(f"{fmt_addr(a)} is a method of {accepted[a].get('class')}, an Unreal-style "
+                                       f"class: Epic's engine is not published (CONTRIBUTING.md); skipped "
+                                       f"(--category game integrates it once the class is known to be Ion Storm's)")
             continue
         groups.setdefault(source, []).append(a)
         categories.setdefault(source, category)
