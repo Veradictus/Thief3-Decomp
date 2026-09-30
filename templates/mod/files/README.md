@@ -27,7 +27,7 @@ What does not:
 A top-level `textures/` folder (next to `files/`) can instead replace
 textures inside the game's `.ibt` bundles, for players without Sneaky
 Upgrade: `textures/<texture name>.dds`. It is experimental; see
-[docs/mods.md](https://github.com/Veradictus/Thief3-Decomp/blob/master/docs/mods.md).
+[docs/mods.md](https://github.com/Veradictus/Thief3-Decomp/blob/main/docs/mods.md).
 
 This README is not packed (`cmake/package.cmake` skips it). A mod with no
 content can delete this folder.

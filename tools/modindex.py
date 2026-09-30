@@ -405,7 +405,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     f = sub.add_parser("verify", parents=[common], help="download versions and check them against the index")
     f.add_argument("files", nargs="*", help="per-mod files (default: all)")
     f.add_argument("--changed-only", metavar="BASE_REF",
-                   help="only versions added or changed since this git ref (e.g. origin/master)")
+                   help="only versions added or changed since this git ref (e.g. origin/main)")
     b = sub.add_parser("build", parents=[common], help="write the combined index")
     b.add_argument("-o", "--output", required=True, help="the index.json to write")
     a = sub.add_parser("add", parents=[common], help="add a package's version to its per-mod file")
