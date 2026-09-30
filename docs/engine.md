@@ -106,6 +106,39 @@ packages are loaded, about 6,000 objects and 9,800 names at the main menu. The
 menu level is `Entry`, and its player controller is `Entry.Camera__0` (class
 `Engine.Camera`, a `PlayerController`).
 
+### Native class registration
+
+Native classes register lazily rather than through stock Unreal Engine 2's
+static `UClass` objects. Wherever the code needs a class, it runs the
+equivalent of
+
+    if (!PrivateStaticClass)
+    {
+        PrivateStaticClass = GetPrivateStaticClass(TEXT("<Package>"));
+        InitializePrivateStaticClass();
+    }
+
+The getter constructs the `UClass`: its name, config name (`System`), flags
+(`0x04084004`), static and internal constructors. The package name is the
+getter's only argument, so every call site names the class's package. The
+initializer fills in the class's `SuperField` (`+0x2C`), its own class
+(`+0x24`, `Core.Class`) and its `Within` class (`+0xA4`, `Core.Object`).
+
+| What | Address | Status |
+|---|---|---|
+| `GamePhysics` (package `GamePhysics`): getter | `0x10B7C5A0` | static |
+| its initializer (super class from `Engine`) | `0x10B7BEF0` | static |
+| its `PrivateStaticClass` | `0x10FF65D0` | static |
+
+`tools/classify.py` reads every registration from the exe: 266 native classes,
+209 in Epic's packages (Engine 164, Core 34, Fire 7, WinDrv 2, D3DDrv 1,
+Window 1) and 57 in Ion Storm's (AICore 30, T3Game 11, T3Player 8, T3AI 6,
+GamePhysics and T3GamePhysics 1 each). About 80 of the classes in Core and
+Engine are Ion Storm's own (the `*LinkDataObject` links, `MetaProperty`,
+`AISubsystem`, ...): their UnrealScript source has no Epic header. The tool
+uses them to tell Ion Storm's code from Epic's ([decomp-dev.md](decomp-dev.md),
+"Whose code it is").
+
 ## Script natives
 
 The UnrealScript interpreter runs a function's bytecode through native C++

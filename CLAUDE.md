@@ -27,6 +27,7 @@ python tools/ghidra_headless.py bootstrap                          # rebuild ghi
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
 python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
 .venv/Scripts/python tools/progress_report.py write|check                          # decomp.dev report: write after integrating, commit progress/
+.venv/Scripts/python tools/classify.py write|explain <addr>|stats                  # whose code: game/engine/libs (config/*/categories.txt)
 python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
 cd launcher && yarn install && yarn tauri dev                                      # the launcher (docs/launcher.md)
 cd launcher && yarn verify                                                         # launcher UI: types, lint, format, tests
