@@ -8,12 +8,14 @@
     python tools/agent/next.py list [--limit N] [--unit U]        # the queue head, unclaimed
     python tools/agent/next.py requeue (addr ... | --all)         # lead: forget deferrals
 
-The queue holds every function in symbols.txt except EH unwind funclets
-(`Unwind@`, `.text$x`), import thunks, the library region from configure.py's
-LIBRARY_START on (--all-regions includes it), functions the lead excluded in
+The queue holds Ion Storm's game code: every function in symbols.txt that
+config/<version>/categories.txt (tools/classify.py) calls game, except EH
+unwind funclets (`Unwind@`, `.text$x`), import thunks, functions the lead
+excluded in
 build/agent/excluded.json (address -> reason: library code elsewhere, an
 inline-asm original), and functions already accepted, integrated into src/,
-deferred or claimed. It is ordered easy first: by a
+deferred or claimed. --all-regions adds unclassified and library code; Epic's
+engine is never queued. It is ordered easy first: by a
 difficulty score from the target's instructions (instructions, branches,
 calls, switches, EH, x87; needs iced-x86 and the exe or split objects), else
 by size.
@@ -52,7 +54,6 @@ def unit_index(p: Project):
 
 
 def queue(p: Project, args, claimed: Optional[set] = None) -> List[dict]:
-    lib = p.library_start()
     text_x = p.text_x_range()
     imports = {s.name[len("__imp_"):] for s in p.symbols if s.name.startswith("__imp_")}
     done = set(p.accepted()) | set(p.integrated())
@@ -68,7 +69,8 @@ def queue(p: Project, args, claimed: Optional[set] = None) -> List[dict]:
     for f in p.functions:
         a = f.address
         if (f.name.startswith("Unwind@") or text_x[0] <= a < text_x[1] or f.name in imports
-                or (a >= lib and not args.all_regions) or a in done or a in deferred or a in claimed or a in excluded
+                or p.category(a) == "engine" or (p.category(a) != "game" and not args.all_regions)
+                or a in done or a in deferred or a in claimed or a in excluded
                 or (args.min_size and f.size < args.min_size) or (args.max_size and f.size > args.max_size)
                 or (args.name and not re.search(args.name, f.name)) or (wanted is not None and a not in wanted)):
             continue
@@ -115,7 +117,8 @@ def main() -> None:
         s.add_argument("--name", help="only functions whose symbols.txt name matches this regex (e.g. ^UObject::exec)")
         s.add_argument("--min-size", type=lambda v: int(v, 0), help="skip functions smaller than this")
         s.add_argument("--max-size", type=lambda v: int(v, 0), help="skip functions larger than this")
-        s.add_argument("--all-regions", action="store_true", help="include the library region (from LIBRARY_START on)")
+        s.add_argument("--all-regions", action="store_true",
+                       help="include unclassified and library code (categories.txt); never Epic's engine")
         s.add_argument("--include-deferred", action="store_true")
         s.add_argument("--only-deferred", action="store_true", help="only deferred functions (a second pass)")
         if name == "claim":

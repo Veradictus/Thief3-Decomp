@@ -28,7 +28,10 @@ not negotiable:
   Engine and its drivers: `UObject`, `FName`, `AActor`, the viewport and
   render device, ...) is not decompiled or published: the game code compiles
   against it through declarations in `include/`, and the engine stays in the
-  binary the player owns.
+  binary the player owns. `config/PC_20040610/categories.txt` records whose
+  each function is (`tools/classify.py`, see docs/decomp-dev.md); a function
+  it does not call game code (engine, library or unclassified) stays out of
+  `src/`, and `python tools/progress_report.py check` fails otherwise.
 - **No extracted assets.** The asset tools write into `build/assets/`, which is
   ignored. Test fixtures must be synthetic, not cut from game files.
 - **No DRM work.** Don't analyse, patch, bypass or document copy protection

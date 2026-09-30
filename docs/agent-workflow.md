@@ -153,20 +153,25 @@ close a failure seen in the pilot:
      break the name bindings of others that share a global; move them
      together. A match already in `src/` has to be taken out of its unit by
      hand;
-   - keep library code out: it is never published (CONTRIBUTING.md). The
-     first session matched MFC's inline `CRect` constructor. List such
-     functions, and inline-asm originals, in `build/agent/excluded.json`
-     (address to reason), which the queue skips;
+   - keep everything but the game's own code out: Epic's engine and library
+     code are never published (CONTRIBUTING.md). The queue offers only what
+     `config/<version>/categories.txt` calls game code (`tools/classify.py`
+     writes it from evidence in the exe; rerun it when `symbols.txt` gains or
+     moves functions), integrate.py skips the rest, and `progress_report.py
+     check` fails on a function in `src/` outside it. What the evidence
+     misses still reaches the queue: the first session matched MFC's inline
+     `CRect` constructor. List such functions, and inline-asm originals, in
+     `build/agent/excluded.json` (address to reason), which the queue skips;
    - settle the parked name conflicts (see [Name conflicts](#name-conflicts)):
      `fixnames.py prepare` with the addresses excluded as name conflicts,
      `python configure.py && ninja`, `fixnames.py accept`;
-   - integrate the accepted addresses minus library code
-     (`integrate.py --dry-run` first). Free functions, and methods of
-     classes known only by a placeholder name (`Class_<address>`), go to one
-     unit per auto unit of the split (`Unsorted_<start>.cpp`), close to the
-     game's own object files: with all of them in one file, MSVC inlined a
-     small callee into callers the game had compiled apart from it, and with
-     one file per placeholder class the tree held a file per function;
+   - integrate the accepted addresses (`integrate.py --dry-run` first). Free
+     functions, and methods of classes known only by a placeholder name
+     (`Class_<address>`), go to one unit per auto unit of the split
+     (`Unsorted_<start>.cpp`, a chunk of up to 64 KB; the exe does not record
+     its object files): with all of them in one file, MSVC inlined a small
+     callee into callers the game had compiled apart from it, and with one
+     file per placeholder class the tree held a file per function;
    - `python configure.py && ninja`, compare the objdiff report with the
      previous one and reject regressions, then
      `python tools/progress_report.py write`;

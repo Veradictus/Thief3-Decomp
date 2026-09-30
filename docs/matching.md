@@ -44,11 +44,13 @@ wave's commands, prompt, settings and results) and `worktrees/`.
 
 ### Queue
 
-`next.py` lists every function of `symbols.txt` except EH unwind funclets
-(`Unwind@`, `.text$x`), import thunks, the library region from `0x10CFBFB0`
-on (qhull, then the C runtime; `--all-regions` includes it), and functions already
-accepted, integrated (a `// FUNCTION:` line in `src/`), deferred or claimed.
-With the current `symbols.txt` that leaves about 17,800 functions. They are
+`next.py` lists the functions of `symbols.txt` that are Ion Storm's game
+code by `config/<version>/categories.txt` (`tools/classify.py`,
+[decomp-dev.md](decomp-dev.md), "Whose code it is"), except EH unwind funclets
+(`Unwind@`, `.text$x`), import thunks, and functions already accepted,
+integrated (a `// FUNCTION:` line in `src/`), deferred or claimed.
+`--all-regions` adds unclassified and library code; Epic's engine is never
+queued. With the current files that leaves about 10,300 functions. They are
 ordered easy first by a difficulty score when iced-x86 and the target's
 bytes are available (instructions, plus 3 per conditional branch, 2 per
 call, 10 per switch, 10 for an EH frame and 1 per x87 instruction), else by
@@ -194,17 +196,9 @@ first) and puts each into a unit:
   bindings establish: callees and globals, `__real@`/`??_C@` literals, and
   `__ehhandler$` stubs. A real name is never replaced by a different one;
   conflicts are reported.
-- `config/<version>/units.json` records each unit's category (`game`,
-  `engine` or `libs`, as in configure.py's `UNITS`). configure.py does not
-  read it yet; the change it needs, after `UNITS` is defined and `config_dir`
-  known:
-
-  ```python
-  units_json = config_dir / "units.json"
-  if units_json.is_file():
-      for source, opts in json.loads(units_json.read_text(encoding="utf-8")).items():
-          UNITS.setdefault(source, {}).update(opts)
-  ```
+- The unit's progress category comes from `categories.txt` by address, so
+  integrate.py records none; `progress_report.py check` fails if a function
+  in `src/` is not game code there.
 
 It runs under a lock (`build/agent/integrate.lock`). Afterwards: `python
 configure.py && ninja`, compare the report with the previous one

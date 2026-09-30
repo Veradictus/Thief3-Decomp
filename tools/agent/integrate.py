@@ -7,19 +7,19 @@ Without addresses, every accepted function not yet integrated is taken. Each
 goes to a unit:
   - --unit, if given;
   - else the declared splits.txt unit whose .text ranges already hold it;
-  - else a unit named after its class: `Class::Method` -> <Category>/<Class>.cpp,
-    where the category is --category, or "engine" for Unreal-style class names
-    (UObject, AActor, FName), else "game";
+  - else a unit named after its class: `Class::Method` -> <Category>/<Class>.cpp;
   - free functions, and members of classes known only by a placeholder name
     (Class_<address>, Struct_<address>, ...), go to
-    <Category>/Unsorted_<start>.cpp, one per auto unit of the split (<start> is
-    its address): the functions of one original object file together, not one
-    file per placeholder class. In a single file for all, MSVC would inline a
-    small callee into callers the game compiled apart from it.
-Library code (from configure.py's LIBRARY_START on, outside .text$x) is not published
-(CONTRIBUTING.md): it is skipped unless --category libs. Neither is Epic's engine: a
-method of an Unreal-style class is skipped unless --category is given (--category game
-once the class is known to be Ion Storm's).
+    <Category>/Unsorted_<start>.cpp, one per auto unit of the split (a chunk
+    of up to 64 KB; <start> is its address), not one file per placeholder
+    class. In a single file for all, MSVC would inline a small callee into
+    callers the game compiled apart from it.
+The category is --category, else the function's in config/<version>/categories.txt
+(tools/classify.py). Only Ion Storm's game code is published (CONTRIBUTING.md):
+Epic's engine is skipped, and so is a method of an Unreal-style class (UObject,
+AActor, FName) until the class is known to be Ion Storm's (--category game);
+library code is skipped unless --category libs, unclassified code unless
+--category game.
 
 For each unit the tool assembles the file (the accepted files' declarations,
 deduplicated, then the functions in address order behind their
@@ -35,9 +35,7 @@ changed. Only then are the files written:
     tools/splits.py;
   - symbols.txt: the functions' decorated names, the names their references
     were bound to (callees, globals, __real@/??_C@ literals, __ehhandler$
-    stubs), never overwriting a real name with a different one;
-  - config/<version>/units.json: each unit's progress category, for
-    configure.py's UNITS (see docs/matching.md).
+    stubs), never overwriting a real name with a different one.
 Serialised by build/agent/integrate.lock. Afterwards run configure.py and
 ninja, and compare the report with the previous one.
 """
@@ -175,11 +173,28 @@ def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tup
 
 
 def guess_category(p: Project, rec: dict) -> str:
-    address = int(rec["addr"], 16)
-    start, end = p.text_x_range()
-    if address >= p.library_start() and not start <= address < end:
-        return "libs"
-    return "engine" if re.match(r"^[UAF][A-Z]", rec.get("class") or "") else "game"
+    """Whose code a record is: its category in categories.txt, except that a method of an
+    Unreal-style class counts as Epic's engine until the class is known to be Ion Storm's."""
+    category = p.category(int(rec["addr"], 16))
+    if category == "game" and re.match(r"^[UAF][A-Z]", rec.get("class") or ""):
+        return "engine"
+    return category
+
+
+def skipped(p: Project, rec: dict, args) -> str:
+    """Why a record is not integrated (CONTRIBUTING.md: only Ion Storm's game code is published), or ""."""
+    category = args.category or guess_category(p, rec)
+    if category == "libs" and args.category != "libs":
+        return "is library code, which is not published; skipped (--category libs integrates it anyway)"
+    if category == "engine" and not args.category:
+        if p.category(int(rec["addr"], 16)) == "game":
+            return (f"is a method of {rec.get('class')}, an Unreal-style class: Epic's engine is not published; "
+                    f"skipped (--category game integrates it once the class is known to be Ion Storm's)")
+        return "is Epic's engine code (categories.txt), which is not published; skipped"
+    if category == "unknown":
+        return (f"is unclassified (categories.txt: no evidence yet whose code it is, see tools/classify.py "
+                f"explain {rec['addr']}); skipped (--category game integrates it once it is known to be Ion Storm's)")
+    return ""
 
 
 def merge(p: Project, ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
@@ -399,16 +414,11 @@ def integrate(p: Project, args) -> dict:
     for a in wanted:
         if a in integrated:
             continue
+        skip = skipped(p, accepted[a], args)
+        if skip:
+            summary["warnings"].append(f"{fmt_addr(a)} {skip}")
+            continue
         source, category = unit_for(p, accepted[a], args, declared)
-        if category == "libs" and args.category != "libs":
-            summary["warnings"].append(f"{fmt_addr(a)} is library code, which is not published (CONTRIBUTING.md); "
-                                       f"skipped (--category libs integrates it anyway)")
-            continue
-        if category == "engine" and not args.category:
-            summary["warnings"].append(f"{fmt_addr(a)} is a method of {accepted[a].get('class')}, an Unreal-style "
-                                       f"class: Epic's engine is not published (CONTRIBUTING.md); skipped "
-                                       f"(--category game integrates it once the class is known to be Ion Storm's)")
-            continue
         groups.setdefault(source, []).append(a)
         categories.setdefault(source, category)
 
@@ -479,11 +489,6 @@ def integrate(p: Project, args) -> dict:
         check.write_text(symbols_text, encoding="utf-8")
         symbolslib.load(check)  # raises on a duplicate name
         atomic_write(p.symbols_txt, symbols_text)
-    units_json = p.config_dir / "units.json"
-    options = json.loads(units_json.read_text(encoding="utf-8")) if units_json.is_file() else {}
-    for u in summary["units"]:
-        options.setdefault(u["unit"], {})["category"] = u["category"]
-    atomic_write(units_json, json.dumps(options, indent=2, sort_keys=True) + "\n")
     for rec in records:
         atomic_write(p.state / "accepted" / f"{addr_key(int(rec['addr'], 16))}.json", json.dumps(rec, indent=1))
     return summary

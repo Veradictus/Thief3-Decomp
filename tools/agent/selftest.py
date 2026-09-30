@@ -323,8 +323,6 @@ def test_integrate(base: Path) -> None:
     for unit in by_source:
         src = e.root / "src" / unit
         check(src.is_file() and "// FUNCTION: 0x" in src.read_text(), f"{unit} is written")
-    units_json = json.loads((e.root / "config/PC_20040610/units.json").read_text())
-    check(units_json["Game/Foo.cpp"]["category"] == "game", "the unit's category is recorded")
     proc = e.run("integrate.py")
     check("nothing to integrate" in proc.stdout, "a second run has nothing to do", proc)
     status = json.loads(e.run("next.py", "status").stdout)

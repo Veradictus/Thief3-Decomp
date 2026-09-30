@@ -259,7 +259,18 @@ class Project:
     def breaks(self) -> Tuple[int, ...]:
         """Addresses no auto unit spans, as configure.py passes them to splits.plan()."""
         cfg = self.configure
+        if hasattr(cfg, "breaks"):
+            return tuple(cfg.breaks(self.config_dir))
         return tuple(a for a in (getattr(cfg, "LIBRARY_START", None), *getattr(cfg, "FUNCLETS", ())) if a)
+
+    def category(self, address: int) -> str:
+        """Whose code an address is, from config/<version>/categories.txt (tools/classify.py):
+        "game", "engine", "libs" or "unknown". Without the file: game before LIBRARY_START."""
+        if not hasattr(self, "_categories"):
+            cfg = self.configure
+            self._categories = cfg.category_index(self.config_dir) if hasattr(cfg, "category_index") else None
+        found = self._categories.at(address) if self._categories else ""
+        return found or ("game" if address < self.library_start() else "libs")
 
     def plan(self, declared: List[splitslib.Unit]) -> List[splitslib.Unit]:
         """Declared plus auto units, exactly as configure.py plans the split."""
