@@ -226,6 +226,11 @@ their parent instead.
 
 ## Waves (lead)
 
+The day-to-day setup is now the [tiered agent workflow](agent-workflow.md):
+Haiku and Sonnet sub-agents launched by the lead, with a one-file protocol.
+The headless waves below remain for sessions that may start `claude -p`
+workers.
+
 ```sh
 python tools/agent/context.py fill-ghidra --next 200     # optional seeds
 python tools/agent/wave.py --workers 8 --functions 5 --dry-run
