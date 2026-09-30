@@ -153,7 +153,14 @@ def main() -> None:
                 break
             if int(entry["addr"], 16) in own:
                 continue
-            if claims.take(int(entry["addr"], 16), agent, args.ttl, {"symbol": entry["symbol"]}):
+            address = int(entry["addr"], 16)
+            if claims.take(address, agent, args.ttl, {"symbol": entry["symbol"]}):
+                # Another worker may have accepted or deferred it, and released its claim, since
+                # the queue was read.
+                done_kinds = ("accepted",) if args.only_deferred else ("accepted", "deferred")
+                if any((p.state / kind / f"{addr_key(address)}.json").is_file() for kind in done_kinds):
+                    claims.release(address, agent)
+                    continue
                 if not args.context:  # the packet has the references and similar functions
                     entry["siblings"] = siblings(p, entry, accepted)
                 taken.append(entry)

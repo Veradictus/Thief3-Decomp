@@ -416,7 +416,10 @@ class Project:
             if hit[1] and "addr" in hit[1]:
                 out[int(hit[1]["addr"], 16)] = hit[1]
         if fresh != cache:
-            atomic_write(cache_path, json.dumps(fresh))
+            try:
+                atomic_write(cache_path, json.dumps(fresh))
+            except PermissionError:
+                pass  # many workers at once; the index is only a cache, the next reader writes it
         return out
 
     def accepted(self) -> Dict[int, dict]:
