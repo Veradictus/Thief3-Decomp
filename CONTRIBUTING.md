@@ -23,6 +23,12 @@ not negotiable:
   STL, D3DX 8, Havok) are not decompiled or published: they are matched from
   the user's own library files or left out. Public libraries (libjpeg 6a,
   CppUnit) come from their published sources, under their licences.
+- **Game code only, not Epic's engine.** The decompilation covers Ion Storm's
+  game code. Epic's Unreal Engine 2 code compiled into the same exe (Core,
+  Engine and its drivers: `UObject`, `FName`, `AActor`, the viewport and
+  render device, ...) is not decompiled or published: the game code compiles
+  against it through declarations in `include/`, and the engine stays in the
+  binary the player owns.
 - **No extracted assets.** The asset tools write into `build/assets/`, which is
   ignored. Test fixtures must be synthetic, not cut from game files.
 - **No DRM work.** Don't analyse, patch, bypass or document copy protection

@@ -35,12 +35,11 @@ decompilation** worked mostly by Claude agents under the strict gate in
   in the game yet. The launcher builds and runs on Windows (`yarn tauri
   dev`); it needs Rust's MSVC toolchain, which `yarn tauri` selects on its
   own (see [launcher.md](launcher.md)).
-- Matching runs on the real split: 57 functions are matched and integrated
-  (`src/Game/`, and 53 `UObject` script natives in `src/Engine/UObject.cpp`,
-  about 1.7 KB). The game's native table named 234 natives (`docs/engine.md`,
-  "Script natives"); `include/Core/Core.h` has what they need, and
-  `wave.py --name '^UObject::exec'` works through the rest (the first wave:
-  six Sonnet workers, 32 matched, $21). Matching now runs as the [tiered
+- Matching covers Ion Storm's game code only: Epic's engine code (the
+  `UObject` script natives among it) was removed from the repository and its
+  history, and the queue excludes Epic's classes (CONTRIBUTING.md,
+  "Game code only"). `include/Core/Core.h` keeps the declarations the game
+  code compiles against. Matching runs as the [tiered
   agent workflow](agent-workflow.md): Haiku sub-agents on functions up to 31
   bytes, Sonnet from 32 bytes and on Haiku's deferrals, six at a time, from
   the one-file protocol `tools/agent/worker.md`. decomp.dev shows the committed

@@ -111,7 +111,10 @@ target calls. Write only under build/scratch/, with relative forward-slash
 paths (a Windows path in Bash loses its backslashes). No git commands.
 Library code is not published: an STL, CRT, D3DX or Havok template or
 function (`std::...`, `#include <...>`) is deferred at once with the blocker
-"library". Never pass `--replace` or `--cap`, never run integrate.py,
+"library". Neither is Epic's engine: a method of an Unreal Engine class
+(`UObject`, `UClass`, `FName`, `FString`, `FArchive`, `AActor`, `UEngine`,
+`ULevel`, `UViewport`, the render device, ...) is deferred at once with the
+blocker "engine". Never pass `--replace` or `--cap`, never run integrate.py,
 wave.py, sweep.py or fixnames.py: those are the lead's, and the lead audits
 every change outside build/scratch/.
 

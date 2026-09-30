@@ -70,8 +70,10 @@ python tools/mods/selftest.py                                                   
   [CONTRIBUTING.md](CONTRIBUTING.md)).
 - Legal: no game files, extracted assets, raw decompiler output or disassembly
   (beyond a few documenting instructions), decompiled library code (MSVC
-  runtime, D3DX, Havok), fake matches (inline asm), DRM work or personal data
-  (local paths, names) in the repository. Details in CONTRIBUTING.md.
+  runtime, D3DX, Havok), decompiled Epic engine code (Unreal Engine 2: we
+  match Ion Storm's game code only and compile against the engine), fake
+  matches (inline asm), DRM work or personal data (local paths, names) in the
+  repository. Details in CONTRIBUTING.md.
 - `config/PC_20040610/symbols.txt` is the name database; record identified
   functions and globals there (MSVC decorated names where known, otherwise
   `Class::Method`), then run `ghidra_headless.py names`.
