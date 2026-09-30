@@ -167,7 +167,9 @@ first) and puts each into a unit:
 
 - `--unit`, else a declared `splits.txt` unit whose ranges hold it, else a
   unit named after its class: `Class::Method` goes to
-  `src/<Category>/<Class>.cpp`, free functions to `src/<Category>/Unsorted.cpp`.
+  `src/<Category>/<Class>.cpp`, free functions to
+  `src/<Category>/Unsorted_<start>.cpp`, one per auto unit of the split (one
+  file for all would let MSVC inline small callees into their callers).
   The category is `--category`, else `engine` for Unreal-style names
   (`UObject`, `AActor`, `FName`), else `game`. Library code (from the CRT
   entry point on, outside `.text$x`) is not published (CONTRIBUTING.md), so

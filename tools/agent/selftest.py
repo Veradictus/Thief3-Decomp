@@ -311,9 +311,11 @@ def test_integrate(base: Path) -> None:
     functions = [s for s in symbolslib.load(e.root / "config/PC_20040610/symbols.txt") if s.is_function and s.size]
     units = splitslib.plan(splits, functions, Project().chunk_size, breaks=Project().breaks())  # raises if invalid
     by_source = {u.source: u for u in splits}
-    check(set(by_source) == {"Game/Foo.cpp", "Game/Unsorted.cpp"}, f"units by class: {sorted(by_source)}")
-    unsorted = by_source["Game/Unsorted.cpp"]
-    check(any(a >= fixture.TEXT_X for a, _ in unsorted.text), "the EH funclets' .text$x range is declared")
+    free = {s for s in by_source if s.startswith("Game/Unsorted_")}
+    check(free and set(by_source) == {"Game/Foo.cpp"} | free,
+          f"units by class, free functions by auto unit: {sorted(by_source)}")
+    check(any(a >= fixture.TEXT_X for s in free for a, _ in by_source[s].text),
+          "the EH funclets' .text$x range is declared")
     check(len(units) > len(splits), "auto units still cover the rest")
     names = {s.name for s in symbolslib.load(e.root / "config/PC_20040610/symbols.txt")}
     check({"?Get@Foo@@QBEHXZ", "?Helper@@YAHH@Z", "__ehhandler$?WithEh@@YAHH@Z", "__real@40200000"} <= names,
