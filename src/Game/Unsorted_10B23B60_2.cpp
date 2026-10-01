@@ -16,7 +16,7 @@ public:
 
 extern Class_10F3A3D8* DAT_10f3a3d8;
 
-class Class_10E78910
+class UT3GameEngine
 {
 public:
     virtual void Virtual0();
@@ -117,8 +117,8 @@ public:
     int Unknown30;
 };
 
-// FUNCTION: 0x10B23B60 ?FUN_10b23b60@Class_10E78910@@UAEXH@Z
-void Class_10E78910::FUN_10b23b60(int A)
+// FUNCTION: 0x10B23B60 ?FUN_10b23b60@UT3GameEngine@@UAEXH@Z
+void UT3GameEngine::FUN_10b23b60(int A)
 {
     FUN_1098a410(A);
     if (DAT_10f3a3d8->Unknown0E8)

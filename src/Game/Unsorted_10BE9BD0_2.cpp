@@ -26,7 +26,7 @@ public:
     Class_10BECE80_Target* Unknown04;
 };
 
-class Class_10E59F90
+class UCanvas
 {
 public:
     virtual void Virtual0();
@@ -101,8 +101,8 @@ bool Class_10E92730::FUN_10bece80()
     return Unknown04->Unknown1EC == 0;
 }
 
-// FUNCTION: 0x10BECEE0 ?FUN_10becee0@Class_10E59F90@@UAEXH@Z
-void Class_10E59F90::FUN_10becee0(int p1)
+// FUNCTION: 0x10BECEE0 ?FUN_10becee0@UCanvas@@UAEXH@Z
+void UCanvas::FUN_10becee0(int p1)
 {
     Unknown78 = p1;
 }

@@ -34,38 +34,38 @@ public:
     int UnknownB8;
 };
 
-class Class_10E53D38 : public Class_10993EC0
+class AMissingArch : public Class_10993EC0
 {
 public:
-    Class_10E53D38();
+    AMissingArch();
 };
 
-class Class_10E520A8 : public Class_10993EC0
+class AObjSysTest : public Class_10993EC0
 {
 public:
-    Class_10E520A8();
+    AObjSysTest();
 };
 
-class Class_10E53EB0 : public Class_10993EC0
+class AObjSysTestChild : public Class_10993EC0
 {
 public:
-    Class_10E53EB0();
+    AObjSysTestChild();
 };
 
 // FUNCTION: 0x1098E5B0 ?FUN_1098e5b0@@YAXPAX@Z
 void FUN_1098e5b0(void* Memory)
 {
-    new (Memory) Class_10E53D38();
+    new (Memory) AMissingArch();
 }
 
 // FUNCTION: 0x1098E5C0 ?FUN_1098e5c0@@YAXPAX@Z
 void FUN_1098e5c0(void* Memory)
 {
-    new (Memory) Class_10E520A8();
+    new (Memory) AObjSysTest();
 }
 
 // FUNCTION: 0x1098E5D0 ?FUN_1098e5d0@@YAXPAX@Z
 void FUN_1098e5d0(void* Memory)
 {
-    new (Memory) Class_10E53EB0();
+    new (Memory) AObjSysTestChild();
 }

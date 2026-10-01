@@ -45,6 +45,27 @@ public:
     virtual Static_10B18DC0 FUN_10b3ad40();
 };
 
+extern void* DAT_10e7e4e0[];
+
+class Class_10B3ACB0
+{
+public:
+    void* Field00;
+    char Unknown04[4];
+    int Field08;
+    int Field0c;
+    Class_10B3ACB0* FUN_10b3acb0();
+};
+
+// FUNCTION: 0x10B3ACB0 ?FUN_10b3acb0@Class_10B3ACB0@@QAEPAV1@XZ
+Class_10B3ACB0* Class_10B3ACB0::FUN_10b3acb0()
+{
+    Field00 = DAT_10e7e4e0;
+    Field08 = 0x101;
+    Field0c = 0;
+    return this;
+}
+
 // FUNCTION: 0x10B3AD30 ?FUN_10b3ad30@Class_10e7e538@@UAEXHH@Z
 void Class_10e7e538::FUN_10b3ad30(int p1, int p2)
 {

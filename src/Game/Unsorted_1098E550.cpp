@@ -10,10 +10,10 @@ public:
     char Unknown04[0x28];
 };
 
-class Class_10E51DB8 : public Class_10E70A50
+class AMetaData : public Class_10E70A50
 {
 public:
-    Class_10E51DB8* FUN_1098dbf0();
+    AMetaData* FUN_1098dbf0();
 
     char Unknown2C[0x84];
     int UnknownB0;
@@ -21,10 +21,10 @@ public:
     int UnknownB8;
 };
 
-class Class_10E538D0 : public Class_10E70A50
+class AElevatorFloors : public Class_10E70A50
 {
 public:
-    Class_10E538D0* FUN_1098dc20();
+    AElevatorFloors* FUN_1098dc20();
 
     char Unknown2C[0x84];
     int UnknownB0;
@@ -32,15 +32,15 @@ public:
     int UnknownB8;
 };
 
-// FUNCTION: 0x1098E550 ?FUN_1098e550@@YAXPAVClass_10E51DB8@@@Z
-void FUN_1098e550(Class_10E51DB8* Object)
+// FUNCTION: 0x1098E550 ?FUN_1098e550@@YAXPAVAMetaData@@@Z
+void FUN_1098e550(AMetaData* Object)
 {
     if (Object)
         Object->FUN_1098dbf0();
 }
 
-// FUNCTION: 0x1098E560 ?FUN_1098e560@@YAXPAVClass_10E538D0@@@Z
-void FUN_1098e560(Class_10E538D0* Object)
+// FUNCTION: 0x1098E560 ?FUN_1098e560@@YAXPAVAElevatorFloors@@@Z
+void FUN_1098e560(AElevatorFloors* Object)
 {
     if (Object)
         Object->FUN_1098dc20();

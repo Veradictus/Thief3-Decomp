@@ -90,7 +90,7 @@ extern void* DAT_10e81620[];
 class Class_10B3ACB0
 {
 public:
-    void FUN_10b3acb0();
+    Class_10B3ACB0* FUN_10b3acb0();
 
     void** Unknown00;
     char Unknown04[0x0C];
@@ -130,16 +130,21 @@ public:
     float Unknown28;
 };
 
-extern void FUN_10a51580(void);
-
 extern void* DAT_10e81740[];
 
 extern void* DAT_10e7edb8[];
 
-class Class_10B53F70
+class Class_10E67BD8
 {
 public:
+    Class_10E67BD8();
+
     void* vtable;
+};
+
+class Class_10B53F70 : public Class_10E67BD8
+{
+public:
     char Unknown004[0xE4];
     int fieldE8;
     char Unknown0EC[0x2C];
@@ -162,6 +167,25 @@ void FUN_10a52a90();
 void FUN_10b54070();
 
 void FUN_10a5ab50();
+
+struct Struct_10B3AF40_Param;
+
+struct Struct_10B48890
+{
+    char Unknown00[0x108];
+    FVector Unknown108;
+    bool Unknown114;
+};
+
+Struct_10B48890* __stdcall FUN_10b3af40(Struct_10B3AF40_Param* p1);
+
+// FUNCTION: 0x10B48890 ?FUN_10b48890@@YGXPAUStruct_10B3AF40_Param@@@Z
+void __stdcall FUN_10b48890(Struct_10B3AF40_Param* p1)
+{
+    Struct_10B48890* Item = FUN_10b3af40(p1);
+    Item->Unknown108 = FVector(0.0f, 0.0f, 0.0f);
+    Item->Unknown114 = true;
+}
 
 // FUNCTION: 0x10B49170 ?FUN_10b49170@@YGXH@Z
 void __stdcall FUN_10b49170(int Param)
@@ -277,7 +301,7 @@ Class_10E816E0* Class_10E816E0::FUN_10b53a30()
 // FUNCTION: 0x10B53F70 ?FUN_10b53f70@Class_10B53F70@@QAEPAV1@XZ
 Class_10B53F70* Class_10B53F70::FUN_10b53f70()
 {
-    FUN_10a51580();
+    this->Class_10E67BD8::Class_10E67BD8();
     this->fieldE8 |= 0x10;
     this->vtable = (void*)DAT_10e81740;
     this->field118 = (void*)DAT_10e7edb8;

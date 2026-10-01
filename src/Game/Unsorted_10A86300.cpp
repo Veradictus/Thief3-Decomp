@@ -59,7 +59,17 @@ public:
     void FUN_10a905a0();
 };
 
-void FUN_10aaf500();
+class Class_10E6DC88
+{
+public:
+    void FUN_10aaf500();
+};
+
+class Class_10A90DC0 : public Class_10E6DC88
+{
+public:
+    void FUN_10a90dc0();
+};
 
 extern void* DAT_10e6ca40[];
 
@@ -348,8 +358,8 @@ int FUN_10a90db0()
     return 0x58;
 }
 
-// FUNCTION: 0x10A90DC0 ?FUN_10a90dc0@@YAXXZ
-void FUN_10a90dc0()
+// FUNCTION: 0x10A90DC0 ?FUN_10a90dc0@Class_10A90DC0@@QAEXXZ
+void Class_10A90DC0::FUN_10a90dc0()
 {
     FUN_10aaf500();
 }

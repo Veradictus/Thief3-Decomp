@@ -14,22 +14,22 @@ inline void* operator new(unsigned int, void* Ptr)
     return Ptr;
 }
 
-class Class_10E559D0
+class AStimulusModifierObject
 {
 public:
-    Class_10E559D0();
+    AStimulusModifierObject();
 };
 
-class Class_10E55B48
+class ASwooshEffectObject
 {
 public:
-    Class_10E55B48();
+    ASwooshEffectObject();
 };
 
-class Class_10E55CC0
+class AVulnerabilityObject
 {
 public:
-    Class_10E55CC0();
+    AVulnerabilityObject();
 };
 
 // FUNCTION: 0x1099BBE0 ?FUN_1099bbe0@@YAHXZ
@@ -46,17 +46,17 @@ int FUN_1099bbe0()
 // FUNCTION: 0x1099BC10 ?FUN_1099bc10@@YAXPAX@Z
 void FUN_1099bc10(void* Memory)
 {
-    new (Memory) Class_10E559D0();
+    new (Memory) AStimulusModifierObject();
 }
 
 // FUNCTION: 0x1099BC20 ?FUN_1099bc20@@YAXPAX@Z
 void FUN_1099bc20(void* Memory)
 {
-    new (Memory) Class_10E55B48();
+    new (Memory) ASwooshEffectObject();
 }
 
 // FUNCTION: 0x1099BC30 ?FUN_1099bc30@@YAXPAX@Z
 void FUN_1099bc30(void* Memory)
 {
-    new (Memory) Class_10E55CC0();
+    new (Memory) AVulnerabilityObject();
 }

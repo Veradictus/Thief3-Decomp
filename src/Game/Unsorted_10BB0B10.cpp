@@ -69,6 +69,24 @@ public:
     bool FUN_10bb7670();
 };
 
+class Class_10BB48E0
+{
+public:
+    ~Class_10BB48E0();
+};
+
+extern Class_10BB48E0* DAT_10ff6694;
+
+// FUNCTION: 0x10BB5630 ?FUN_10bb5630@@YAXXZ
+void FUN_10bb5630()
+{
+    if (DAT_10ff6694)
+    {
+        delete DAT_10ff6694;
+        DAT_10ff6694 = 0;
+    }
+}
+
 // FUNCTION: 0x10BB7570 ?FUN_10bb7570@Class_10bb7570@@QAE_NXZ
 bool Class_10bb7570::FUN_10bb7570()
 {

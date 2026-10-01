@@ -9,7 +9,7 @@ struct Struct_10A46390
     unsigned char Unknown24;
 };
 
-class Class_10E676D0
+class APlayerPawn
 {
 public:
     virtual void Virtual0();
@@ -133,8 +133,8 @@ public:
     virtual int FUN_10a46390(int Param);
 };
 
-// FUNCTION: 0x10A46390 ?FUN_10a46390@Class_10E676D0@@UAEHH@Z
-int Class_10E676D0::FUN_10a46390(int Param)
+// FUNCTION: 0x10A46390 ?FUN_10a46390@APlayerPawn@@UAEHH@Z
+int APlayerPawn::FUN_10a46390(int Param)
 {
     Struct_10A46390* Info = Virtual113(Param);
     if (Info)

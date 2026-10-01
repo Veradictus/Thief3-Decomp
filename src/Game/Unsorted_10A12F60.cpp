@@ -36,7 +36,6 @@ public:
     Class_10C00A60 Unknown08;
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_10A16BC0
 {
@@ -94,7 +93,7 @@ int Class_10E5D548::FUN_10a141a0(int Value)
 void Class_10A16BC0::FUN_10a16bc0()
 {
     FUN_10a16370(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;
@@ -105,7 +104,7 @@ void Class_10A16BC0::FUN_10a16bc0()
 void Class_10A16BF0::FUN_10a16bf0()
 {
     FUN_10a165c0(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

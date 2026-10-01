@@ -20,10 +20,12 @@ public:
     char Unknown40;
 };
 
+class Class_10bb8960_Result;
+
 class Class_10BB8960
 {
 public:
-    void FUN_10bb8960();
+    Class_10bb8960_Result* FUN_10bb8960();
 };
 
 class Class_10E935F0

@@ -356,7 +356,7 @@ normalised screen coordinates (`screenx`, `screeny` in -1..1).
 | `Window::LoadConfig` (reads the window's INI section) | `0x10A54080` | static |
 | `ParsePlacement` (CENTER 1, TOP 2, BOTTOM 3, LEFT 4, RIGHT 5, else 0) | `0x10A51DF0` | static |
 | `ReadWindowHeight` (`FULLSCREEN`, `LETTERBOX` or a number) | `0x10A538B0` | static |
-| `GetUIScreenSize` (the layout size as an `FVector`) | `0x109E47E0` | static |
+| `WindowManager::GetUIScreenSize(FVector* out)`: the layout size (`+0xCC`, `+0xD0`) | `0x109E47E0` | matched |
 | `Window::GetParent`, vtable `+0xA4` (`mov eax, [ecx+0xB4]`) | `0x109E38E0` | verified |
 | `Window::HasFlag` / `SetFlag` / `ClearFlag`, vtable `+0x100` / `+0x104` / `+0x108` | `0x109E3820` / `0x109E3840` / `0x109E3860` | static |
 

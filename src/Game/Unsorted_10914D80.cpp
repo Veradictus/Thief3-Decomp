@@ -16,7 +16,6 @@ public:
     int FUN_10915810(const Class_1090A780& A, const Class_1090A780& B);
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_10915830
 {
@@ -59,7 +58,8 @@ public:
     void FUN_10924e80(int A);
 };
 
-extern int DAT_10f2c740;
+class Class_10924100;
+extern Class_10924100* DAT_10f2c740;
 
 extern Class_10924E80* DAT_10f2c734;
 
@@ -90,7 +90,7 @@ int Class_10915210::FUN_10915810(const Class_1090A780& A, const Class_1090A780& 
 void Class_10915830::FUN_10915830()
 {
     FUN_109154f0(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;
@@ -101,7 +101,7 @@ void Class_10915830::FUN_10915830()
 void Class_10916CA0::FUN_10916ca0()
 {
     FUN_10916b80(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

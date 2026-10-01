@@ -9,7 +9,6 @@ public:
     void FUN_10979670(int A, int B);
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_1097CBE0
 {
@@ -36,7 +35,7 @@ void Class_1097B760::FUN_1097b760(int A)
 void Class_1097CBE0::FUN_1097cbe0()
 {
     FUN_1097c880(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

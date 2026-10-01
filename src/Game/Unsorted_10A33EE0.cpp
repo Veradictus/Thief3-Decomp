@@ -7,7 +7,6 @@ public:
     virtual void FUN_10a34760(int p1, int* p2, int* p3);
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_10A34B90
 {
@@ -48,7 +47,7 @@ void Class_10E6649C::FUN_10a34760(int p1, int* p2, int* p3)
 void Class_10A34B90::FUN_10a35140()
 {
     FUN_10a34b90(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;
@@ -59,7 +58,7 @@ void Class_10A34B90::FUN_10a35140()
 void Class_10A34CD0::FUN_10a35170()
 {
     FUN_10a34cd0(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

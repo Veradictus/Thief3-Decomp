@@ -7,7 +7,7 @@ public:
     void FUN_10a46770(int p1);
 };
 
-class Class_10E676D0
+class APlayerPawn
 {
 public:
     virtual void Virtual0();
@@ -131,8 +131,8 @@ public:
     Class_10a46770 Unknown208;
 };
 
-// FUNCTION: 0x10A46A80 ?FUN_10a46a80@Class_10E676D0@@UAEXXZ
-void Class_10E676D0::FUN_10a46a80()
+// FUNCTION: 0x10A46A80 ?FUN_10a46a80@APlayerPawn@@UAEXXZ
+void APlayerPawn::FUN_10a46a80()
 {
     Unknown208.FUN_10a46770(0);
 }

@@ -1,15 +1,15 @@
 // Game/Unsorted_10BBEF70.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-class Class_10E8A3E0;
+class AAIPathPoint;
 
 class Class_10BC2330
 {
 public:
-    void FUN_10bc2330(Class_10E8A3E0* p1);
+    void FUN_10bc2330(AAIPathPoint* p1);
 };
 
-class Class_10E8A3E0
+class AAIPathPoint
 {
 public:
     virtual void Virtual0();
@@ -48,8 +48,8 @@ public:
     Class_10BC2330 UnknownC0;
 };
 
-// FUNCTION: 0x10BBEF70 ?FUN_10bbef70@Class_10E8A3E0@@UAEXXZ
-void Class_10E8A3E0::FUN_10bbef70()
+// FUNCTION: 0x10BBEF70 ?FUN_10bbef70@AAIPathPoint@@UAEXXZ
+void AAIPathPoint::FUN_10bbef70()
 {
     UnknownC0.FUN_10bc2330(this);
 }

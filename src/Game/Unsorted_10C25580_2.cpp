@@ -7,7 +7,6 @@ struct Object_10C255F0
     unsigned char Unknown0C;
 };
 
-void FUN_10ad1dc0(void* Ptr);
 
 extern void* DAT_10ff7098;
 
@@ -95,7 +94,7 @@ void FUN_10c25610()
     --*(int*)DAT_10ff7098;
     if (*(int*)DAT_10ff7098 == 0)
     {
-        FUN_10ad1dc0(DAT_10ff7098);
+        ::operator delete(DAT_10ff7098);
         DAT_10ff7098 = 0;
     }
 }

@@ -130,7 +130,25 @@ public:
 
 void __stdcall FUN_109e3c90(int);
 
-void FUN_10c28230();
+class Class_10E99370
+{
+public:
+    ~Class_10E99370();
+
+    virtual void FUN_10c28260();
+
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+};
+
+class Class_10BB7BE0
+{
+public:
+    ~Class_10BB7BE0();
+
+    Class_10E99370 Unknown00;
+};
 
 class Class_10BB7C00
 {
@@ -529,10 +547,9 @@ int FUN_10bb0b00()
     return 0x83;
 }
 
-// FUNCTION: 0x10BB7BE0 ?FUN_10bb7be0@@YAXXZ
-void FUN_10bb7be0()
+// FUNCTION: 0x10BB7BE0 ??1Class_10BB7BE0@@QAE@XZ
+Class_10BB7BE0::~Class_10BB7BE0()
 {
-    FUN_10c28230();
 }
 
 // FUNCTION: 0x10BB7C00 ?FUN_10bb7c00@Class_10BB7C00@@QAEXXZ

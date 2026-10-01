@@ -7,7 +7,7 @@ struct Struct_10A46390
     int Unknown20;
 };
 
-class Class_10E676D0
+class APlayerPawn
 {
 public:
     virtual void Virtual0();
@@ -132,8 +132,8 @@ public:
     virtual int FUN_10a463b0(int Param);
 };
 
-// FUNCTION: 0x10A463B0 ?FUN_10a463b0@Class_10E676D0@@UAEHH@Z
-int Class_10E676D0::FUN_10a463b0(int Param)
+// FUNCTION: 0x10A463B0 ?FUN_10a463b0@APlayerPawn@@UAEHH@Z
+int APlayerPawn::FUN_10a463b0(int Param)
 {
     Struct_10A46390* Info = Virtual113(Param);
     if (Info)

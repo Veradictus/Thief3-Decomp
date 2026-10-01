@@ -1,7 +1,6 @@
 // Game/Unsorted_10919CB0.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_1091C820
 {
@@ -35,7 +34,7 @@ public:
 void Class_1091C820::FUN_1091c820()
 {
     FUN_1091b370(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;
@@ -46,7 +45,7 @@ void Class_1091C820::FUN_1091c820()
 void Class_1091CC80::FUN_1091cc80()
 {
     FUN_1091c850(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

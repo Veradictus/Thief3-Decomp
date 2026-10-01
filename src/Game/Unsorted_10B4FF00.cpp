@@ -6,7 +6,7 @@ extern void* DAT_10e81668[];
 class Class_10B3ACB0
 {
 public:
-    void FUN_10b3acb0();
+    Class_10B3ACB0* FUN_10b3acb0();
 
     void** Unknown00;
     char Unknown04[0x0C];

@@ -34,14 +34,14 @@ public:
     int UnknownB8;
 };
 
-class Class_10E53BC0 : public Class_10993EC0
+class ASpecialOptions : public Class_10993EC0
 {
 public:
-    Class_10E53BC0();
+    ASpecialOptions();
 };
 
 // FUNCTION: 0x1098E590 ?FUN_1098e590@@YAXPAX@Z
 void FUN_1098e590(void* Memory)
 {
-    new (Memory) Class_10E53BC0();
+    new (Memory) ASpecialOptions();
 }

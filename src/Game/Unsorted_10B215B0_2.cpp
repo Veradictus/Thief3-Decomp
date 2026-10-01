@@ -19,7 +19,7 @@ struct Struct_10B215B0_Member
     Class_10B1D1B0 Unknown2C4;
 };
 
-class Class_10E78710
+class AGarrett
 {
 public:
     virtual void Virtual0();
@@ -202,8 +202,8 @@ public:
     void* Unknown94;
 };
 
-// FUNCTION: 0x10B215B0 ?FUN_10b215b0@Class_10E78710@@UAE_NXZ
-bool Class_10E78710::FUN_10b215b0()
+// FUNCTION: 0x10B215B0 ?FUN_10b215b0@AGarrett@@UAE_NXZ
+bool AGarrett::FUN_10b215b0()
 {
     return UnknownC0->Unknown2C4.FUN_10b1d1b0()->FUN_10b228e0();
 }

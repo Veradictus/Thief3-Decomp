@@ -57,7 +57,7 @@ public:
 
 extern Class_10F3A3D8* DAT_10f3a3d8;
 
-class Class_10E782C0
+class AT3PlayerController
 {
 public:
     virtual void Virtual0();
@@ -200,8 +200,8 @@ bool Class_10E79488::FUN_10b1bcc0(int param)
     return GWindowManager[0] != 0;
 }
 
-// FUNCTION: 0x10B1D290 ?FUN_10b1d290@Class_10E782C0@@UAEXHHHH@Z
-void Class_10E782C0::FUN_10b1d290(int A, int B, int C, int D)
+// FUNCTION: 0x10B1D290 ?FUN_10b1d290@AT3PlayerController@@UAEXHHHH@Z
+void AT3PlayerController::FUN_10b1d290(int A, int B, int C, int D)
 {
     DAT_10f3a3d8->Unknown150->FUN_10abdc10(A, B, C, D, 0);
 }

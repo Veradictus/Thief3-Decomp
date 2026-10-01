@@ -35,7 +35,7 @@ public:
     virtual ~Object_10ABD7F0();
 };
 
-class Class_10E6E6E0 : public Class_10993EC0
+class ASpellProjectile : public Class_10993EC0
 {
 public:
     virtual void FUN_10adb3a0();
@@ -80,8 +80,8 @@ public:
     Class_10ABFBB0* FUN_10abfbb0();
 };
 
-// FUNCTION: 0x10ABD7F0 ?FUN_10adb3a0@Class_10E6E6E0@@UAEXXZ
-void Class_10E6E6E0::FUN_10adb3a0()
+// FUNCTION: 0x10ABD7F0 ?FUN_10adb3a0@ASpellProjectile@@UAEXXZ
+void ASpellProjectile::FUN_10adb3a0()
 {
     if (Unknown0D0)
     {

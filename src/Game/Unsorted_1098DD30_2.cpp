@@ -29,46 +29,46 @@ public:
     int UnknownB8;
 };
 
-class Class_10E53BC0 : public Class_10993EC0
+class ASpecialOptions : public Class_10993EC0
 {
 public:
-    Class_10E53BC0();
+    ASpecialOptions();
 };
 
-class Class_10E53D38 : public Class_10993EC0
+class AMissingArch : public Class_10993EC0
 {
 public:
-    Class_10E53D38();
+    AMissingArch();
 };
 
-class Class_10E520A8 : public Class_10993EC0
+class AObjSysTest : public Class_10993EC0
 {
 public:
-    Class_10E520A8();
+    AObjSysTest();
 };
 
-class Class_10E53EB0 : public Class_10993EC0
+class AObjSysTestChild : public Class_10993EC0
 {
 public:
-    Class_10E53EB0();
+    AObjSysTestChild();
 };
 
-// FUNCTION: 0x1098DDB0 ??0Class_10E53BC0@@QAE@XZ
-Class_10E53BC0::Class_10E53BC0()
+// FUNCTION: 0x1098DDB0 ??0ASpecialOptions@@QAE@XZ
+ASpecialOptions::ASpecialOptions()
 {
 }
 
-// FUNCTION: 0x1098DE60 ??0Class_10E53D38@@QAE@XZ
-Class_10E53D38::Class_10E53D38()
+// FUNCTION: 0x1098DE60 ??0AMissingArch@@QAE@XZ
+AMissingArch::AMissingArch()
 {
 }
 
-// FUNCTION: 0x1098DF10 ??0Class_10E520A8@@QAE@XZ
-Class_10E520A8::Class_10E520A8()
+// FUNCTION: 0x1098DF10 ??0AObjSysTest@@QAE@XZ
+AObjSysTest::AObjSysTest()
 {
 }
 
-// FUNCTION: 0x1098DF40 ??0Class_10E53EB0@@QAE@XZ
-Class_10E53EB0::Class_10E53EB0()
+// FUNCTION: 0x1098DF40 ??0AObjSysTestChild@@QAE@XZ
+AObjSysTestChild::AObjSysTestChild()
 {
 }

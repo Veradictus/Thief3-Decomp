@@ -35,6 +35,8 @@ public:
     virtual float FUN_10b3af10(Class_10B21820* Obj);
 };
 
+struct Struct_10B48890;
+
 class Class_10B3AF40_UnknownB0
 {
 public:
@@ -44,7 +46,7 @@ public:
     virtual void Virtual3();
     virtual void Virtual4();
     virtual void Virtual5();
-    virtual void Virtual6();
+    virtual Struct_10B48890* Virtual6();
 };
 
 struct Struct_10B3AF40_Param
@@ -60,8 +62,8 @@ float Class_10E7E538::FUN_10b3af10(Class_10B21820* Obj)
     return Location.Z;
 }
 
-// FUNCTION: 0x10B3AF40 ?FUN_10b3af40@@YGXPAUStruct_10B3AF40_Param@@@Z
-void __stdcall FUN_10b3af40(Struct_10B3AF40_Param* p1)
+// FUNCTION: 0x10B3AF40 ?FUN_10b3af40@@YGPAUStruct_10B48890@@PAUStruct_10B3AF40_Param@@@Z
+Struct_10B48890* __stdcall FUN_10b3af40(Struct_10B3AF40_Param* p1)
 {
-    p1->UnknownB0->Virtual6();
+    return p1->UnknownB0->Virtual6();
 }

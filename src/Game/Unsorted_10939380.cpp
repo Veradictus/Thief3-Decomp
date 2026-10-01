@@ -34,7 +34,6 @@ public:
     int FUN_1093bcb0(Struct_1093BCB0* Info);
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_1093C750
 {
@@ -71,7 +70,7 @@ int Class_1093bcb0::FUN_1093bcb0(Struct_1093BCB0* Info)
 void Class_1093C750::FUN_1093c750()
 {
     FUN_1093b450(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

@@ -3,9 +3,15 @@
 
 struct Struct_10BC4240_Param;
 
-void FUN_10bc5b50();
+class Class_10E94578
+{
+public:
+    virtual void Virtual0();
 
-class Class_10E975A0
+    void FUN_10bc5b50();
+};
+
+class Class_10E975A0 : public Class_10E94578
 {
 public:
     virtual void Virtual0();

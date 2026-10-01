@@ -142,13 +142,13 @@ class Class_10E67938
 public:
     Class_10E67938();
 
-    virtual void FUN_10c13ea0();
+    virtual void FUN_10c13ea0(int, int, int, int);
 };
 
 class Class_10E70060
 {
 public:
-    virtual void FUN_10ace340() = 0;
+    virtual float FUN_10ace340(int, int, int) = 0;
 };
 
 class Class_10E700F0 : public Class_10E67938, public Class_10E70060
@@ -156,8 +156,8 @@ class Class_10E700F0 : public Class_10E67938, public Class_10E70060
 public:
     Class_10E700F0();
 
-    virtual void FUN_10c13ea0();
-    virtual void FUN_10ace340();
+    virtual void FUN_10c13ea0(int, int, int, int);
+    virtual float FUN_10ace340(int, int, int);
 };
 
 class Class_10F46DA0

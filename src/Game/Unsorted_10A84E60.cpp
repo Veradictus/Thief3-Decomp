@@ -16,7 +16,6 @@ public:
     void FUN_10a85890(Struct_10A85890* Ar);
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_10A873D0
 {
@@ -45,7 +44,7 @@ void Class_10A85890::FUN_10a85890(Struct_10A85890* Ar)
 void Class_10A873D0::FUN_10a873d0()
 {
     FUN_10a86490(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

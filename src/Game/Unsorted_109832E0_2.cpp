@@ -12,10 +12,10 @@ public:
     char Unknown04[0x28];
 };
 
-class Class_10E51F30 : public Class_10E70A50
+class AInfo : public Class_10E70A50
 {
 public:
-    Class_10E51F30* FUN_1098dcd0();
+    AInfo* FUN_1098dcd0();
 
     char Unknown2C[0x84];
     int UnknownB0;
@@ -25,10 +25,10 @@ public:
 
 extern void* DAT_10e53a48[];
 
-class Class_10E53A48 : public Class_10E70A50
+class AZoneProperties : public Class_10E70A50
 {
 public:
-    Class_10E53A48* FUN_1098dd00();
+    AZoneProperties* FUN_1098dd00();
 
     char Unknown2C[0x84];
     int UnknownB0;
@@ -36,8 +36,8 @@ public:
     int UnknownB8;
 };
 
-// FUNCTION: 0x1098DCD0 ?FUN_1098dcd0@Class_10E51F30@@QAEPAV1@XZ
-Class_10E51F30* Class_10E51F30::FUN_1098dcd0()
+// FUNCTION: 0x1098DCD0 ?FUN_1098dcd0@AInfo@@QAEPAV1@XZ
+AInfo* AInfo::FUN_1098dcd0()
 {
     this->Class_10E70A50::Class_10E70A50();
     UnknownB0 = 0;
@@ -47,8 +47,8 @@ Class_10E51F30* Class_10E51F30::FUN_1098dcd0()
     return this;
 }
 
-// FUNCTION: 0x1098DD00 ?FUN_1098dd00@Class_10E53A48@@QAEPAV1@XZ
-Class_10E53A48* Class_10E53A48::FUN_1098dd00()
+// FUNCTION: 0x1098DD00 ?FUN_1098dd00@AZoneProperties@@QAEPAV1@XZ
+AZoneProperties* AZoneProperties::FUN_1098dd00()
 {
     this->Class_10E70A50::Class_10E70A50();
     UnknownB0 = 0;

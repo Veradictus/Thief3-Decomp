@@ -9,7 +9,7 @@ public:
     void* Unknown00;
 };
 
-class Class_10E782C0
+class AT3PlayerController
 {
 public:
     virtual void Virtual0();
@@ -115,8 +115,8 @@ public:
     Class_10B1D3D0 Unknown2C4;
 };
 
-// FUNCTION: 0x10B1D5D0 ?FUN_10b1d5d0@Class_10E782C0@@UAEXHH@Z
-void Class_10E782C0::FUN_10b1d5d0(int A, int B)
+// FUNCTION: 0x10B1D5D0 ?FUN_10b1d5d0@AT3PlayerController@@UAEXHH@Z
+void AT3PlayerController::FUN_10b1d5d0(int A, int B)
 {
     FUN_109ecd50(A, 0);
     Unknown2C4.FUN_10b1d3d0(A);

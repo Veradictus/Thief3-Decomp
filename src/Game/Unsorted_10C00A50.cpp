@@ -15,7 +15,6 @@ public:
     bool FUN_10c00c70();
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_10C01F50
 {
@@ -61,7 +60,7 @@ bool Class_10c00c70::FUN_10c00c70()
 void Class_10C01F50::FUN_10c01f50()
 {
     FUN_10c01730(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;
@@ -72,7 +71,7 @@ void Class_10C01F50::FUN_10c01f50()
 void Class_10C01FC0::FUN_10c01fc0()
 {
     FUN_10c016b0(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;

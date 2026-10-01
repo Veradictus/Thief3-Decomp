@@ -68,23 +68,23 @@ public:
     virtual void FUN_10bbe970() = 0;
 };
 
-class Class_10E90B00 : public Class_10E70A50, public Class_10E5B578
+class UAI : public Class_10E70A50, public Class_10E5B578
 {
 public:
-    Class_10E90B00();
+    UAI();
 
     virtual void FUN_10bbe970();
 };
 
-class Class_10E8A3E0;
+class AAIPathPoint;
 
 class Class_10BC1840
 {
 public:
-    int FUN_10bc1840(Class_10E8A3E0* Owner, int A, int B, int C, int D);
+    int FUN_10bc1840(AAIPathPoint* Owner, int A, int B, int C, int D);
 };
 
-class Class_10E8A3E0
+class AAIPathPoint
 {
 public:
     virtual void Virtual0();
@@ -260,13 +260,13 @@ void Class_10BBDC70::FUN_10bbdc70()
     Field0c->FUN_1098e290();
 }
 
-// FUNCTION: 0x10BBE640 ??0Class_10E90B00@@QAE@XZ
-Class_10E90B00::Class_10E90B00()
+// FUNCTION: 0x10BBE640 ??0UAI@@QAE@XZ
+UAI::UAI()
 {
 }
 
-// FUNCTION: 0x10BBEEE0 ?FUN_10bbeee0@Class_10E8A3E0@@UAEHHHHH@Z
-int Class_10E8A3E0::FUN_10bbeee0(int A, int B, int C, int D)
+// FUNCTION: 0x10BBEEE0 ?FUN_10bbeee0@AAIPathPoint@@UAEHHHHH@Z
+int AAIPathPoint::FUN_10bbeee0(int A, int B, int C, int D)
 {
     return UnknownC0.FUN_10bc1840(this, A, B, C, D);
 }

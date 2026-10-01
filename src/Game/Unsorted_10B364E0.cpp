@@ -29,13 +29,14 @@ public:
 class Class_10B1B8A0
 {
 public:
-    void FUN_10b1b8a0();
+    void FUN_10b1b8a0(int A);
 };
+
+Class_10B1B8A0* FUN_10b1b600();
 
 class Class_10B374E0
 {
 public:
-    Class_10B1B8A0* FUN_10b1b600(int A);
     void FUN_10b374e0(int A, Class_10B374E0* B, int C);
 
     char Unknown00[0x4];
@@ -53,5 +54,5 @@ int Class_10E7C3A4::FUN_10b36620(int p1, int p2, int p3)
 void Class_10B374E0::FUN_10b374e0(int A, Class_10B374E0* B, int C)
 {
     if (B->Unknown04 == Unknown04)
-        FUN_10b1b600(A)->FUN_10b1b8a0();
+        FUN_10b1b600()->FUN_10b1b8a0(A);
 }

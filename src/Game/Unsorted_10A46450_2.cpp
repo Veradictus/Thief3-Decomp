@@ -6,7 +6,7 @@ struct Struct_10A465C0
     char Unknown00[0x30];
 };
 
-class Class_10E676D0
+class APlayerPawn
 {
 public:
     virtual void Virtual0();
@@ -128,8 +128,8 @@ public:
     int Unknown20C;
 };
 
-// FUNCTION: 0x10A465C0 ?FUN_10a465c0@Class_10E676D0@@UAEPAUStruct_10A465C0@@H@Z
-Struct_10A465C0* Class_10E676D0::FUN_10a465c0(int Index)
+// FUNCTION: 0x10A465C0 ?FUN_10a465c0@APlayerPawn@@UAEPAUStruct_10A465C0@@H@Z
+Struct_10A465C0* APlayerPawn::FUN_10a465c0(int Index)
 {
     if (Index >= 0 && Index < Unknown20C)
         return &Unknown208[Index];

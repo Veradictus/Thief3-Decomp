@@ -9,7 +9,7 @@ public:
 
 Class_10B255F0* FUN_10b25cd0();
 
-class Class_10E78710
+class AGarrett
 {
 public:
     virtual void Virtual0();
@@ -137,8 +137,8 @@ public:
     virtual void* FUN_10b21380();
 };
 
-// FUNCTION: 0x10B21380 ?FUN_10b21380@Class_10E78710@@UAEPAXXZ
-void* Class_10E78710::FUN_10b21380()
+// FUNCTION: 0x10B21380 ?FUN_10b21380@AGarrett@@UAEPAXXZ
+void* AGarrett::FUN_10b21380()
 {
     return FUN_10b25cd0()->FUN_10b24f70();
 }

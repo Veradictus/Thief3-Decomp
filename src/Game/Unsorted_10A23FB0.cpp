@@ -28,7 +28,8 @@ public:
 
 void FUN_10a2f7a0();
 
-extern void* DAT_10f39f3c;
+class Class_10A311E0;
+extern Class_10A311E0* DAT_10f39f3c;
 
 class Class_10A33EC0
 {

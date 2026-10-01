@@ -8,7 +8,6 @@ public:
     void FUN_10a243e0(int* p1);
 };
 
-void FUN_10ad1dc0(void* Memory);
 
 class Class_10A288C0
 {
@@ -45,7 +44,7 @@ void Class_10A243E0::FUN_10a243e0(int* p1)
 void Class_10A288C0::FUN_10a288c0()
 {
     FUN_10a264e0(0x40);
-    FUN_10ad1dc0(Unknown14);
+    ::operator delete(Unknown14);
     Unknown04 = 0;
     Unknown0C = 0;
     Unknown14 = 0;
@@ -56,7 +55,7 @@ void Class_10A288C0::FUN_10a288c0()
 void Class_10A2B480::FUN_10a2b480()
 {
     if (Unknown0C)
-        FUN_10ad1dc0(Unknown0C);
+        ::operator delete(Unknown0C);
     Unknown0C = 0;
     Unknown10 = 0;
     FUN_10a2b220();

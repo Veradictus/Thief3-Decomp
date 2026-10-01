@@ -3,16 +3,16 @@
 
 #include <new>
 
-class Class_10E52890
+class AFX
 {
 public:
-    Class_10E52890();
+    AFX();
     void operator delete(void* p);
     static void FUN_1098e470(void* p);
 };
 
-// FUNCTION: 0x1098E470 ?FUN_1098e470@Class_10E52890@@SAXPAX@Z
-void Class_10E52890::FUN_1098e470(void* p)
+// FUNCTION: 0x1098E470 ?FUN_1098e470@AFX@@SAXPAX@Z
+void AFX::FUN_1098e470(void* p)
 {
-    new (p) Class_10E52890;
+    new (p) AFX;
 }

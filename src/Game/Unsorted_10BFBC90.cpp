@@ -20,7 +20,7 @@ class Class_10BFD210
 {
 public:
     void FUN_10bfd210();
-    void FUN_10bfc680(int param);
+    void FUN_10bfc680(float Value);
 };
 
 class Class_10C16580
@@ -91,7 +91,7 @@ void Class_10BFC190::FUN_10bfc190()
 // FUNCTION: 0x10BFD210 ?FUN_10bfd210@Class_10BFD210@@QAEXXZ
 void Class_10BFD210::FUN_10bfd210()
 {
-    FUN_10bfc680(0);
+    FUN_10bfc680(0.0f);
 }
 
 // FUNCTION: 0x10BFF210 ??0Class_10E97AD4@@QAE@HH@Z

@@ -3,10 +3,10 @@
 
 #include <new>
 
-class Class_10E676D0
+class APlayerPawn
 {
 public:
-    Class_10E676D0();
+    APlayerPawn();
     void operator delete(void* p);
     static void FUN_1098cb80(void* p);
 };
@@ -30,10 +30,10 @@ public:
     int Unknown2C;
 };
 
-// FUNCTION: 0x1098CB80 ?FUN_1098cb80@Class_10E676D0@@SAXPAX@Z
-void Class_10E676D0::FUN_1098cb80(void* p)
+// FUNCTION: 0x1098CB80 ?FUN_1098cb80@APlayerPawn@@SAXPAX@Z
+void APlayerPawn::FUN_1098cb80(void* p)
 {
-    new (p) Class_10E676D0;
+    new (p) APlayerPawn;
 }
 
 // FUNCTION: 0x1098CB90 ?FUN_1098cb90@Class_1098CB90@@QAEPAV1@HH@Z

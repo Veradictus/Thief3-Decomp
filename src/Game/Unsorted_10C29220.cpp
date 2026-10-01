@@ -201,7 +201,30 @@ public:
     Class_109081E0 FUN_10c378a0();
 };
 
-void FUN_10c372e0();
+class Object_10BCE8D0;
+
+class Class_10E9AF04
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+
+    void FUN_10c372e0(Object_10BCE8D0* A);
+};
+
+class Class_10E9AE88 : public Class_10E9AF04
+{
+public:
+    virtual void FUN_10c37e80(Object_10BCE8D0* A);
+};
 
 extern const char DAT_10e9aeb8[];
 
@@ -390,10 +413,10 @@ Class_109081E0 Class_10C378A0::FUN_10c378a0()
     return Class_109081E0(DAT_10e9ae54);
 }
 
-// FUNCTION: 0x10C37E80 ?FUN_10c37e80@@YAXXZ
-void FUN_10c37e80()
+// FUNCTION: 0x10C37E80 ?FUN_10c37e80@Class_10E9AE88@@UAEXPAVObject_10BCE8D0@@@Z
+void Class_10E9AE88::FUN_10c37e80(Object_10BCE8D0* A)
 {
-    FUN_10c372e0();
+    FUN_10c372e0(A);
 }
 
 // FUNCTION: 0x10C38040 ?FUN_10c38040@Class_10C38040@@QAE?AVClass_109081E0@@XZ

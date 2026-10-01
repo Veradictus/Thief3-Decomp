@@ -44,7 +44,7 @@ public:
 
 extern Class_10FF667C* DAT_10ff667c;
 
-class Class_10E4B938
+class AAIPawnController
 {
 public:
     virtual void Virtual0();
@@ -118,8 +118,8 @@ bool Class_10B9BCA0::FUN_10b9bca0(int A)
     return Unknown118->Unknown08->FUN_10b9cac0(A)->FUN_10bc9d40();
 }
 
-// FUNCTION: 0x10B9BDA0 ?FUN_10b9bda0@Class_10E4B938@@UAEXXZ
-void Class_10E4B938::FUN_10b9bda0()
+// FUNCTION: 0x10B9BDA0 ?FUN_10b9bda0@AAIPawnController@@UAEXXZ
+void AAIPawnController::FUN_10b9bda0()
 {
     DAT_10ff667c->Unknown14->F1();
 }

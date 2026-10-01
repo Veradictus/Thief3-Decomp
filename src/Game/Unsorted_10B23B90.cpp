@@ -9,7 +9,7 @@ public:
 
 Class_10ACEE90* FUN_10acee60();
 
-class Class_10E78910
+class UT3GameEngine
 {
 public:
     virtual void Virtual0();
@@ -75,8 +75,8 @@ public:
     virtual bool FUN_10b23b90();
 };
 
-// FUNCTION: 0x10B23B90 ?FUN_10b23b90@Class_10E78910@@UAE_NXZ
-bool Class_10E78910::FUN_10b23b90()
+// FUNCTION: 0x10B23B90 ?FUN_10b23b90@UT3GameEngine@@UAE_NXZ
+bool UT3GameEngine::FUN_10b23b90()
 {
     return FUN_10acee60()->FUN_10acee90();
 }

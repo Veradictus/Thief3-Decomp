@@ -56,15 +56,21 @@ public:
     void FUN_10b59e00();
 };
 
-extern void FUN_10a58cf0(void);
 
 // Declare as functions to get direct mov instructions
 extern void* DAT_10e828b0[];
 
-class Class_10B5AB90
+class Class_10E69080
 {
 public:
+    Class_10E69080();
+
     void* vtable;
+};
+
+class Class_10B5AB90 : public Class_10E69080
+{
+public:
     char Unknown004[0x114];
     void* field118;
     char Unknown11C[0xB4];
@@ -106,9 +112,13 @@ public:
     int Unknown194;
 };
 
-void FUN_10b787f0();
+class Class_10B787F0
+{
+public:
+    void FUN_10b787f0();
+};
 
-class Class_10B5AEC0
+class Class_10B5AEC0 : public Class_10B787F0
 {
 public:
     void* Field00;
@@ -170,13 +180,18 @@ extern Class_10B5FAE0* DAT_10ff6598;
 
 extern void* DAT_10e83c48;
 
-void FUN_10b460c0();
 
-class Class_10B60F30
+class Class_10B460C0
 {
 public:
     void* Field00;
 
+    void FUN_10b460c0();
+};
+
+class Class_10B60F30 : public Class_10B460C0
+{
+public:
     void FUN_10b60f30();
 };
 
@@ -336,7 +351,7 @@ int FUN_10b59f70()
 // FUNCTION: 0x10B5AB90 ?FUN_10b5ab90@Class_10B5AB90@@QAEPAV1@XZ
 Class_10B5AB90* Class_10B5AB90::FUN_10b5ab90()
 {
-    FUN_10a58cf0();
+    this->Class_10E69080::Class_10E69080();
     this->vtable = (void*)DAT_10e828b0;
     this->field118 = (void*)DAT_10e7edb8;
     this->field1D0 = 0;

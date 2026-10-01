@@ -9,7 +9,7 @@ public:
     void FUN_1098e330(int Id, int* Out);
 };
 
-class Class_10E8B1A8 : public Class_1098E330
+class APatrolPoint : public Class_1098E330
 {
 public:
     virtual void Virtual1();
@@ -124,7 +124,7 @@ public:
 
 extern Class_10FF667C* DAT_10ff667c;
 
-class Class_10E8B930
+class ACitySectionPopulationInfo
 {
 public:
     virtual void Virtual0();
@@ -190,8 +190,8 @@ public:
     virtual void FUN_10bc2f40(int p1);
 };
 
-// FUNCTION: 0x10BC2E20 ?FUN_10bc2e20@Class_10E8B1A8@@UAEHH@Z
-int Class_10E8B1A8::FUN_10bc2e20(int Index)
+// FUNCTION: 0x10BC2E20 ?FUN_10bc2e20@APatrolPoint@@UAEHH@Z
+int APatrolPoint::FUN_10bc2e20(int Index)
 {
     if (Index >= 8)
         return 0;
@@ -201,8 +201,8 @@ int Class_10E8B1A8::FUN_10bc2e20(int Index)
     return Index;
 }
 
-// FUNCTION: 0x10BC2F40 ?FUN_10bc2f40@Class_10E8B930@@UAEXH@Z
-void Class_10E8B930::FUN_10bc2f40(int p1)
+// FUNCTION: 0x10BC2F40 ?FUN_10bc2f40@ACitySectionPopulationInfo@@UAEXH@Z
+void ACitySectionPopulationInfo::FUN_10bc2f40(int p1)
 {
     DAT_10ff667c->Unknown30->FUN_10c07ed0();
 }

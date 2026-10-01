@@ -1,4 +1,4 @@
-# Handoff: T3SDK status (2026-09-28)
+# Handoff: T3SDK status (2026-09-30)
 
 ## Goal
 
@@ -48,13 +48,21 @@ decompilation** worked mostly by Claude agents under the strict gate in
   unclassified); `include/Core/Core.h` keeps the declarations the game code
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): batches of Sonnet sub-agents, 20 at a time,
-  from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,734
-  matched functions in 413 units, one per auto unit of the split
+  from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,780
+  matched functions in 443 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (1,693 of 12,078 functions at 100%, 1.0% of its bytes; hidden from decomp.dev's list
+  game code (1,772 of 12,074 functions at 100%, 1.1% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
+- The 266 native classes are in `config/PC_20040610/classes.txt` (size,
+  super class, flags, vtable; `tools/classify.py write`), and the 64 classes
+  known only as `Class_<vtable>` carry their names (`AGarrett`,
+  `AT3PlayerController`, `UT3GameEngine`, ...). `tools/assets/t3classes.py`
+  lays out every native class from the game's script declarations, and all
+  191 with a script come out at their registered size: the members are in
+  `include/<Package>/<Package>Classes.h` ([engine.md](engine.md), "Class
+  layouts"), and context packets show a function's class from them.
 
 ## What exists
 
@@ -193,47 +201,51 @@ Later the same day, played by the user:
    After each integration: write it and commit it with the source. On
    decomp.dev, set the project's default category to **main** (owner).
 3. **Matching** (game code only):
-   - Settle the name conflicts before the next batch: the first Sonnet
-     batch deferred dozens of functions whose bytes already match, blocked
-     only by a callee's wrong name in `symbols.txt` (a jump wrapper recorded
-     it as `void FUN_x()`); `build/agent/lead-backlog.md` lists them with the
-     scratch file that matches once the name is right. First: `0x10AD1DC0`
-     is the global `operator delete` (`??3@YAXPAX@Z`), then `FUN_1090af50`
-     (an `operator=`), `FUN_10bca010` (a virtual at slot 64) and the
-     getters recorded as `void`. Then stop the source of them: integrate.py
-     should not record a guessed name for a callee that is not matched yet.
+   - The first naming pass is done ([agent-workflow.md](agent-workflow.md),
+     "Name conflicts"): `operator delete`, `Class_109081E0::operator=`, the
+     slot-64 `Serialize` overrides and 40 more callees have their real
+     names, the jump wrappers are methods, and 46 blocked functions
+     matched. Run `tools/agent/retry.py` after any naming pass.
    - Gate: let one address carry several names (identical functions the
-     linker folded: `operator delete` and a class's sized one), and resolve
-     the weak `??_E` symbol in vtable checks, so deleting destructors match
-     from a real virtual destructor instead of being excluded.
-   - symbols.txt: merge the functions split in two (0x10B4FD60, 0x10C1B000,
-     0x10B21B30, 0x109323A0); retype the globals recorded as `int` or `void*`
-     that are class pointers. Headers for `TimeManager` and `Window` (matches
-     are waiting on one declaration of each).
+     linker folded: `operator delete` and a class's sized one, 4-byte
+     getters, slot-0 virtuals of two classes), and resolve the weak `??_E`
+     symbol in vtable checks, so deleting destructors match from a real
+     virtual destructor instead of being excluded. These are the conflicts
+     left in `build/agent/lead-backlog.md`.
+   - Use the generated class headers in matching: units still declare their
+     own classes (`Virtual0()`... placeholders, `Unknown34` fields); a
+     shared header per class needs the virtual functions too, which the
+     scripts do not give (only their names, for script events).
+   - symbols.txt: retype the remaining globals recorded as `int` or
+     `void*` that hold objects (`DAT_10f31b88`, `DAT_10ff66ac`,
+     `DAT_10ff708c`, `DAT_10ff7098`). Headers for `TimeManager` and `Window`
+     (matches are waiting on one declaration of each).
    - Shrink the unclassified 0.3 MB (`tools/classify.py stats`): most of it
      sits where Epic's and Ion Storm's files meet (the launcher, the ends of
      the Engine and Core packages, Window and Havok). More evidence (strings
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - Make objdiff's report count what the gate matched: about 20
-     constructors score 99.5% because `symbols.txt` has no `??_7` vtable name
-     at the address they store ([matching.md](matching.md), "objdiff's
-     report and the gate"). Functions with an EH frame now count:
-     `tools/split.py` relocates the split objects' `fs:[0]` against
-     `__except_list`.
+   - objdiff's report now counts what the gate matched, but for 8 of the
+     1,780 functions in `src/`: a static local's guard and `$E` destructor
+     stub keep names only their object file knows, one global is read
+     through the second half of an 8-byte symbol, and `0x10C68010` starts
+     inside `FUN_10c67f90` in `symbols.txt`. integrate.py names the vtables
+     functions store (`??_7`), and `tools/split.py` relocates `fs:[0]`.
    - Review every accepted file before integrating: workers stand in for
      what the header lacks (local types, `Shim` subclasses to reach
      undeclared members, `DAT_` slices of tables); add the real declarations
      to `include/`, redo those functions and accept them again.
-     `integrate.py` skips library code and Unreal-style classes (Epic's).
+     `integrate.py` skips library code and Epic's classes (classes.txt;
+     an Unreal-style name it does not list counts as Epic's).
    - Still unchecked on the real split: a switch table and the data ruler on
      float literals ([matching.md](matching.md)). Pin the compiler flags with
      varied functions (`/G6` vs `/G7`, `/GS`) before large waves outside the
      natives.
-4. **SDK generator** (roadmap 2 below): the class layouts it emits are what
-   matching agents most need (wrong offsets are the top failure in every
-   published agent decomp).
+4. **SDK generator** (roadmap 2 below): the generated class headers give
+   every native class's members, offsets checked against the exe; the
+   runtime generator would add script functions and confirm the offsets in
+   the running game.
 5. **Check the HUD in a level** on a wide screen (alt-tab and clicks on other
    monitors are confirmed).
 6. **SDK options in the game's settings** (user request). The launcher's SDK

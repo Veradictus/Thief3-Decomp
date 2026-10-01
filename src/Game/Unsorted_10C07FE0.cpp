@@ -3,7 +3,6 @@
 
 extern void* DAT_10ff66ac;
 
-void FUN_10ad1dc0(void* P);
 
 extern void* DAT_10e97bb8[];
 
@@ -21,7 +20,7 @@ void FUN_10c07fe0()
     --*(int*)DAT_10ff66ac;
     if (*(int*)DAT_10ff66ac == 0)
     {
-        FUN_10ad1dc0(DAT_10ff66ac);
+        ::operator delete(DAT_10ff66ac);
         DAT_10ff66ac = 0;
     }
 }

@@ -7,7 +7,7 @@ public:
     void FUN_10bc1ba0(int p1);
 };
 
-class Class_10E8A3E0
+class AAIPathPoint
 {
 public:
     virtual void Virtual0();
@@ -96,8 +96,8 @@ public:
     void FUN_10bbefc0();
 };
 
-// FUNCTION: 0x10BBEF50 ?FUN_10bbef50@Class_10E8A3E0@@UAEXHH@Z
-void Class_10E8A3E0::FUN_10bbef50(int p1, int p2)
+// FUNCTION: 0x10BBEF50 ?FUN_10bbef50@AAIPathPoint@@UAEXHH@Z
+void AAIPathPoint::FUN_10bbef50(int p1, int p2)
 {
     Unknown0C0.FUN_10bc1ba0(p1);
 }

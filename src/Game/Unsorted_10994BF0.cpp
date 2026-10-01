@@ -6,14 +6,14 @@ inline void* operator new(unsigned int, void* Ptr)
     return Ptr;
 }
 
-class Class_10E54660
+class AAmbientLightVolume
 {
 public:
-    Class_10E54660();
+    AAmbientLightVolume();
 };
 
 // FUNCTION: 0x10994BF0 ?FUN_10994bf0@@YAXPAX@Z
 void FUN_10994bf0(void* Memory)
 {
-    new (Memory) Class_10E54660();
+    new (Memory) AAmbientLightVolume();
 }
