@@ -298,6 +298,10 @@ class Verifier:
         # A table's label is referenced from before it (the dispatch); case labels only from the tables after them.
         tables = [labels[r.symbol].value for r in sec.relocations
                   if r.symbol in labels and r.offset < labels[r.symbol].value]
+        # Folded labels (coff.fold_labels): a table is the function plus an offset, referenced from before it.
+        tables += [fn.value + obj.addend(sec.index, r) for r in sec.relocations
+                   if r.symbol == fn.index and r.type == coff.IMAGE_REL_I386_DIR32
+                   and fn.value <= r.offset < fn.value + obj.addend(sec.index, r) < fn_end]
         code_end = min(tables + [fn_end]) - fn.value
         retarget, patch = {}, {}
         for i, r in enumerate(sec.relocations):

@@ -238,12 +238,9 @@ Later the same day, played by the user:
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`, four constructors and
-     destructors score 99.5% or more, and a switch's tables: MSVC labels
-     them with static `$L` symbols, which objdiff takes for the end of the
-     function, and the split references them through labels instead of
-     offsets into the function (`0x10BC4930`, 6.8% in the report, matched
-     by the gate, which bounds both sides at the code). Next: make both
-     objects reference the tables as the function plus an offset. integrate.py names the vtables
+     destructors score 99.5% or more, and a switch's tables until the
+     labels were folded (`tools/cc.py` and `tools/split.py` now give both
+     sides the function plus an offset; `0x10BC4930` went from 6.8% to 100%). integrate.py names the vtables
      functions store (`??_7`), and `tools/split.py` relocates `fs:[0]`.
    - Review every accepted file before integrating: workers stand in for
      what the header lacks (local types, `Shim` subclasses to reach

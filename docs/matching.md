@@ -399,3 +399,11 @@ the split objects are made rather than in the gate:
   model gives the address a `DAT_` label of its own, and delink turns an
   unnamed one into `<section> + offset`; either way objdiff's name ruler
   does not pair it with `GNatives + 0x800`.
+
+A switch no longer does: MSVC labels its cases and tables with static `$L`
+symbols, which objdiff takes for the end of the function, and delink names
+the same places `jpt_` and `$L_` labels. `tools/cc.py` and `tools/split.py`
+both fold such labels into the function plus an offset
+(`coff.Coff.fold_labels`), so both sides of a switch read the same; the gate
+finds where the code ends from the references to the tables either way.
+

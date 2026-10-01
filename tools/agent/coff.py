@@ -10,7 +10,7 @@ turn a compiled object into something shaped like delink's output.
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 IMAGE_FILE_MACHINE_I386 = 0x14C
 IMAGE_SCN_CNT_CODE = 0x00000020
@@ -183,6 +183,41 @@ class Coff:
         return struct.unpack_from("<i", self.section(section).data, reloc.offset)[0]
 
     # -- editing -------------------------------------------------------------
+    def fold_labels(self, is_label: Callable[[Symbol], bool]) -> Optional[bytes]:
+        """A copy whose references to labels inside a function (a switch's case labels and tables) refer to
+        the function plus an offset, with those labels undefined; None when there is nothing to fold.
+
+        objdiff takes a static symbol for the end of a function and pairs references by name, while the
+        compiler's labels (`$L272`) and delink's (`$L_10BC494A`, `jpt_10BC4950`) differ in name and kind:
+        as the function plus an offset, both sides of a switch read the same."""
+        owners: Dict[int, Symbol] = {}
+        for sec in self.sections:
+            if not sec.is_code:
+                continue
+            symbols = sorted((s for s in self.symbols if s.section == sec.index and not s.is_section),
+                             key=lambda s: (s.value, is_label(s)))
+            owner = None
+            for s in symbols:
+                if not is_label(s):
+                    owner = s
+                elif owner is not None:
+                    owners[s.index] = owner
+        retarget, patch, kept = {}, {}, set()
+        for sec in self.sections:
+            for i, r in enumerate(sec.relocations):
+                if r.symbol not in owners:
+                    continue
+                if r.type not in (IMAGE_REL_I386_DIR32, IMAGE_REL_I386_REL32) or not sec.raw:
+                    kept.add(r.symbol)
+                    continue
+                label, owner = self.slots[r.symbol], owners[r.symbol]
+                retarget[(sec.index, i)] = owner.index
+                patch[(sec.index, r.offset)] = struct.pack("<i", self.addend(sec.index, r) + label.value - owner.value)
+        labels = [self.slots[i].name for i in owners if i not in kept]
+        if not labels:
+            return None
+        return self.rewrite(undefine=labels, retarget=retarget, patch=patch)
+
     def rewrite(
         self,
         rename: Optional[Dict[str, str]] = None,

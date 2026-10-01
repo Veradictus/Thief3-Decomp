@@ -248,7 +248,7 @@ def main() -> None:
     n.build(
         str(split_stamp), "split",
         inputs=[str(model), str(groups)],
-        implicit=[str(delink), "tools/split.py"],
+        implicit=[str(delink), "tools/split.py", "tools/agent/coff.py"],
         implicit_outputs=target_objs,
         variables={"delink": str(delink), "model": str(model), "exe": str(exe),
                    "groups": str(groups), "outdir": str(obj_dir)},

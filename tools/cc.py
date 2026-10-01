@@ -10,6 +10,10 @@ and `UObject`'s sized one, a trivial getter of two classes). The split objects k
 name only, so a compiled object that uses an alias gets the address's own name instead: objdiff's report and
 the gate (tools/agent/verify.py) then pair the reference. configure.py writes the aliases file from
 symbols.txt and builds every object through this script; cl.exe's output (/showIncludes) passes through.
+
+It also folds the static labels MSVC gives a switch's cases and tables (`$L272`) into the function plus an
+offset (coff.fold_labels): objdiff would take them for the end of the function, and the split objects name
+the same places differently.
 """
 
 import json
@@ -48,6 +52,19 @@ def normalize(path: Path, aliases: Dict[str, str]) -> int:
     return len(rename) + len({k for k in retarget})
 
 
+def is_label(sym: coff.Symbol) -> bool:
+    """MSVC's local code labels: a switch's case labels and tables."""
+    return sym.storage == coff.IMAGE_SYM_CLASS_STATIC and sym.name.startswith("$L") and not sym.is_function
+
+
+def fold(path: Path) -> bool:
+    """Fold the object's labels into their functions; True when it changed."""
+    data = coff.Coff.load(path).fold_labels(is_label)
+    if data is not None:
+        path.write_bytes(data)
+    return data is not None
+
+
 def main() -> None:
     argv = sys.argv[1:]
     if "--" not in argv:
@@ -63,6 +80,8 @@ def main() -> None:
         aliases = json.loads(aliases_path.read_text(encoding="utf-8"))
         if aliases:
             normalize(Path(out), aliases)
+    if out and Path(out).is_file():
+        fold(Path(out))
 
 
 if __name__ == "__main__":
