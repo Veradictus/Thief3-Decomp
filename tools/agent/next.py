@@ -65,17 +65,19 @@ def queue(p: Project, args, claimed: Optional[set] = None) -> List[dict]:
     excluded = ({int(a, 16) for a in json.loads(excluded_file.read_text(encoding="utf-8"))}
                 if excluded_file.is_file() else set())
     unit_of = unit_index(p)
+    min_size, max_size = getattr(args, "min_size", None), getattr(args, "max_size", None)
+    name, all_regions = getattr(args, "name", None), getattr(args, "all_regions", False)
     out = []
     for f in p.functions:
         a = f.address
         if (f.name.startswith("Unwind@") or text_x[0] <= a < text_x[1] or f.name in imports
-                or p.category(a) == "engine" or (p.category(a) != "game" and not args.all_regions)
+                or p.category(a) == "engine" or (p.category(a) != "game" and not all_regions)
                 or a in done or a in deferred or a in claimed or a in excluded
-                or (args.min_size and f.size < args.min_size) or (args.max_size and f.size > args.max_size)
-                or (args.name and not re.search(args.name, f.name)) or (wanted is not None and a not in wanted)):
+                or (min_size and f.size < min_size) or (max_size and f.size > max_size)
+                or (name and not re.search(name, f.name)) or (wanted is not None and a not in wanted)):
             continue
         unit = unit_of(a)
-        if args.unit and not (unit == args.unit or unit.startswith(args.unit)):
+        if getattr(args, "unit", None) and not (unit == args.unit or unit.startswith(args.unit)):
             continue
         out.append({"addr": fmt_addr(a), "symbol": f.name, "unit": unit, "size": f.size})
     feats = featurelib.features(p, [int(e["addr"], 16) for e in out])
@@ -153,7 +155,14 @@ def main() -> None:
                 break
             if int(entry["addr"], 16) in own:
                 continue
-            if claims.take(int(entry["addr"], 16), agent, args.ttl, {"symbol": entry["symbol"]}):
+            address = int(entry["addr"], 16)
+            if claims.take(address, agent, args.ttl, {"symbol": entry["symbol"]}):
+                # Another worker may have accepted or deferred it, and released its claim, since
+                # the queue was read.
+                done_kinds = ("accepted",) if args.only_deferred else ("accepted", "deferred")
+                if any((p.state / kind / f"{addr_key(address)}.json").is_file() for kind in done_kinds):
+                    claims.release(address, agent)
+                    continue
                 if not args.context:  # the packet has the references and similar functions
                     entry["siblings"] = siblings(p, entry, accepted)
                 taken.append(entry)

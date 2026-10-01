@@ -16,7 +16,7 @@ class Class_10E67FD0
 public:
     Class_10E67FD0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E67FD0();
 
     char Unknown04[0x114];
 };
@@ -24,6 +24,7 @@ public:
 class Class_10E81A60 : public Class_10E67FD0
 {
 public:
+    virtual ~Class_10E81A60();
     Class_10E81A60();
 
     FArray Unknown118;

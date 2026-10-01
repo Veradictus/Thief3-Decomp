@@ -90,6 +90,29 @@ inlines any body in the file, even one defined after the caller). Use
   `memset(&Field, 0, size)` (declare `extern "C" void* memset(void*, int, unsigned);`).
 - 32-byte struct copy: rep movsd; short fixed loops are unrolled. Signed char
   loads movsx, unsigned movzx. Dense switch: cmp; ja; jmp [eax*4+table].
+- `if (Member) Member->F();` loads the member into eax and copies it to ecx;
+  `C* P = Member; if (P) P->F();` loads straight into ecx. Likewise
+  `int Key = A; F(&Key);` stores back into the argument's own slot, `F(&A)`
+  does not. A global load hoisted above a member store: `int v = G; f = 0;
+  if (v) ...`.
+- `movzx eax, al` after a call returning bool: the caller returns int.
+  `neg eax; sbb eax, eax; neg eax` after a call: `return F() != 0;` (bool).
+  `setge dl; mov eax, edx`: an int return; a bool return is `mov al, dl`.
+- `delete P` with no destructor call (operator delete only): give P a
+  complete empty type, `struct Struct_<addr> {};`, not `void*` (deleting a
+  `void*` is undefined C++, though MSVC compiles it the same).
+- COM interfaces (Direct3D): declare slots `virtual int __stdcall
+  VirtualN(...)`: `this` is pushed last, no ecx.
+- `mov ecx, [esp+4]; test ecx, ecx; je; jmp <ctor>` (14 bytes) is a native
+  class's InternalConstructor: config/PC_20040610/classes.txt names the class
+  whose `constructor:` is this address. Write it as Unreal does: declare
+  `enum EInternal { EC_Internal };` and `inline void* operator new(unsigned
+  int, EInternal* Mem) { return Mem; }` (not a `void*` placement new: it
+  clashes with `<new>`), the class with `T(); static void
+  InternalConstructor(void* X);`, and define `void
+  T::InternalConstructor(void* X) { new ((EInternal*)X) T(); }`. The jmp
+  target is `T::T()`: declare it as the constructor even when symbols.txt
+  calls it a method.
 
 ## Rules (accept.py rejects the rest)
 
@@ -109,9 +132,11 @@ addresses; no `*(int*)((char*)p + 0x10)`: declare a struct with the field at
 that offset. Never define callees or call a different function than the
 target calls. Write only under build/scratch/, with relative forward-slash
 paths (a Windows path in Bash loses its backslashes). No git commands.
-Library code is not published: an STL, CRT, D3DX or Havok template or
-function (`std::...`, `#include <...>`) is deferred at once with the blocker
-"library". Neither is Epic's engine: a method of an Unreal Engine class
+Library code is not published: a target that is itself part of the STL,
+CRT, D3DX or Havok (a member of a `std::` template, a CRT routine) is
+deferred at once with the blocker "library". Game code that uses a library
+is game code: include the compiler's header (`#include <vector>`) and use its
+types, as Ion Storm did. Neither is Epic's engine: a method of an Unreal Engine class
 (`UObject`, `UClass`, `FName`, `FString`, `FArchive`, `AActor`, `UEngine`,
 `ULevel`, `UViewport`, the render device, ...) is deferred at once with the
 blocker "engine". Never pass `--replace` or `--cap`, never run integrate.py,
@@ -120,7 +145,11 @@ every change outside build/scratch/.
 
 `add ecx, N` (or `sub ecx, N`) then `jmp`: a this-adjustor thunk the compiler
 makes for multiple inheritance, not source anyone wrote. Defer it at once
-with the blocker "adjustor thunk".
+with the blocker "adjustor thunk". So is a deleting destructor (a destructor
+call, `test byte ptr [esp+8], 1`, a delete call, `return this`) and a global
+object's initializer (a constructor call, then `atexit`): the compiler emits
+them from a virtual destructor or a global's definition. Defer them at once
+with the blocker "compiler-generated"; never write them as functions.
 
 ## Names need evidence
 
@@ -136,16 +165,21 @@ and call `this->VirtualK()`; never model a vtable as a struct of function
 pointers.
 
 When the packet shows `== vtable slots`, the function is a virtual method of
-the class owning that table: declare `class Class_<table>` with `virtual`
+the class owning that table: the class the packet names (`AGarrett's
+vtable`), else `Class_<table>`. Declare that class with `virtual`
 placeholder methods `Virtual0()`... before its slot, the function itself
-`virtual` at its slot, and define `Class_<table>::FUN_x`.
+`virtual` at its slot, and define `AGarrett::FUN_x` (or
+`Class_<table>::FUN_x`).
 
-Use the symbols.txt and header names the packet shows. An unnamed free
-function keeps its placeholder (`void FUN_10926680();`). A member of an
-unknown class goes in `Class_<vtable address>` when a constructor stores the
-vtable, else `Class_<function address>` (never a made-up name such as
-`UNK_Class`), and keeps its placeholder method name. A field gets a name
-only when the code shows what it holds, else `Unknown34`.
+Use the symbols.txt and header names the packet shows. A generated header
+(`include/<Package>/<Package>Classes.h`) lists a class's fields with their
+offsets: name and type the fields you use from it, in your own declaration
+of the class (do not include it). An unnamed free function keeps its
+placeholder (`void FUN_10926680();`). A member of an unknown class goes in
+`Class_<vtable address>` when a constructor stores the vtable, else
+`Class_<function address>` (never a made-up name such as `UNK_Class`), and
+keeps its placeholder method name. Any other field gets a name only when the
+code shows what it holds, else `Unknown34`.
 
 ## Finish
 

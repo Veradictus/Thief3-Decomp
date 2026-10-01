@@ -3,9 +3,13 @@
 
 extern void* DAT_10e84d80[];
 
-void FUN_10b787f0();
+class Class_10B787F0
+{
+public:
+    void FUN_10b787f0();
+};
 
-class Class_10B671A0 {
+class Class_10B671A0 : public Class_10B787F0 {
 public:
     void* Field00;
     void FUN_10b671a0();
@@ -34,7 +38,7 @@ void FUN_10b790f0();
 
 extern void* DAT_10e85de0[];
 
-class Class_10B6B930 {
+class Class_10B6B930 : public Class_10B787F0 {
 public:
     void* Field00;
     void FUN_10b6b930();
@@ -413,7 +417,7 @@ public:
 
 extern void* DAT_10e88160;
 
-class Class_10B76310
+class Class_10B76310 : public Class_10B787F0
 {
 public:
     void* Field00;

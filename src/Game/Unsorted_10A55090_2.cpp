@@ -199,7 +199,7 @@ class Class_10E6AC50 : public Base_10A62CB0
 public:
     Class_10E6AC50();
 
-    virtual void FUN_10a63480();
+    virtual ~Class_10E6AC50();
 
     int Unknown10;
     int Unknown14;
@@ -401,6 +401,9 @@ Class_1090A780 Class_10E6AC98::FUN_10a63210()
 {
     return Class_1090A780(Unknown14);
 }
+
+// FUNCTION: 0x10A63480 ??_GClass_10E6AC50@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A62CB0's definition in this unit.
 
 // FUNCTION: 0x10A64CD0 ?FUN_10a64cd0@Class_10A64CD0@@QAEPAV1@XZ
 Class_10A64CD0* Class_10A64CD0::FUN_10a64cd0()

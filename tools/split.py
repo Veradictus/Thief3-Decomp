@@ -6,7 +6,9 @@ records for the SEH chain head: MSVC reads it as fs:[__except_list], an
 absolute symbol whose value (0) the linker wrote into the instruction, so the
 split holds a plain fs:[0]. Without the relocation objdiff scores every
 function with an exception frame below 100% (the gate, tools/agent/verify.py,
-accepts both forms).
+accepts both forms). Then delink's labels inside a function (a switch's
+`jpt_` table and `$L_` cases) become the function plus an offset, as
+tools/cc.py does for the compiler's: objdiff pairs references by name.
 """
 
 import argparse
@@ -93,6 +95,17 @@ def add_except_list(path: Path) -> int:
     return count
 
 
+def fold_labels(path: Path) -> bool:
+    """Make delink's labels inside a function (a switch's `jpt_` table and `$L_` cases) the function plus an
+    offset, as tools/cc.py does for the compiler's: True when the object changed."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "agent"))
+    import coff
+    data = coff.Coff.load(path).fold_labels(lambda s: s.storage == coff.IMAGE_SYM_CLASS_LABEL)
+    if data is not None:
+        path.write_bytes(data)
+    return data is not None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--delink", type=Path, required=True)
@@ -117,7 +130,9 @@ def main() -> None:
         sys.stderr.write(proc.stdout[-4000:] + proc.stderr[-4000:])
         sys.exit(f"delink failed (exit {proc.returncode}); full log: {log}")
     relocated = sum(add_except_list(obj) for obj in sorted(args.outdir.rglob("*.obj")))
-    print(f"{summary.group(0)}; {relocated} fs:[0] operands relocated against __except_list")
+    folded = sum(fold_labels(obj) for obj in sorted(args.outdir.rglob("*.obj")))
+    print(f"{summary.group(0)}; {relocated} fs:[0] operands relocated against __except_list; "
+          f"switch labels folded in {folded} objects")
     args.stamp.write_text(summary.group(0) + "\n", encoding="utf-8")
 
 

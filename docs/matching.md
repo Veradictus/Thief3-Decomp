@@ -161,6 +161,49 @@ ranges (EH handler and funclets), every binding with its status, the flags
 and the attempt count. Accepting an already accepted function needs
 `--replace`.
 
+A function MSVC writes itself, a scalar deleting destructor (`??_G`), has
+no definition to mark: its candidate is the file whose definition makes the
+compiler emit it (the class's constructor or destructor, with the class
+declaring `virtual ~C();` at slot 0), with the `// FUNCTION:` line moved to
+the deleting destructor's address, accepted with `--symbol ??_GC@@UAEPAXI@Z`.
+The record says `generated` and names that function (`with`, or `--with`);
+integrate.py puts only the marker in that function's unit, which emits it.
+In a vtable, the vector deleting destructor `??_E` is a weak external that
+stands for `??_G`; the rulers follow it.
+
+## One address, several names
+
+The linker folds identical functions into one copy, so the game's source
+called some addresses by several names: `::operator delete` and
+`UObject::operator delete(void*, size_t)`, a 4-byte getter of two classes, a
+one-byte `ret`. symbols.txt gives such an address its other names as
+`type:alias` lines after its own:
+
+    ??3@YAXPAX@Z = .text:0x10AD1DC0; // type:function size:0x12
+    ??3UObject@@SAXPAXI@Z = .text:0x10AD1DC0; // type:alias
+
+The split leaves aliases out, and every object is compiled through
+`tools/cc.py`, which gives references to an alias (and a definition under
+one) the address's own name: the gate and objdiff's report then pair them.
+configure.py writes `build/<version>/aliases.json` from symbols.txt and
+rebuilds the objects when it changes.
+
+Aliases also keep an earlier match valid when a better name arrives. Native
+classes' constructors were often matched as methods that store the vtable
+by hand (`?FUN_x@C@@QAEPAV1@XZ`), before anything showed they were
+constructors. Each class's InternalConstructor (`classes.txt`'s
+`constructor:`) is written as Unreal writes it, so its jump target becomes
+`??0T@@QAE@XZ`, and the method name stays on as an alias:
+
+    enum EInternal { EC_Internal };
+    inline void* operator new(unsigned int, EInternal* Mem) { return Mem; }
+
+    void T::InternalConstructor(void* X) { new ((EInternal*)X) T(); }
+
+The `EInternal*` overload has no matching placement delete, so `/GX` adds
+no exception frame (the `void*` placement new from `<new>` adds one), and it
+does not clash with `<new>` when both end up in one unit.
+
 try.py refuses a file byte-identical to an earlier attempt, counts only
 attempts that compiled, and refuses the 13th attempt of a claim.
 
@@ -176,12 +219,13 @@ first) and puts each into a unit:
   per auto unit of the split (one file for all would let MSVC inline small
   callees into their callers). A function whose class definitions clash with
   its unit's goes to `--unit <Category>/Unsorted_<start>_2.cpp`.
-  The category is `--category`, else `engine` for Unreal-style names
-  (`UObject`, `AActor`, `FName`), else `game`. Library code (from the CRT
-  entry point on, outside `.text$x`) is not published (CONTRIBUTING.md), so
-  it is skipped unless `--category libs`; so is Epic's engine: an
-  Unreal-style class is skipped unless `--category` is given (`game` once the
-  class is known to be Ion Storm's).
+  The category is `--category`, else the function's in `categories.txt`,
+  except that a method of an Unreal-style class (`UObject`, `AActor`,
+  `FName`) counts as Epic's engine unless `classes.txt` has the class as Ion
+  Storm's (`AGarrett`, `UT3GameEngine`). Library code (from the CRT entry
+  point on, outside `.text$x`) is not published (CONTRIBUTING.md), so it is
+  skipped unless `--category libs`; so is Epic's engine, unless `--category`
+  is given (`game` once the class is known to be Ion Storm's).
 - The unit file gets the accepted files' declarations, deduplicated, then the
   functions in address order, each behind `// FUNCTION: 0x<ADDR> <decorated
   name>`.
@@ -189,7 +233,11 @@ first) and puts each into a unit:
   again** with the same rulers. A function that matched alone can stop
   matching in its unit (an inline body now visible, a declaration that
   changes codegen); it is left out and reported. If a function already in the
-  unit breaks, the unit is left unchanged.
+  unit breaks, the unit is left unchanged. Units are checked in parallel, one
+  per CPU (`--jobs`), and their changes merged in order afterwards;
+  `--plan <json>` (`{unit: [address, ...]}`) places many functions in many
+  units in one run, which is how the lead's overflow units for class clashes
+  are filled.
 - `splits.txt` gets the unit's `.text` ranges (each function with its switch
   tables; neighbours merge when only padding lies between them) and its
   `.text$x` ranges, and is checked with `tools/splits.py` (parse, overlaps, no
@@ -226,8 +274,8 @@ their parent instead.
 
 ## Waves (lead)
 
-The day-to-day setup is now the [tiered agent workflow](agent-workflow.md):
-Haiku and Sonnet sub-agents launched by the lead, with a one-file protocol.
+The day-to-day setup is now the [agent workflow](agent-workflow.md):
+batches of Sonnet sub-agents launched by the lead, with a one-file protocol.
 The headless waves below remain for sessions that may start `claude -p`
 workers.
 
@@ -348,15 +396,36 @@ The self-test cannot cover these, so they were checked on the real split:
 
 ## objdiff's report and the gate
 
-The report under-counts what the gate matched in two cases, both to fix in
-how the split objects are made rather than in the gate:
+The report under-counts what the gate matched in a few cases, to fix in how
+the split objects are made rather than in the gate:
 
-- A constructor's vtable: the compiled object references `??_7Class@@6B@`,
-  the split object the `DAT_` label of that address, while `symbols.txt` has
-  no vtable name there (identical vtables the linker folded share one
-  address, so one name cannot fit all of their classes); the store scores as
-  a different reference (about 20 constructors at 99.5%).
+- A vtable a constructor or destructor stores: the compiled object
+  references `??_7Class@@6B@`, the split object the label symbols.txt gives
+  that address. integrate.py names the vtables of the functions it
+  integrates, so the store pairs; a vtable the linker folded for several
+  classes takes the others' names as aliases (see above).
+- A static local: its guard (`?$S1@...`) and the `$E` function that
+  registers its destructor are named only in their own object file.
 - A reference into a named array at an offset (`GNatives[2 * 256 + B]`): the
   model gives the address a `DAT_` label of its own, and delink turns an
   unnamed one into `<section> + offset`; either way objdiff's name ruler
   does not pair it with `GNatives + 0x800`.
+
+A switch no longer does: MSVC labels its cases and tables with static `$L`
+symbols, which objdiff takes for the end of the function, and delink names
+the same places `jpt_` and `$L_` labels. `tools/cc.py` and `tools/split.py`
+both fold such labels into the function plus an offset
+(`coff.Coff.fold_labels`), so both sides of a switch read the same; the gate
+finds where the code ends from the references to the tables either way.
+
+## /Od units
+
+A few functions were built without optimization: a frame (`push ebp; mov
+ebp, esp`) even in a one-line method, `this` spilled to `[ebp-4]` and read
+back at every use. `configure.py` lists their address ranges in
+`UNIT_RANGES` with the unit each belongs to, and gives those units `/Od` in
+place of `/O2` (`UNITS`): the gate compiles a candidate in such a range with
+its unit's flags, so a worker writes them like any other function, and
+integrate.py puts them in that unit. `splits.txt` declares only what `src/`
+holds, as for any unit. 0x10BF7810 to 0x10BF7AD0 is one such file, broken
+by one optimized function at 0x10BF7990, and 0x10BF8F00 another.

@@ -555,6 +555,75 @@ TESTS = [
 ]
 
 
+def test_weak_externals_and_aliases(base: Path) -> None:
+    """A vtable's vector deleting destructor (??_E) resolves to the scalar one the file defines, and tools/cc.py
+    points references to an alias at the address's own name."""
+    import coff
+    sys.path.insert(0, str(ROOT / "tools"))
+    import cc
+    p = Project()
+    path = fixture.compile_reference(p, (
+        "struct Base { virtual ~Base(); };\n"
+        "struct Kid : Base { Kid(); ~Kid(); };\n"
+        "Kid::Kid() {}\n"
+        "void Freed(void*);\n"
+        "void Primary(void*);\n"
+        "void Once() { Freed(0); }\n"
+        "void Both() { Primary(0); Freed(0); }\n"), base / "weak")
+    obj = coff.Coff.load(path)
+    weak = obj.symbol("??_EKid@@UAEPAXI@Z")
+    check(weak is not None and not weak.defined, "the vtable references the vector deleting destructor")
+    check(obj.resolve(weak).name == "??_GKid@@UAEPAXI@Z" and obj.resolve(weak).defined,
+          "the weak ??_E resolves to the scalar deleting destructor the file defines")
+    cc.normalize(path, {"?Freed@@YAXPAX@Z": "?Primary@@YAXPAX@Z"})
+    obj = coff.Coff.load(path)
+    targets = {obj.slots[r.symbol].name for sec in obj.sections for r in sec.relocations
+               if obj.slots[r.symbol] is not None and not obj.slots[r.symbol].is_section}
+    check("?Freed@@YAXPAX@Z" not in targets and "?Primary@@YAXPAX@Z" in targets,
+          "every reference to the alias now names the primary")
+
+
+TESTS.append(test_weak_externals_and_aliases)
+
+
+def test_fold_labels(base: Path) -> None:
+    """A switch's case labels and tables become the function plus an offset, so objdiff reads the function
+    whole, and the gate still finds where its code ends."""
+    import coff
+    p = Project()
+    os.environ["T3_CC_NO_FOLD"] = "1"  # the compiler's own labels, as tools/cc.py receives them
+    try:
+        path = fixture.compile_reference(p, (
+            "int Pick(int k)\n{\n    switch (k)\n    {\n"
+            "    case 0: return 3;\n    case 1: return 7;\n    case 2: return 11;\n    case 3: return 13;\n"
+            "    case 4: return 17;\n    case 5: return 19;\n    }\n    return 0;\n}\n"), base / "fold")
+    finally:
+        del os.environ["T3_CC_NO_FOLD"]
+    obj = coff.Coff.load(path)
+    is_label = lambda s: s.storage == coff.IMAGE_SYM_CLASS_STATIC and s.name.startswith("$L") and not s.is_function
+    fn = obj.symbol("?Pick@@YAHH@Z")
+    labels = [s for s in obj.symbols if s.section == fn.section and is_label(s)]
+    check(bool(labels), "MSVC labels the switch's cases and table with static $L symbols")
+    folded = coff.Coff(obj.fold_labels(is_label))
+    fn2 = folded.symbol("?Pick@@YAHH@Z")
+    check(not any(s.defined and is_label(s) for s in folded.symbols), "no label is left defined")
+    check(folded.extent(fn2) == (fn2.value, len(folded.section(fn2.section).data)),
+          "the function runs to the end of its section, tables included")
+    before = {r.offset: obj.slots[r.symbol].value + obj.addend(fn.section, r)
+              for r in obj.section(fn.section).relocations}
+    after = {r.offset: folded.slots[r.symbol].value + folded.addend(fn2.section, r)
+             for r in folded.section(fn2.section).relocations}
+    check(before == after, "every reference still lands on the same byte")
+    from verify import Verifier
+    data, code, length = Verifier(p)._prepare_candidate(folded, fn2, "?Pick@@YAHH@Z")
+    data0, code0, length0 = Verifier(p)._prepare_candidate(obj, fn, "?Pick@@YAHH@Z")
+    check((code, length) == (code0, length0) and code < length,
+          "the gate ends the folded function's code where the tables start, as with labels")
+
+
+TESTS.append(test_fold_labels)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-k", help="run only tests whose name contains this")

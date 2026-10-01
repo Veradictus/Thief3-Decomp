@@ -58,6 +58,10 @@ def function_layout(obj: coff.Coff, fn: coff.Symbol):
     labels = {s.index: s for s in obj.symbols if s.section == fn.section and s.name.startswith("$")}
     tables = [labels[r.symbol].value for r in sec.relocations
               if r.symbol in labels and r.offset < labels[r.symbol].value]
+    # tools/cc.py folds the labels: a table is then the function plus an offset, referenced from before it
+    tables += [fn.value + obj.addend(sec.index, r) for r in sec.relocations
+               if r.symbol == fn.index and r.type == coff.IMAGE_REL_I386_DIR32
+               and fn.value <= r.offset < fn.value + obj.addend(sec.index, r) < end]
     return min(tables + [end]) - fn.value, end - fn.value
 
 

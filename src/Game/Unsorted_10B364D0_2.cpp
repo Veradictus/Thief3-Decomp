@@ -102,7 +102,7 @@ class Class_10E67FD0
 public:
     Class_10E67FD0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E67FD0();
 
     char Unknown04[0x114];
 };
@@ -110,6 +110,7 @@ public:
 class Class_10E7FED0 : public Class_10E67FD0
 {
 public:
+    virtual ~Class_10E7FED0();
     Class_10E7FED0();
 
     FArray Unknown118;
@@ -187,7 +188,7 @@ class Class_10E81300 : public Class_10E67FD0
 public:
     Class_10E81300();
 
-    virtual void Virtual0();
+    virtual ~Class_10E81300();
 
     char Unknown118[0x08];
     int Unknown120;
@@ -380,6 +381,9 @@ Class_10E7FB00* FUN_10b408a0()
     return &Instance;
 }
 
+// FUNCTION: 0x10B40A40 ??_GClass_10E7FED0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B40780's definition in this unit.
+
 // FUNCTION: 0x10B40A80 ?FUN_10b40a80@@YAXXZ
 void FUN_10b40a80()
 {
@@ -429,6 +433,9 @@ Class_10E81300::Class_10E81300()
     Unknown124 = 0;
     Unknown128 = 0;
 }
+
+// FUNCTION: 0x10B461A0 ??_GClass_10E81300@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B460F0's definition in this unit.
 
 // FUNCTION: 0x10B461C0 ?FUN_10b461c0@@YAXXZ
 void FUN_10b461c0()

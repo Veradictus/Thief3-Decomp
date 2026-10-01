@@ -147,6 +147,31 @@ public:
     float UnknownB4;
 };
 
+extern int DAT_10f35db8;
+
+void* __stdcall FUN_109e2970(unsigned Bytes);
+
+void __stdcall FUN_10aed930(void* Ptr);
+
+extern "C" __declspec(dllimport) void __stdcall _RADSetMemory(void* (__stdcall* Alloc)(unsigned), void (__stdcall* Free)(void*));
+
+extern float DAT_10f35b20;
+
+void FUN_109e1410(float p1, bool p2);
+
+// FUNCTION: 0x109E1E60 ?FUN_109e1e60@@YAX_N@Z
+void FUN_109e1e60(bool p1)
+{
+    FUN_109e1410(DAT_10f35b20, p1);
+}
+
+// FUNCTION: 0x109E2990 ?FUN_109e2990@@YAXXZ
+void FUN_109e2990()
+{
+    if (DAT_10f35db8++ == 0)
+        _RADSetMemory(FUN_109e2970, FUN_10aed930);
+}
+
 // FUNCTION: 0x109E2A80 ?FUN_109e2a80@@YAXXZ
 void FUN_109e2a80()
 {

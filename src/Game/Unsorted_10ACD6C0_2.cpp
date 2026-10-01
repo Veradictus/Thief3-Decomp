@@ -6,13 +6,15 @@ class Class_10E67938
 public:
     Class_10E67938();
 
-    virtual void FUN_10a4c470();
+    virtual void FUN_10a4c470(int, int, int, int);
 };
+
+class Class_1098E330;
 
 class Class_10E70060
 {
 public:
-    virtual void FUN_10ace280() = 0;
+    virtual float FUN_10ace280(int A, int B, Class_1098E330* Obj) = 0;
 };
 
 class Class_10E70150 : public Class_10E67938, public Class_10E70060
@@ -20,7 +22,7 @@ class Class_10E70150 : public Class_10E67938, public Class_10E70060
 public:
     Class_10E70150();
 
-    virtual void FUN_10ace280();
+    virtual float FUN_10ace280(int A, int B, Class_1098E330* Obj);
 };
 
 // FUNCTION: 0x10ACE370 ??0Class_10E70150@@QAE@XZ

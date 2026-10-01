@@ -168,7 +168,7 @@ export default defineConfig({
           { text: "Engine internals", link: "/engine" },
           { text: "The target binary", link: "/target" },
           { text: "Matching decompilation", link: "/matching" },
-          { text: "Tiered agent workflow", link: "/agent-workflow" },
+          { text: "Agent workflow", link: "/agent-workflow" },
           { text: "Progress on decomp.dev", link: "/decomp-dev" },
           { text: "Assets and formats", link: "/assets" },
           { text: "Research: LLM matching", link: "/research/llm-matching" },

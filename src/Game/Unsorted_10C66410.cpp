@@ -1,0 +1,38 @@
+// Game/Unsorted_10C66410.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
+// Declarations above the functions belong in include/ once they settle.
+
+class Class_10E9CFE0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual void Virtual13();
+    virtual void Virtual14();
+    virtual void Virtual15();
+    virtual void Virtual16();
+    virtual void Virtual17();
+    virtual void Virtual18();
+    virtual void Virtual19();
+    virtual void FUN_10c66420(int p1, int p2);
+    virtual void Virtual21();
+    virtual void FUN_10c66440(int p1, int p2);
+    virtual void FUN_10c66410(int p1);
+    virtual void FUN_10c66460(int p1, int p2);
+};
+
+// FUNCTION: 0x10C66410 ?FUN_10c66410@Class_10E9CFE0@@UAEXH@Z
+void Class_10E9CFE0::FUN_10c66410(int p1)
+{
+    FUN_10c66460(p1, p1);
+}

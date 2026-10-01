@@ -17,9 +17,9 @@ goes to a unit:
 The category is --category, else the function's in config/<version>/categories.txt
 (tools/classify.py). Only Ion Storm's game code is published (CONTRIBUTING.md):
 Epic's engine is skipped, and so is a method of an Unreal-style class (UObject,
-AActor, FName) until the class is known to be Ion Storm's (--category game);
-library code is skipped unless --category libs, unclassified code unless
---category game.
+AActor, FName) that config/<version>/classes.txt does not list as Ion Storm's
+(--category game integrates it once the class is known to be theirs); library
+code is skipped unless --category libs, unclassified code unless --category game.
 
 For each unit the tool assembles the file (the accepted files' declarations,
 deduplicated, then the functions in address order behind their
@@ -34,8 +34,9 @@ changed. Only then are the files written:
     .text$x ranges (EH handlers and unwind funclets), checked with
     tools/splits.py;
   - symbols.txt: the functions' decorated names, the names their references
-    were bound to (callees, globals, __real@/??_C@ literals, __ehhandler$
-    stubs), never overwriting a real name with a different one.
+    were bound to (callees, globals, the vtables they store, __real@/??_C@
+    literals, __ehhandler$ stubs), never overwriting a real name with a
+    different one.
 Serialised by build/agent/integrate.lock. Afterwards run configure.py and
 ninja, and compare the report with the previous one.
 """
@@ -43,10 +44,12 @@ ninja, and compare the report with the previous one.
 import argparse
 import bisect
 import json
+import os
 import re
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -160,9 +163,14 @@ def auto_unit(p: Project, address: int) -> str:
 def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tuple[str, str]:
     """(source path relative to src/, category) for an accepted record."""
     address = int(rec["addr"], 16)
+    if rec.get("generated"):  # compiled where the function that makes the compiler emit it is
+        return p.integrated()[int(rec["with"], 16)], args.category or guess_category(p, rec)
     if args.unit:
         source = args.unit[4:] if args.unit.startswith("src/") else args.unit
         return source, args.category or guess_category(p, rec)
+    for start, end, source in getattr(p.configure, "UNIT_RANGES", []):
+        if start <= address < end:
+            return source, args.category or guess_category(p, rec)
     for u in declared:
         if any(a <= address < b for a, b in u.text):
             return u.source, args.category or guess_category(p, rec)
@@ -179,9 +187,11 @@ def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tup
 
 def guess_category(p: Project, rec: dict) -> str:
     """Whose code a record is: its category in categories.txt, except that a method of an
-    Unreal-style class counts as Epic's engine until the class is known to be Ion Storm's."""
+    Unreal-style class counts as Epic's engine unless classes.txt has the class as Ion Storm's."""
     category = p.category(int(rec["addr"], 16))
-    if category == "game" and re.match(r"^[UAF][A-Z]", rec.get("class") or ""):
+    cls = rec.get("class") or ""
+    known = p.classes().get(cls)
+    if category == "game" and re.match(r"^[UAF][A-Z]", cls) and not (known and known.category == "game"):
         return "engine"
     return category
 
@@ -315,6 +325,9 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
                 want(a, b["name"], b["kind"], compatible_with=b.get("target", ""))
             elif b["kind"] in ("literal", "ehhandler"):
                 want(a, b["name"], "literal" if b["kind"] == "literal" else "function", b.get("size", 0))
+            elif b["kind"] == "data" and b["name"].startswith("??_7"):
+                # A vtable the function stores, compared by value: named, the report pairs the store.
+                want(a, b["name"], "literal", b.get("size", 0))
     return renames, sorted(added.items()), warnings
 
 
@@ -377,6 +390,8 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="check and report, write nothing")
     parser.add_argument("--no-names", action="store_true", help="leave symbols.txt alone")
     parser.add_argument("--json", action="store_true", help="print the summary as JSON")
+    parser.add_argument("--jobs", type=int, default=0, help="units checked at once (default: one per CPU)")
+    parser.add_argument("--plan", help="JSON {unit: [address, ...]}: put each function in its unit")
     args = parser.parse_args()
 
     p = Project()
@@ -408,7 +423,10 @@ def main() -> None:
 def integrate(p: Project, args) -> dict:
     accepted = p.accepted()
     integrated = p.integrated()
-    wanted = [p.parse_addr(a) for a in args.addrs] or sorted(accepted)
+    # --plan: {unit: [address, ...]} puts each listed function in its unit (tools/agent overflow bins)
+    plan = {p.parse_addr(a): unit for unit, addrs in (json.loads(Path(args.plan).read_text(encoding="utf-8"))
+                                                       if getattr(args, "plan", None) else {}).items() for a in addrs}
+    wanted = [p.parse_addr(a) for a in args.addrs] or (sorted(plan) if plan else sorted(accepted))
     missing = [fmt_addr(a) for a in wanted if a not in accepted]
     if missing:
         sys.exit(f"not accepted: {', '.join(missing)}")
@@ -420,10 +438,14 @@ def integrate(p: Project, args) -> dict:
         if a in integrated:
             continue
         skip = skipped(p, accepted[a], args)
+        if not skip and accepted[a].get("generated") and int(accepted[a]["with"], 16) not in integrated:
+            skip = (f"is compiler-generated with {accepted[a]['with']}, which is not in src/ yet; skipped until "
+                    f"it is")
         if skip:
             summary["warnings"].append(f"{fmt_addr(a)} {skip}")
             continue
         source, category = unit_for(p, accepted[a], args, declared)
+        source = plan.get(a, source)
         groups.setdefault(source, []).append(a)
         categories.setdefault(source, category)
 
@@ -433,37 +455,56 @@ def integrate(p: Project, args) -> dict:
     text_x = p.text_x_range()
     records: List[dict] = []
     writes: Dict[Path, str] = {}
-    for source, addrs in sorted(groups.items()):
+
+    def prepare(source: str, addrs: List[int]) -> dict:
+        """Compose one unit with its new functions and check every function in it. Units are independent,
+        so they are checked in parallel; what they change is merged afterwards, in order."""
         unit_path = p.src_dir / source
         head, blocks = parse_unit(unit_path.read_text(encoding="utf-8")) if unit_path.is_file() else ("", {})
         existing = set(blocks)
         symbols = {a: (FUNCTION_MARKER.search(b).group(2).strip() or None) for a, b in blocks.items()}
         new_decls: Dict[int, List[str]] = {}
         for a in sorted(addrs):
+            symbols[a] = accepted[a]["symbol"]
+            if accepted[a].get("generated"):
+                # No source of its own: the unit emits it with its class's vtable, which needs the unit's
+                # class declaration to match the accepted one (a virtual destructor for `??_G`).
+                new_decls[a] = []
+                blocks[a] = (f"// FUNCTION: {fmt_addr(a)} {symbols[a]}\n// Compiler-generated: emitted with the "
+                             f"class's vtable by {accepted[a]['with']}'s definition in this unit.\n")
+                continue
             decl, body = split_file((p.state / "accepted" / f"{addr_key(a)}.cpp").read_text(encoding="utf-8"))
             new_decls[a] = items(decl)
             blocks[a] = FUNCTION_MARKER.sub(f"// FUNCTION: {fmt_addr(a)} {accepted[a]['symbol']}",
                                             body, 1).rstrip() + "\n"
-            symbols[a] = accepted[a]["symbol"]
         cflags = p.configure.UNITS.get(source, {}).get("cflags", p.configure.CFLAGS)
+        dropped, warnings, text = [], [], ""
         while True:
             declarations = items(head) + [d for a in sorted(new_decls) for d in new_decls[a]]
             text, failures = build_unit(p, verifier, source, declarations, blocks, symbols, workdir, cflags)
             broken = [a for a in failures if a in existing]
             if broken:
-                summary["warnings"].append(f"{source}: left unchanged; {fmt_addr(broken[0])}, already in the unit, "
-                                           f"breaks: {failures[broken[0]]}")
+                warnings.append(f"{source}: left unchanged; {fmt_addr(broken[0])}, already in the unit, "
+                                f"breaks: {failures[broken[0]]}")
                 new_decls = {}
                 break
             for a, why in failures.items():  # leave out what no longer matches here, then try again
-                summary["dropped"].append({"addr": fmt_addr(a), "unit": source, "reason": why})
+                dropped.append({"addr": fmt_addr(a), "unit": source, "reason": why})
                 del blocks[a], new_decls[a]
             if not failures or not new_decls:
                 break
-        added = sorted(new_decls)
+        return {"source": source, "path": unit_path, "text": text, "blocks": blocks, "added": sorted(new_decls),
+                "dropped": dropped, "warnings": warnings}
+
+    with ThreadPoolExecutor(max_workers=getattr(args, "jobs", 0) or os.cpu_count() or 1) as pool:
+        results = list(pool.map(lambda item: prepare(*item), sorted(groups.items())))
+    for r in results:
+        summary["dropped"] += r["dropped"]
+        summary["warnings"] += r["warnings"]
+        source, blocks, added, unit_path = r["source"], r["blocks"], r["added"], r["path"]
         if not added:
             continue
-        writes[unit_path] = text
+        writes[unit_path] = r["text"]
         old = next((u for u in declared if u.source == source), None)
         eh = [(int(x, 16), int(y, 16)) for a in added for x, y in accepted[a].get("text_x", [])]
         ranges = merge(p, (old.text if old else []) + [(a, p.code_extent(a)[1]) for a in blocks] + eh)

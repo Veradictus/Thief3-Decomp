@@ -35,6 +35,23 @@ from common import (Claims, Ledger, Project, addr_key, agent_id, atomic_write, c
 from verify import Verifier, render
 
 
+# Functions MSVC writes itself: scalar and vector deleting destructors.
+GENERATED = ("??_G", "??_E")
+
+
+def emitter_of(p: Project, obj_path: Path, address: int):
+    """The one function the compiled candidate defines (not inline) that symbols.txt names, other than
+    `address`: the definition that made the compiler emit a generated function; None if not exactly one."""
+    import coff
+    if not obj_path.is_file():
+        return None
+    obj = coff.Coff.load(obj_path)
+    found = {p.by_name[s.name].address for s in obj.functions() if s.external and s.name in p.by_name
+             and obj.section(s.section).selection != coff.IMAGE_COMDAT_SELECT_ANY}
+    found.discard(address)
+    return found.pop() if len(found) == 1 else None
+
+
 def accept(argv) -> None:
     parser = argparse.ArgumentParser(prog="accept.py", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -45,6 +62,9 @@ def accept(argv) -> None:
     parser.add_argument("--strict-names", action="store_true",
                         help="also require every referenced address to be named in symbols.txt")
     parser.add_argument("--replace", action="store_true", help="replace an existing accepted record")
+    parser.add_argument("--with", dest="emitter",
+                        help="for a compiler-generated function (--symbol ??_G...): the function whose definition "
+                             "makes the compiler emit it (default: the file's one function symbols.txt names)")
     args = parser.parse_args(argv)
 
     p = Project()
@@ -84,6 +104,16 @@ def accept(argv) -> None:
     if reasons or not res.match:
         reject(reasons or ["no match"], render(res))
 
+    generated = {}
+    if res.symbol.startswith(GENERATED):
+        # No definition of its own: it is emitted with its class's vtable, where the class's constructor or
+        # destructor is defined. integrate.py puts its marker in that function's unit.
+        workdir = p.state / "tmp" / f"{agent}-{addr_key(address)}-accept"
+        emitter = p.parse_addr(args.emitter) if args.emitter else emitter_of(p, workdir / "candidate.obj", address)
+        if emitter is None:
+            reject([f"{res.symbol} is compiler-generated: pass --with <the function whose definition emits it>"])
+        generated = {"generated": True, "with": fmt_addr(emitter)}
+
     ledger = Ledger(p, address)
     qualified = qualified_name(res.symbol, res.demangled)
     code_end, region_end = p.code_extent(address)
@@ -111,6 +141,7 @@ def accept(argv) -> None:
         "claim": claim["id"] if claim else "manual",
         "attempts": sum(1 for e in ledger.entries() if e.get("counted")),
         "accepted": time.time(),
+        **generated,
     }
     out = p.state_dir("accepted")
     shutil.copyfile(args.file, out / f"{addr_key(address)}.cpp")

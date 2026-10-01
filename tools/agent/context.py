@@ -8,7 +8,9 @@ Sections, each left out when its input is missing:
   function    symbols.txt name, demangled signature, size, split unit, status
   target      the target's instructions (objdiff on the split object)
   references  callees and globals with their symbols.txt names; unnamed ones
-              are flagged, with any name another accepted function proposed
+              are flagged, with any name another accepted function proposed,
+              the registered class whose vtable a reference is, and the value
+              of each float or double the code loads (`initially` for a variable)
   ghidra      the cached Ghidra decompile (build/agent/cache/ghidra/<ADDR>.c)
   headers     include/ headers declaring the classes involved
   similar     accepted functions most like this one, with their source
@@ -19,10 +21,12 @@ Sections, each left out when its input is missing:
 import argparse
 import difflib
 import json
+import math
 import re
+import struct
 import subprocess
 import sys
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 import coff
 import features as featurelib
@@ -43,7 +47,7 @@ def references(p: Project, address: int) -> List[dict]:
     fn = target_symbol(obj, f.name, address)
     if fn is None:
         return []
-    code_end, _ = p.code_extent(address)
+    code_end, region_end = p.code_extent(address)
     proposals: Dict[int, str] = {}
     for a, rec in p.accepted().items():
         if a == address:
@@ -51,11 +55,16 @@ def references(p: Project, address: int) -> List[dict]:
         for b in rec.get("bindings", []):
             if b.get("status") == "provisional":
                 proposals.setdefault(int(b["addr"], 16), f"{b['name']} (accepted {rec['addr']})")
+    floats = fpu_operands(obj, fn, code_end - address)
+    vtables: Dict[int, List[str]] = {}
+    for c in p.classes().values():
+        vtables.setdefault(c.vtable, []).append(c.name)
+    image = None
     out, seen = [], set()
     for _, r in obj.relocations(fn.section, fn.value, fn.value + code_end - address):
         sym = obj.slots[r.symbol]
         base = p.address_of(sym.name)
-        if sym.defined and sym.section == fn.section or sym.name in seen:
+        if sym.defined and sym.section == fn.section and fn.value <= sym.value < fn.value + region_end - address                 or sym.name in seen:
             continue  # its own labels and tables
         seen.add(sym.name)
         known = p.by_addr.get(base) if base is not None else None
@@ -66,6 +75,17 @@ def references(p: Project, address: int) -> List[dict]:
             entry["size"] = known.size
         if base in proposals:
             entry["proposed"] = proposals[base]
+        if len(vtables.get(base, [])) == 1:
+            entry["vtable_of"] = vtables[base][0]
+        width = floats.get(r.offset)
+        if width and base is not None and not sym.name.startswith("__real@"):
+            image = image or TargetImage(p)
+            view = image.view(base, width)
+            if view is not None:
+                entry["value"] = fpu_literal(view.data)
+                sec = image.pe.section_for_rva(base - image.pe.image_base) if image.pe else None
+                if sec is not None and sec.writable:
+                    entry["value"] = "initially " + entry["value"]  # a variable, not a constant
         out.append(entry)
     dem = demangle(p, [e["name"] for e in out])
     for e in out:
@@ -74,16 +94,56 @@ def references(p: Project, address: int) -> List[dict]:
     return out
 
 
-def headers(p: Project, classes: List[str], max_lines: int = 40) -> List[dict]:
+def fpu_operands(obj: coff.Coff, fn: coff.Symbol, length: int) -> Dict[int, int]:
+    """Relocation offsets inside the function's FPU memory operands (fld, fmul, fcomp, ...), with the
+    operand's width: the constants the code loads as float (4) or double (8)."""
+    try:
+        from iced_x86 import Decoder, MemorySize
+    except ImportError:
+        return {}
+    widths = {MemorySize.FLOAT32: 4, MemorySize.FLOAT64: 8}
+    sec = obj.section(fn.section)
+    relocs = [r.offset for _, r in obj.relocations(fn.section, fn.value, fn.value + length)]
+    out = {}
+    for insn in Decoder(32, sec.data[fn.value:fn.value + length], ip=fn.value):
+        width = widths.get(insn.memory_size)
+        if width:
+            out.update({o: width for o in relocs if insn.ip <= o < insn.ip + insn.len})
+    return out
+
+
+def fpu_literal(data: bytes) -> str:
+    """A float or double constant as the shortest source literal that has its bits, e.g. `0.1f`."""
+    if len(data) == 8:
+        value = struct.unpack("<d", data)[0]
+        return f"{value!r} (double)" if math.isfinite(value) else f"0x{data[::-1].hex()} (double)"
+    value = struct.unpack("<f", data)[0]
+    if not math.isfinite(value):
+        return f"0x{data[::-1].hex()} (float)"
+    for digits in range(1, 10):
+        text = f"{value:.{digits}g}"
+        if struct.pack("<f", float(text)) == data:
+            break
+    if "e" not in text and "." not in text:
+        text += ".0"
+    return f"{text}f"
+
+
+def headers(p: Project, classes: List[str], whole: Sequence[str] = (), max_lines: int = 40) -> List[dict]:
+    """The declarations of `classes` in include/: an excerpt; the whole class for those in `whole` that a
+    generated <Package>Classes.h declares (tools/assets/t3classes.py: every member with its offset)."""
     if not p.include_dir.is_dir():
         return []
     out = []
     for path in sorted(p.include_dir.rglob("*.h*")):
         text = path.read_text(encoding="utf-8", errors="replace")
+        generated = path.name.endswith("Classes.h")
         for cls in classes:
             m = re.search(rf"^\s*(?:class|struct)\s+(?:\w+\s+)?{re.escape(cls)}\b[^;]*$", text, re.M)
             if m:
-                lines = text[m.start():].splitlines()[:max_lines]
+                lines = text[m.start():].splitlines()
+                end = next((i for i, line in enumerate(lines) if line.startswith("};")), len(lines)) + 1
+                lines = lines[:end] if generated and cls in whole else lines[:min(end, max_lines)]
                 out.append({"class": cls, "path": str(path.relative_to(p.main)).replace("\\", "/"),
                             "excerpt": "\n".join(lines)})
     return out
@@ -181,7 +241,15 @@ def vtable_slots(p: Project, address: int) -> List[dict]:
                     index.setdefault(f"{fn:08X}", []).append([table, (run[0] + 4 * slot - table) // 4])
         cache = {"key": key, "functions": index}
         atomic_write(cache_path, json.dumps(cache))
-    return [{"table": fmt_addr(t), "slot": s} for t, s in cache["functions"].get(f"{address:08X}", [])[:4]]
+    # The registered class whose constructor stores a table (not one the linker folded for several).
+    owners: Dict[int, List[str]] = {}
+    for c in p.classes().values():
+        owners.setdefault(c.vtable, []).append(c.name)
+    out = []
+    for t, s in cache["functions"].get(f"{address:08X}", [])[:4]:
+        names = owners.get(t, [])
+        out.append({"table": fmt_addr(t), "slot": s, **({"class": names[0]} if len(names) == 1 else {})})
+    return out
 
 
 def packet(p: Project, address: int, n_similar: int) -> dict:
@@ -214,14 +282,14 @@ def packet(p: Project, address: int, n_similar: int) -> dict:
     cache = p.state / "cache" / "ghidra" / f"{addr_key(address)}.c"
     if cache.is_file():
         out["ghidra"] = cache.read_text(encoding="utf-8", errors="replace")
-    classes = [c for c in {f.name.rsplit("::", 1)[0] if "::" in f.name else ""} | {
-        class_of(qualified_name(r["name"], r.get("demangled", ""))) for r in refs} if c]
-    found = headers(p, sorted(classes))
-    if found:
-        out["headers"] = found
     slots = vtable_slots(p, address)
     if slots:
         out["vtables"] = slots
+    own = {c for c in {class_of(qualified_name(f.name, dem))} | {s.get("class", "") for s in slots} if c}
+    classes = own | {c for c in (class_of(qualified_name(r["name"], r.get("demangled", ""))) for r in refs) if c}
+    found = headers(p, sorted(classes), whole=sorted(own))
+    if found:
+        out["headers"] = found
     sims = similar(p, address, mnemonics, refs, n_similar)
     if sims:
         out["similar"] = sims
@@ -265,6 +333,10 @@ def print_packet(pk: dict) -> None:
             note = "" if r["named"] else "  (unnamed)"
             if r.get("proposed"):
                 note += f"  proposed: {r['proposed']}"
+            if r.get("vtable_of"):
+                note += f"  ({r['vtable_of']}'s vtable)"
+            if r.get("value"):
+                note += f"  {'' if r['value'].startswith('initially') else '= '}{r['value']}"
             print(f"{r['kind']:<5} {r['addr'] or '?':<11} {r['name']}{note}")
             if r.get("demangled"):
                 print(f"                  {r['demangled']}")
@@ -272,9 +344,10 @@ def print_packet(pk: dict) -> None:
         print("\n== ghidra (a starting point, not the answer)")
         print(pk["ghidra"].rstrip())
     if "vtables" in pk:
-        print("\n== vtable slots (a virtual method: of Class_<table> unless a header names the class)")
+        print("\n== vtable slots (a virtual method: of the class named here, else of Class_<table>)")
         for v in pk["vtables"]:
-            print(f"slot {v['slot']} (+{4 * v['slot']:#x}) of the table at {v['table']}")
+            owner = f"{v['class']}'s vtable" if v.get("class") else "the table"
+            print(f"slot {v['slot']} (+{4 * v['slot']:#x}) of {owner} at {v['table']}")
     for h in pk.get("headers", []):
         print(f"\n== header {h['path']} ({h['class']})")
         print(h["excerpt"])
@@ -307,12 +380,15 @@ def main() -> None:
         parser = argparse.ArgumentParser(prog="context.py fill-ghidra")
         parser.add_argument("addrs", nargs="*")
         parser.add_argument("--next", type=int, default=0, help="also the next N functions of the queue")
+        parser.add_argument("--min-size", type=int, help="of the queue's functions this size or larger")
+        parser.add_argument("--max-size", type=int, help="of the queue's functions this size or smaller")
         args = parser.parse_args(sys.argv[2:])
         p = Project()
         addresses = [p.parse_addr(a) for a in args.addrs]
         if args.next:
             import next as queue_mod
-            ns = argparse.Namespace(unit=None, max_size=None, all_regions=False, include_deferred=False)
+            ns = argparse.Namespace(unit=None, min_size=args.min_size, max_size=args.max_size, all_regions=False,
+                                    include_deferred=False)
             addresses += [int(e["addr"], 16) for e in queue_mod.queue(p, ns)[:args.next]]
         fill_ghidra(p, addresses)
         return

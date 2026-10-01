@@ -22,7 +22,7 @@ class Class_10E6D8F0
 public:
     Class_10E6D8F0();
 
-    virtual void FUN_10aa69e0();
+    virtual ~Class_10E6D8F0();
 
     int Unknown04;
     int Unknown08;
@@ -248,7 +248,21 @@ struct Class_10AB37C0 {
 	void* FUN_10ab37c0();
 };
 
-void FUN_1090af50();
+class Class_109081E0
+{
+public:
+    Class_109081E0& operator=(const Class_109081E0& Other);
+
+    void* Unknown00;
+};
+
+class Class_10AB37F0
+{
+public:
+    void FUN_10ab37f0(const Class_109081E0& Value);
+
+    Class_109081E0 Unknown00;
+};
 
 void FUN_10ab57c0();
 
@@ -297,6 +311,9 @@ Class_10E6D8F0::Class_10E6D8F0()
     Unknown18 = 0;
     Unknown1C = 0;
 }
+
+// FUNCTION: 0x10AA69E0 ??_GClass_10E6D8F0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10AA6860's definition in this unit.
 
 // FUNCTION: 0x10AA71F0 ?FUN_10aa71f0@Class_10AA71F0@@QAEHPAU_iobuf@@H@Z
 int Class_10AA71F0::FUN_10aa71f0(FILE* File, int Param)
@@ -481,10 +498,10 @@ void* Class_10AB37C0::FUN_10ab37c0() {
 	return &unknown_04;
 }
 
-// FUNCTION: 0x10AB37F0 ?FUN_10ab37f0@@YAXXZ
-void FUN_10ab37f0()
+// FUNCTION: 0x10AB37F0 ?FUN_10ab37f0@Class_10AB37F0@@QAEXABVClass_109081E0@@@Z
+void Class_10AB37F0::FUN_10ab37f0(const Class_109081E0& Value)
 {
-    FUN_1090af50();
+    Unknown00 = Value;
 }
 
 // FUNCTION: 0x10AB5820 ?FUN_10ab5820@@YAXXZ

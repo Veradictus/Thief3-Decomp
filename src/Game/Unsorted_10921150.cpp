@@ -27,7 +27,7 @@ class Class_1092D950 {
 public:
     unsigned char FUN_1092d950();
     char Unknown00[0x7d];
-    unsigned char Field7d;
+    unsigned char Unknown7d;
 };
 
 extern int DAT_10f31a54;
@@ -81,7 +81,7 @@ void FUN_1092d410()
 // FUNCTION: 0x1092D950 ?FUN_1092d950@Class_1092D950@@QAEEXZ
 unsigned char Class_1092D950::FUN_1092d950()
 {
-    return Field7d;
+    return Unknown7d;
 }
 
 // FUNCTION: 0x1092FDD0 ?FUN_1092fdd0@@YAPAXXZ

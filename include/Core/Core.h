@@ -16,10 +16,15 @@ typedef INT UBOOL;
 typedef float FLOAT;
 typedef double DOUBLE;
 typedef char ANSICHAR;
+typedef DWORD BITFIELD;                 // a script bool: one bit of a 32-bit word
 
 #ifndef NULL
 #define NULL 0
 #endif
+
+// A compile-time check of a class's size against the size the game registers
+// for it (the generated <Package>Classes.h headers use it).
+#define T3_CHECK_SIZE(T, Size) typedef char T3_SizeCheck_##T[sizeof(T) == (Size) ? 1 : -1]
 
 class FFrame;
 class UObject;
@@ -76,12 +81,19 @@ public:
 class FString : public FArray
 {
 public:
-    FString();                                  // 0x10AF8230
-    ~FString();                                 // 0x10AF83B0
+    FString();                                                // 0x10AF8230
+    FString(const FString& Other);                            // 0x10AF8250
+    FString(const ANSICHAR* In);                              // 0x10AF82B0
+    ~FString();                                               // 0x10AF83B0
 
-    FString& operator=(const ANSICHAR* Other);  // 0x10AF81C0
+    FString& operator=(const ANSICHAR* Other);                // 0x10AF81C0
+    FString& operator=(const FString& Other);                 // 0x10AF8340
+    FString& operator+=(const ANSICHAR* Str);                 // 0x10AF8420
+    FString& operator+=(const FString& Str);                  // 0x10AF8490
+    INT InStr(const ANSICHAR* SubStr, UBOOL Right = 0) const; // 0x10AF80F0
+    INT InStr(const FString& SubStr, UBOOL Right = 0) const;  // 0x10AF8190
 
-    INT Len() const;                            // 0x10AF7F70
+    INT Len() const;                                          // 0x10AF7F70
 };
 
 class FVector
@@ -91,6 +103,15 @@ public:
     FVector(FLOAT InX, FLOAT InY, FLOAT InZ) : X(InX), Y(InY), Z(InZ) {}
 
     FVector operator+(const FVector& V) const { return FVector(X + V.X, Y + V.Y, Z + V.Z); }
+    FVector operator+=(const FVector& V)
+    {
+        X += V.X;
+        Y += V.Y;
+        Z += V.Z;
+        return *this;
+    }
+
+    UBOOL Normalize();
 
     FLOAT X, Y, Z;
 };
@@ -124,8 +145,9 @@ public:
 #define RESULT_DECL void* const Result
 
 // The first 0x28 bytes match stock Unreal Engine 2 (the SDK checks Name, Class
-// and Outer at runtime). Of the virtual functions, only CallFunction's slot is
-// known; the others are named by their vtable offset.
+// and Outer at runtime); the game registers UObject with 0x2C. Of the virtual
+// functions, only CallFunction's slot is known; the others are named by their
+// vtable offset.
 class UObject
 {
 public:
@@ -405,17 +427,19 @@ public:
     DWORD ObjectFlags;              // 0x1C
     FName Name;                     // 0x20
     UClass* Class;                  // 0x24
+    DWORD PropertyHash;             // 0x28: Ion Storm's (Object.uc: ObjectInternalPropertyHash)
 };
+T3_CHECK_SIZE(UObject, 0x2C);
 
-// SuperField is at 0x2C in this build (0x28 in stock Unreal Engine 2): one
-// more field comes first, here or in UObject.
+// SuperField is at 0x2C in this build (0x28 in stock Unreal Engine 2): UObject
+// is one field longer.
 class UField : public UObject
 {
 public:
-    DWORD Unknown28;                // 0x28
     UField* SuperField;             // 0x2C: all 287 classes chain up to Object
     UField* Next;                   // 0x30 (stock order, not yet seen)
 };
+T3_CHECK_SIZE(UField, 0x34);
 
 class UStruct : public UField
 {

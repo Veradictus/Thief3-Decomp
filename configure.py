@@ -60,6 +60,19 @@ CFLAGS = [
 #   "cflags":   replaces CFLAGS for this unit
 UNITS: Dict[str, dict] = {}
 
+# Built without optimization: every method spills `this` to [ebp-4] (docs/matching.md, "/Od units").
+OD_CFLAGS = ["/Od" if flag == "/O2" else flag for flag in CFLAGS]
+
+# Address ranges whose functions belong to a unit before they are matched: the gate compiles them with
+# the unit's flags and integrate.py puts them there. splits.txt declares only what src/ holds.
+UNIT_RANGES = [
+    (0x10BF7810, 0x10BF7990, "Game/Unsorted_10BF7810.cpp"),
+    (0x10BF79D0, 0x10BF7AD0, "Game/Unsorted_10BF79D0.cpp"),
+    (0x10BF8F00, 0x10BF8F5C, "Game/Unsorted_10BF8F00.cpp"),
+]
+for _start, _end, _source in UNIT_RANGES:
+    UNITS[_source] = {"cflags": OD_CFLAGS}
+
 # objdiff/decomp.dev progress categories, from config/<version>/categories.txt
 # (tools/classify.py). "main" is the headline (decomp.dev's default category):
 # Ion Storm's game code, which the decompilation covers. Epic's engine and the
@@ -133,6 +146,21 @@ def plan_units(config_dir: Path) -> List[splitslib.Unit]:
                           breaks=breaks(config_dir))
 
 
+def write_aliases(symbols_txt: Path, out: Path) -> None:
+    """{alias: the address's own name} from symbols.txt's `type:alias` lines, for tools/cc.py. Written only
+    when it changes, so the objects are rebuilt only then."""
+    symbols = symbolslib.load(symbols_txt)
+    own: Dict[int, str] = {}
+    for s in symbols:
+        if s.type != "alias" and (s.is_function or s.address not in own):
+            own[s.address] = s.name  # a function wins over a label at its address, as in the agent tools
+    aliases = {s.name: own[s.address] for s in symbols if s.type == "alias" and s.address in own}
+    text = json.dumps(aliases, indent=1, sort_keys=True) + "\n"
+    if not out.is_file() or out.read_text(encoding="utf-8") != text:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", default=DEFAULT_VERSION, choices=sorted(VERSIONS))
@@ -161,8 +189,9 @@ def main() -> None:
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
 
     units = plan_units(config_dir)
+    ranged = {source for _, _, source in UNIT_RANGES}  # declared once they hold a function
     for source in options:
-        if not any(u.source == source for u in units):
+        if source not in ranged and not any(u.source == source for u in units):
             sys.exit(f"UNITS entry {source} is not declared in {splits_txt}")
 
     # -- tools -----------------------------------------------------------------
@@ -233,7 +262,7 @@ def main() -> None:
     n.build(
         str(split_stamp), "split",
         inputs=[str(model), str(groups)],
-        implicit=[str(delink), "tools/split.py"],
+        implicit=[str(delink), "tools/split.py", "tools/agent/coff.py"],
         implicit_outputs=target_objs,
         variables={"delink": str(delink), "model": str(model), "exe": str(exe),
                    "groups": str(groups), "outdir": str(obj_dir)},
@@ -258,8 +287,14 @@ def main() -> None:
             runtime_dlls.append(str(dest))
     cl_cmd = f"{wrapper} {cl}" if wrapper else str(cl)
     includes = f"/I{compilers_dir / 'Win32' / '7.1' / 'Include'} /Iinclude /Isrc"
+    # Every object goes through tools/cc.py, which gives references to an address's other names (symbols.txt
+    # aliases) the address's own name. The rule names Python itself: the agent tools run it outside ninja.
+    aliases_json = build_dir / "aliases.json"
+    write_aliases(symbols_txt, aliases_json)
+    cc_deps = ["tools/cc.py", "tools/agent/coff.py", str(aliases_json)]
     n.rule(
         "cc",
+        f'"{python}" tools/cc.py --aliases {aliases_json} -- '
         f"{cl_cmd} /nologo /c /X {includes} $cflags /showIncludes /Fo$out $in",
         description="CC $in",
         deps="msvc",
@@ -273,7 +308,7 @@ def main() -> None:
         if not u.auto and source.is_file():
             base = build_dir / "src" / u.object
             n.build(str(base), "cc", inputs=str(source),
-                    implicit=[str(cl), *runtime_dlls] + ([str(wibo)] if wibo else []),
+                    implicit=[str(cl), *runtime_dlls, *cc_deps] + ([str(wibo)] if wibo else []),
                     variables={"cflags": " ".join(opts.get("cflags", CFLAGS))})
             base_objs.append(str(base))
         if not reported(u):

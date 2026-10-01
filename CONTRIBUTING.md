@@ -33,7 +33,11 @@ not negotiable:
   it does not call game code (engine, library or unclassified) stays out of
   `src/`, and `python tools/progress_report.py check` fails otherwise.
 - **No extracted assets.** The asset tools write into `build/assets/`, which is
-  ignored. Test fixtures must be synthetic, not cut from game files.
+  ignored. Test fixtures must be synthetic, not cut from game files. Class
+  layouts are notes, not assets: the generated headers
+  `include/<Package>/<Package>Classes.h` (`tools/assets/t3classes.py`) hold
+  the names, types and offsets of the native classes' members, never script
+  text, comments or default values.
 - **No DRM work.** Don't analyse, patch, bypass or document copy protection
   (Steam's launcher wrapper, SecuROM). The SDK hooks `T3Main.exe` only.
 - **No personal data.** No local paths (`C:\Users\<name>\...`, library

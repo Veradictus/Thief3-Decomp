@@ -24,6 +24,7 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -32,6 +33,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 
+import categories as categorieslib  # noqa: E402
 import ninja_syntax  # noqa: E402
 import splits as splitslib  # noqa: E402
 import symbols as symbolslib  # noqa: E402
@@ -223,7 +225,8 @@ class Project:
         if not hasattr(self, "_by_addr"):
             self._by_addr = {}
             for s in self.symbols:
-                self._by_addr.setdefault(s.address, s)
+                if s.type != "alias":  # an address's other names (symbols.txt), never its own
+                    self._by_addr.setdefault(s.address, s)
             for f in self.functions:  # a function wins over a label at its address
                 self._by_addr[f.address] = f
         return self._by_addr
@@ -271,6 +274,12 @@ class Project:
             self._categories = cfg.category_index(self.config_dir) if hasattr(cfg, "category_index") else None
         found = self._categories.at(address) if self._categories else ""
         return found or ("game" if address < self.library_start() else "libs")
+
+    def classes(self) -> Dict[str, "categorieslib.NativeClass"]:
+        """The native classes the exe registers, by C++ name (config/<version>/classes.txt)."""
+        if not hasattr(self, "_classes"):
+            self._classes = categorieslib.load_classes(self.config_dir / "classes.txt")
+        return self._classes
 
     def plan(self, declared: List[splitslib.Unit]) -> List[splitslib.Unit]:
         """Declared plus auto units, exactly as configure.py plans the split."""
@@ -335,6 +344,9 @@ class Project:
         """The unit's cflags from configure.UNITS when a declared unit holds the address, else CFLAGS."""
         unit = self.unit_for(address) if address is not None else None
         opts = self.configure.UNITS.get(unit.source, {}) if unit and not unit.auto else {}
+        if not opts and address is not None:  # a range that belongs to a unit before it is integrated
+            source = next((s for a, b, s in getattr(self.configure, "UNIT_RANGES", []) if a <= address < b), None)
+            opts = self.configure.UNITS.get(source, {}) if source else {}
         return list(opts.get("cflags", self.configure.CFLAGS))
 
     def _ninja_cc(self) -> Optional[str]:
@@ -416,7 +428,10 @@ class Project:
             if hit[1] and "addr" in hit[1]:
                 out[int(hit[1]["addr"], 16)] = hit[1]
         if fresh != cache:
-            atomic_write(cache_path, json.dumps(fresh))
+            try:
+                atomic_write(cache_path, json.dumps(fresh))
+            except PermissionError:
+                pass  # many workers at once; the index is only a cache, the next reader writes it
         return out
 
     def accepted(self) -> Dict[int, dict]:
@@ -561,7 +576,7 @@ def demangle(project: Project, names: Sequence[str]) -> Dict[str, str]:
                 for name, text in re.findall(r'Undecoration of :- "(.*?)"\s*is :- "(.*?)"', out.stdout):
                     found[name] = text
         if not found and project.objdiff.is_file():
-            tmp = project.state_dir("tmp") / f"demangle-{os.getpid()}.obj"
+            tmp = project.state_dir("tmp") / f"demangle-{os.getpid()}-{threading.get_ident()}.obj"
             tmp.write_bytes(coff.undefined_object(todo))
             out = subprocess.run([str(project.objdiff), "diff", "-1", str(tmp), "-o", "-", "--format", "json",
                                   "_t3_anchor"], capture_output=True, text=True, errors="replace")

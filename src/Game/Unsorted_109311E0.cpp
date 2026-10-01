@@ -36,7 +36,8 @@ public:
 
 extern int DAT_10f31bdc;
 
-extern int DAT_10f323fc;
+class Class_10939570;
+extern Class_10939570* DAT_10f323fc;
 
 extern int DAT_10f340ac;
 

@@ -298,6 +298,10 @@ class Verifier:
         # A table's label is referenced from before it (the dispatch); case labels only from the tables after them.
         tables = [labels[r.symbol].value for r in sec.relocations
                   if r.symbol in labels and r.offset < labels[r.symbol].value]
+        # Folded labels (coff.fold_labels): a table is the function plus an offset, referenced from before it.
+        tables += [fn.value + obj.addend(sec.index, r) for r in sec.relocations
+                   if r.symbol == fn.index and r.type == coff.IMAGE_REL_I386_DIR32
+                   and fn.value <= r.offset < fn.value + obj.addend(sec.index, r) < fn_end]
         code_end = min(tables + [fn_end]) - fn.value
         retarget, patch = {}, {}
         for i, r in enumerate(sec.relocations):
@@ -365,7 +369,7 @@ class Verifier:
         tsec = tobj.section(tfn.section)
         t_code = code_end - address
         add = []
-        # delink labels a jump table after the code (jpt_...), but objdiff does not end a function at a label.
+        # A jump table's label does not end the function for objdiff: only a real symbol does.
         if tfn.value + t_code < len(tsec.data) and not any(
                 s.section == tfn.section and s.value == tfn.value + t_code
                 and s.storage != coff.IMAGE_SYM_CLASS_LABEL for s in tobj.symbols):
@@ -477,7 +481,7 @@ class _Check:
             notes.append(f"bytes differ at +{diff[0]:#x}")
         for k in sorted(set(c_rel) | set(t_rel)):
             cr = c_rel.get(k)
-            csym = cobj.slots[cr.symbol] if cr else None
+            csym = cobj.resolve(cobj.slots[cr.symbol]) if cr else None
             # A plain value in the exe; tools/split.py relocates __except_list in the split objects.
             if csym is not None and csym.name in ABSOLUTE and (k not in t_rel or t_rel[k][1] == csym.name):
                 if struct.unpack_from("<I", t_bytes, k)[0] != ABSOLUTE[csym.name] + cobj.addend(csec.index, cr):
