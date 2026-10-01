@@ -17,9 +17,9 @@ goes to a unit:
 The category is --category, else the function's in config/<version>/categories.txt
 (tools/classify.py). Only Ion Storm's game code is published (CONTRIBUTING.md):
 Epic's engine is skipped, and so is a method of an Unreal-style class (UObject,
-AActor, FName) until the class is known to be Ion Storm's (--category game);
-library code is skipped unless --category libs, unclassified code unless
---category game.
+AActor, FName) that config/<version>/classes.txt does not list as Ion Storm's
+(--category game integrates it once the class is known to be theirs); library
+code is skipped unless --category libs, unclassified code unless --category game.
 
 For each unit the tool assembles the file (the accepted files' declarations,
 deduplicated, then the functions in address order behind their
@@ -174,9 +174,11 @@ def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tup
 
 def guess_category(p: Project, rec: dict) -> str:
     """Whose code a record is: its category in categories.txt, except that a method of an
-    Unreal-style class counts as Epic's engine until the class is known to be Ion Storm's."""
+    Unreal-style class counts as Epic's engine unless classes.txt has the class as Ion Storm's."""
     category = p.category(int(rec["addr"], 16))
-    if category == "game" and re.match(r"^[UAF][A-Z]", rec.get("class") or ""):
+    cls = rec.get("class") or ""
+    known = p.classes().get(cls)
+    if category == "game" and re.match(r"^[UAF][A-Z]", cls) and not (known and known.category == "game"):
         return "engine"
     return category
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Whose code each function is: Ion Storm's game, Epic's engine or a third-party library.
 
-    python tools/classify.py write [--version PC_20040610]   # config/<version>/categories.txt
+    python tools/classify.py write [--version PC_20040610]   # config/<version>/categories.txt, classes.txt
     python tools/classify.py explain <addr> [...]            # the evidence for a function
     python tools/classify.py stats                           # bytes and functions per category
 
@@ -41,7 +41,9 @@ are compiled with their parent function.
 
 categories.txt is generated and committed (configure.py reads it; CI has no
 exe): one half-open range per line (tools/categories.py), covering .text
-outside .text$x.
+outside .text$x. So is classes.txt, the registered classes: C++ name,
+package, category, super class (the initializer's first registration), size
+and class flags (the getter hands them to the UClass constructor), vtable.
 """
 
 import argparse
@@ -103,8 +105,8 @@ LIBRARY_FILL = 0x20000
 # Virtual methods this small are not evidence (see evidence()).
 TRIVIAL = 16
 
-# mov eax,[G]; test eax,eax; jne short; push "<Package>"; call <getter>; add esp,4; mov [G],eax
-REGISTRATION = re.compile(rb"\xA1(.{4})\x85\xC0\x75.\x68(.{4})\xE8(.{4})\x83\xC4\x04\xA3(.{4})", re.S)
+# mov eax,[G]; test eax,eax; jne short; push "<Package>"; call <getter>; add esp,4; mov [G],eax; call <init>
+REGISTRATION = re.compile(rb"\xA1(.{4})\x85\xC0\x75.\x68(.{4})\xE8(.{4})\x83\xC4\x04\xA3(.{4})(?:\xE8(.{4}))?", re.S)
 
 
 class Image:
@@ -169,19 +171,22 @@ def vtables(img: Image) -> Dict[int, List[int]]:
     return tables
 
 
-def registrations(img: Image) -> Dict[int, Tuple[str, int]]:
-    """getter -> (package, global) for every lazy native class registration."""
+def registrations(img: Image, start: Optional[int] = None, end: Optional[int] = None) -> Dict[int, Tuple[str, int, int]]:
+    """getter -> (package, global, initializer) for every lazy native class registration (in [start, end))."""
     text = next(s for s in img.pe.sections if s.name == ".text")
-    code = img.pe.read_rva(text.va, text.initialized_size)
-    out: Dict[int, Tuple[str, int]] = {}
+    lo = start - img.base if start is not None else text.va
+    hi = end - img.base if end is not None else text.va + text.initialized_size
+    code = img.pe.read_rva(lo, hi - lo)
+    out: Dict[int, Tuple[str, int, int]] = {}
     for m in REGISTRATION.finditer(code):
         g1, s, rel, g2 = (struct.unpack("<I", m.group(i))[0] for i in (1, 2, 3, 4))
         if g1 != g2:
             continue
-        getter = (img.base + text.va + m.end(3) + struct.unpack("<i", m.group(3))[0]) & 0xFFFFFFFF
+        getter = (img.base + lo + m.end(3) + struct.unpack("<i", m.group(3))[0]) & 0xFFFFFFFF
+        init = ((img.base + lo + m.end(5) + struct.unpack("<i", m.group(5))[0]) & 0xFFFFFFFF) if m.group(5) else 0
         package = img.cstr(s)
         if getter in img.at and package:
-            out.setdefault(getter, (package, g1))
+            out.setdefault(getter, (package, g1, init))
     return out
 
 
@@ -216,27 +221,53 @@ def class_vtable(img: Image, fn: int, tables: Dict[int, List[int]], depth: int =
 
 
 def classes(img: Image, tables: Dict[int, List[int]]) -> List[dict]:
-    """Every registered native class: name, package, category, getter, constructor, vtable."""
+    """Every registered native class: name, package, category, getter, constructor, vtable, size, flags,
+    initializer and super class (script names)."""
     from iced_x86 import Mnemonic, OpKind
     out = []
-    for getter, (package, _) in sorted(registrations(img).items()):
-        strings, pointers = [], []
+    for getter, (package, _, init) in sorted(registrations(img).items()):
+        strings, pointers, pushes = [], [], []
         for i in img.decode(getter):
             if i.mnemonic == Mnemonic.PUSH and i.op0_kind == OpKind.IMMEDIATE32:
                 s = img.cstr(i.immediate32)
                 if s:
                     strings.append(s)
+                    pushes = []
                 elif i.immediate32 in img.at and not configure.FUNCLETS[0] <= i.immediate32 < configure.FUNCLETS[1]:
                     pointers.append(i.immediate32)
+            if i.mnemonic == Mnemonic.PUSH and strings:
+                # After the name: the class flags and the object size (esi holds 0).
+                pushes.append(i.immediate32 if i.op0_kind in (OpKind.IMMEDIATE32, OpKind.IMMEDIATE8TO32) else 0)
         name = strings[-1] if strings else "?"
+        flags, size = (pushes[1], pushes[2]) if len(pushes) >= 3 else (0, 0)
         # The UClass constructor takes the static constructor, then the internal one.
         constructor = pointers[-1] if pointers else None
         vtable = class_vtable(img, constructor, tables) if constructor else None
         ion = (package in ION_PACKAGES or name in ION_CLASSES.get(package, ())
                or (package == "Engine" and name.endswith("LinkDataObject")))
         category = GAME if ion else ENGINE if package in EPIC_PACKAGES else UNKNOWN
+        # The initializer registers the super class first (SuperField, +0x2C); Object itself.
+        first = registrations(img, init, init + img.at[init].size) if init in img.at else {}
         out.append({"name": name, "package": package, "category": category, "getter": getter,
-                    "constructor": constructor, "vtable": vtable})
+                    "constructor": constructor, "vtable": vtable, "size": size, "flags": flags, "init": init,
+                    "super_getter": next(iter(first), None)})
+    by_getter = {c["getter"]: c for c in out}
+    for c in out:
+        sup = by_getter.get(c["super_getter"])
+        c["super"] = sup["name"] if sup and sup is not c else None
+    return out
+
+
+def cpp_names(classes_: List[dict]) -> Dict[str, str]:
+    """Script class name -> C++ name: A for Actor's subclasses (and Actor), U for the other UObjects."""
+    supers = {c["name"]: c["super"] for c in classes_}
+    out = {}
+    for c in classes_:
+        chain, name = [], c["name"]
+        while name and name not in chain:
+            chain.append(name)
+            name = supers.get(name)
+        out[c["name"]] = ("A" if "Actor" in chain else "U") + c["name"]
     return out
 
 
@@ -395,6 +426,14 @@ def main() -> None:
         path = ROOT / "config" / args.version / "categories.txt"
         categorieslib.save(path, ranges(img, labels))
         print(f"wrote {path.relative_to(ROOT)}")
+        found = classes(img, vtables(img))
+        cpp = cpp_names(found)
+        table = [categorieslib.NativeClass(cpp[c["name"]], c["package"], c["category"], cpp.get(c["super"] or "", ""),
+                                           c["size"], c["flags"], c["vtable"] or 0, c["getter"], c["init"],
+                                           c["constructor"] or 0) for c in found]
+        path = ROOT / "config" / args.version / "classes.txt"
+        categorieslib.save_classes(path, sorted(table, key=lambda c: c.name))
+        print(f"wrote {path.relative_to(ROOT)}: {len(table)} classes")
 
 
 if __name__ == "__main__":

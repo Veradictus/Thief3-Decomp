@@ -32,6 +32,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 
+import categories as categorieslib  # noqa: E402
 import ninja_syntax  # noqa: E402
 import splits as splitslib  # noqa: E402
 import symbols as symbolslib  # noqa: E402
@@ -271,6 +272,12 @@ class Project:
             self._categories = cfg.category_index(self.config_dir) if hasattr(cfg, "category_index") else None
         found = self._categories.at(address) if self._categories else ""
         return found or ("game" if address < self.library_start() else "libs")
+
+    def classes(self) -> Dict[str, "categorieslib.NativeClass"]:
+        """The native classes the exe registers, by C++ name (config/<version>/classes.txt)."""
+        if not hasattr(self, "_classes"):
+            self._classes = categorieslib.load_classes(self.config_dir / "classes.txt")
+        return self._classes
 
     def plan(self, declared: List[splitslib.Unit]) -> List[splitslib.Unit]:
         """Declared plus auto units, exactly as configure.py plans the split."""
