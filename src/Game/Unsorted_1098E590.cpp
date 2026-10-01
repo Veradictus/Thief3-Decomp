@@ -1,9 +1,11 @@
 // Game/Unsorted_1098E590.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-inline void* operator new(unsigned int, void* Ptr)
+enum EInternal { EC_Internal };
+
+inline void* operator new(unsigned int, EInternal* Mem)
 {
-    return Ptr;
+    return Mem;
 }
 
 class Class_10E70A50
@@ -43,5 +45,5 @@ public:
 // FUNCTION: 0x1098E590 ?FUN_1098e590@@YAXPAX@Z
 void FUN_1098e590(void* Memory)
 {
-    new (Memory) ASpecialOptions();
+    new ((EInternal*)Memory) ASpecialOptions();
 }

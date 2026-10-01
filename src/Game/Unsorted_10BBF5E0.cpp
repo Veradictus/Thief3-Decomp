@@ -190,6 +190,23 @@ public:
     virtual void FUN_10bc2f40(int p1);
 };
 
+class Class_10bbefa0;
+
+class Class_10BC2080
+{
+public:
+    void FUN_10bc1c00(void* p1, Class_10bbefa0* p2);
+    void FUN_10bc2080(Class_10bbefa0* p1);
+
+    void* Unknown00;
+};
+
+// FUNCTION: 0x10BC2080 ?FUN_10bc2080@Class_10BC2080@@QAEXPAVClass_10bbefa0@@@Z
+void Class_10BC2080::FUN_10bc2080(Class_10bbefa0* p1)
+{
+    FUN_10bc1c00(Unknown00, p1);
+}
+
 // FUNCTION: 0x10BC2E20 ?FUN_10bc2e20@APatrolPoint@@UAEHH@Z
 int APatrolPoint::FUN_10bc2e20(int Index)
 {

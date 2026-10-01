@@ -1,6 +1,8 @@
 // Game/Unsorted_10ABC140.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
+#include "Core/Core.h"
+
 class Class_10E70A50
 {
 public:
@@ -79,6 +81,27 @@ public:
 
     Class_10ABFBB0* FUN_10abfbb0();
 };
+
+struct Struct_10ABC6F0
+{
+    FLOAT Unknown00;
+    FVector Unknown04;
+    FVector Unknown10;
+    BYTE Unknown1C;
+    BYTE Unknown1D;
+    INT Unknown20;
+};
+
+// FUNCTION: 0x10ABC6F0 ?FUN_10abc6f0@@YAXPAUStruct_10ABC6F0@@ABVFVector@@@Z
+void FUN_10abc6f0(Struct_10ABC6F0* Out, const FVector& V)
+{
+    Out->Unknown00 = 1.0f;
+    Out->Unknown04 = FVector(0.0f, 0.0f, 0.0f);
+    Out->Unknown10 = V;
+    Out->Unknown1C = 0x18;
+    Out->Unknown1D = 0;
+    Out->Unknown20 = -1;
+}
 
 // FUNCTION: 0x10ABD7F0 ?FUN_10adb3a0@ASpellProjectile@@UAEXXZ
 void ASpellProjectile::FUN_10adb3a0()

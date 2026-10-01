@@ -47,13 +47,14 @@ decompilation** worked mostly by Claude agents under the strict gate in
   classifier does not call game code (244 Epic's, 53 library, 117
   unclassified); `include/Core/Core.h` keeps the declarations the game code
   compiles against. Matching runs as the [agent
-  workflow](agent-workflow.md): batches of Sonnet sub-agents, 20 at a time,
-  from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,805
-  matched functions in 448 units, one per auto unit of the split
+  workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
+  (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 2,366
+  matched functions in 790 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (1,797 of 12,074 functions at 100%, 1.1% of its bytes; hidden from decomp.dev's list
+  game code (2,352 of 12,074 functions at 100%, 1.7% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -232,11 +233,17 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report now counts what the gate matched, but for 8 of the
-     1,805 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report now counts what the gate matched, but for 14 of the
+     2,366 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
-     through the second half of an 8-byte symbol, and `0x10C68010` starts
-     inside `FUN_10c67f90` in `symbols.txt`. integrate.py names the vtables
+     through the second half of an 8-byte symbol, `0x10C68010` starts
+     inside `FUN_10c67f90` in `symbols.txt`, four constructors and
+     destructors score 99.5% or more, and a switch's tables: MSVC labels
+     them with static `$L` symbols, which objdiff takes for the end of the
+     function, and the split references them through labels instead of
+     offsets into the function (`0x10BC4930`, 6.8% in the report, matched
+     by the gate, which bounds both sides at the code). Next: make both
+     objects reference the tables as the function plus an offset. integrate.py names the vtables
      functions store (`??_7`), and `tools/split.py` relocates `fs:[0]`.
    - Review every accepted file before integrating: workers stand in for
      what the header lacks (local types, `Shim` subclasses to reach

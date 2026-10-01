@@ -7,7 +7,6 @@ public:
     virtual void FUN_10a34760(int p1, int* p2, int* p3);
 };
 
-
 class Class_10A34B90
 {
 public:
@@ -35,6 +34,47 @@ public:
     char Unknown10[4];
     void* Unknown14;
 };
+
+class Object_10AB5B20
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+};
+
+class Class_10AB5B20
+{
+public:
+    Class_10AB5B20(const Class_10AB5B20& Other)
+    {
+        Unknown00 = Other.Unknown00;
+        if (Unknown00)
+            Unknown00->Virtual1();
+    }
+    ~Class_10AB5B20();
+
+    Object_10AB5B20* Unknown00;
+};
+
+struct Info_10A34730
+{
+    char Unknown00[0x10];
+    Class_10AB5B20 Unknown10;
+};
+
+class Class_10A34730
+{
+public:
+    Class_10AB5B20 FUN_10a34730();
+
+    Info_10A34730* Unknown00;
+};
+
+// FUNCTION: 0x10A34730 ?FUN_10a34730@Class_10A34730@@QAE?AVClass_10AB5B20@@XZ
+Class_10AB5B20 Class_10A34730::FUN_10a34730()
+{
+    return Unknown00->Unknown10;
+}
 
 // FUNCTION: 0x10A34760 ?FUN_10a34760@Class_10E6649C@@UAEXHPAH0@Z
 void Class_10E6649C::FUN_10a34760(int p1, int* p2, int* p3)

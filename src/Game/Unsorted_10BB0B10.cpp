@@ -77,6 +77,38 @@ public:
 
 extern Class_10BB48E0* DAT_10ff6694;
 
+void FUN_10bb3470(int p1, int p2);
+
+class Class_10E8C728
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void FUN_10bb35c0(int p1, int p2, int p3);
+};
+
+void FUN_10bb35e0(int p1, int p2);
+
+class Class_10E8C764
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void FUN_10bb3710(int p1, int p2, int p3);
+};
+
+// FUNCTION: 0x10BB35C0 ?FUN_10bb35c0@Class_10E8C728@@UAEXHHH@Z
+void Class_10E8C728::FUN_10bb35c0(int p1, int p2, int p3)
+{
+    FUN_10bb3470(p2, p3);
+}
+
+// FUNCTION: 0x10BB3710 ?FUN_10bb3710@Class_10E8C764@@UAEXHHH@Z
+void Class_10E8C764::FUN_10bb3710(int p1, int p2, int p3)
+{
+    FUN_10bb35e0(p2, p3);
+}
+
 // FUNCTION: 0x10BB5630 ?FUN_10bb5630@@YAXXZ
 void FUN_10bb5630()
 {

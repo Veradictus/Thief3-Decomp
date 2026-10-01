@@ -77,6 +77,23 @@ public:
 
 double FUN_1095af80();
 
+double FUN_10c00480();
+
+class Class_10BFBC90
+{
+public:
+    void FUN_10bfbc90();
+
+    char Unknown00[0x4C];
+    float Unknown4C;
+};
+
+// FUNCTION: 0x10BFBC90 ?FUN_10bfbc90@Class_10BFBC90@@QAEXXZ
+void Class_10BFBC90::FUN_10bfbc90()
+{
+    Unknown4C = (float)FUN_10c00480();
+}
+
 // FUNCTION: 0x10BFC190 ?FUN_10bfc190@Class_10BFC190@@QAEXXZ
 void Class_10BFC190::FUN_10bfc190()
 {

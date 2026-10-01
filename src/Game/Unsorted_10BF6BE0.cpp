@@ -80,6 +80,24 @@ public:
     int Unknown3C;
 };
 
+class Class_10BF70E0
+{
+public:
+    int FUN_10bf6d70();
+    void FUN_10bf70e0();
+
+    char Unknown00[0x58];
+    int Unknown58;
+    int Unknown5C;
+};
+
+// FUNCTION: 0x10BF70E0 ?FUN_10bf70e0@Class_10BF70E0@@QAEXXZ
+void Class_10BF70E0::FUN_10bf70e0()
+{
+    Unknown58 = 0;
+    Unknown5C = FUN_10bf6d70();
+}
+
 // FUNCTION: 0x10BF8C90 ?FUN_10bf8c90@Class_10E979DC@@UAEXHHHH@Z
 void Class_10E979DC::FUN_10bf8c90(int Code, int A, int B, int C)
 {

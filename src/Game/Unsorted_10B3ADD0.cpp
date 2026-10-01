@@ -55,6 +55,58 @@ struct Struct_10B3AF40_Param
     Class_10B3AF40_UnknownB0* UnknownB0;
 };
 
+enum EArmUse
+{
+    EAU_FREE,
+    EAU_FORCED_BODY,
+    EAU_FORCED_ARMS
+};
+
+class AGarrett
+{
+public:
+    char Unknown00[0x54D];
+    unsigned char ArmUse;
+};
+
+class Class_10B25200
+{
+public:
+    void FUN_10b24d70();
+};
+
+class Class_10B255F0 : public Class_10B25200
+{
+};
+
+Class_10B255F0* FUN_10b25cd0();
+
+class Class_10B3AE50
+{
+public:
+    void FUN_10b3ae50(AGarrett* Garrett);
+};
+
+class Class_10B3AE70
+{
+public:
+    void FUN_10b3ae70(AGarrett* Garrett);
+};
+
+// FUNCTION: 0x10B3AE50 ?FUN_10b3ae50@Class_10B3AE50@@QAEXPAVAGarrett@@@Z
+void Class_10B3AE50::FUN_10b3ae50(AGarrett* Garrett)
+{
+    Garrett->ArmUse = EAU_FORCED_ARMS;
+    FUN_10b25cd0()->FUN_10b24d70();
+}
+
+// FUNCTION: 0x10B3AE70 ?FUN_10b3ae70@Class_10B3AE70@@QAEXPAVAGarrett@@@Z
+void Class_10B3AE70::FUN_10b3ae70(AGarrett* Garrett)
+{
+    Garrett->ArmUse = EAU_FORCED_BODY;
+    FUN_10b25cd0()->FUN_10b24d70();
+}
+
 // FUNCTION: 0x10B3AF10 ?FUN_10b3af10@Class_10E7E538@@UAEMPAVClass_10B21820@@@Z
 float Class_10E7E538::FUN_10b3af10(Class_10B21820* Obj)
 {

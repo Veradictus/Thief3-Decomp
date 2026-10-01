@@ -33,6 +33,29 @@ public:
     FArray Unknown10;
 };
 
+class Class_10AA78A0_Field0C
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+};
+
+class Class_10AA78A0
+{
+public:
+    void FUN_10aa78a0();
+
+    char Unknown00[0xC];
+    Class_10AA78A0_Field0C* Unknown0C;
+};
+
+// FUNCTION: 0x10AA78A0 ?FUN_10aa78a0@Class_10AA78A0@@QAEXXZ
+void Class_10AA78A0::FUN_10aa78a0()
+{
+    if (Unknown0C)
+        Unknown0C->Virtual1();
+}
+
 // FUNCTION: 0x10AA79F0 ??0Class_10E6D940@@QAE@XZ
 Class_10E6D940::Class_10E6D940() : Unknown08(0), Unknown0C(0)
 {

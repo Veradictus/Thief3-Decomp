@@ -9,9 +9,11 @@ int FUN_10b0f240(const char* Name);
 
 void FUN_10b0f310();
 
-inline void* operator new(unsigned int, void* Ptr)
+enum EInternal { EC_Internal };
+
+inline void* operator new(unsigned int, EInternal* Mem)
 {
-    return Ptr;
+    return Mem;
 }
 
 class AStimulusModifierObject
@@ -46,17 +48,17 @@ int FUN_1099bbe0()
 // FUNCTION: 0x1099BC10 ?FUN_1099bc10@@YAXPAX@Z
 void FUN_1099bc10(void* Memory)
 {
-    new (Memory) AStimulusModifierObject();
+    new ((EInternal*)Memory) AStimulusModifierObject();
 }
 
 // FUNCTION: 0x1099BC20 ?FUN_1099bc20@@YAXPAX@Z
 void FUN_1099bc20(void* Memory)
 {
-    new (Memory) ASwooshEffectObject();
+    new ((EInternal*)Memory) ASwooshEffectObject();
 }
 
 // FUNCTION: 0x1099BC30 ?FUN_1099bc30@@YAXPAX@Z
 void FUN_1099bc30(void* Memory)
 {
-    new (Memory) AVulnerabilityObject();
+    new ((EInternal*)Memory) AVulnerabilityObject();
 }

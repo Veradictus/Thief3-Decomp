@@ -183,6 +183,29 @@ public:
     int Unknown0C;
 };
 
+class Class_10c0ee90
+{
+public:
+    Class_10c0ee90* FUN_10c0ee90();
+
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+    float Unknown10;
+};
+
+// FUNCTION: 0x10C0EE90 ?FUN_10c0ee90@Class_10c0ee90@@QAEPAV1@XZ
+Class_10c0ee90* Class_10c0ee90::FUN_10c0ee90()
+{
+    Unknown00 = 0;
+    Unknown04 = 0;
+    Unknown08 = 0;
+    Unknown0C = 0;
+    Unknown10 = 1.0f;
+    return this;
+}
+
 // FUNCTION: 0x10C12880 ?FUN_10c12880@Class_10E8C378@@UAEHXZ
 int Class_10E8C378::FUN_10c12880()
 {

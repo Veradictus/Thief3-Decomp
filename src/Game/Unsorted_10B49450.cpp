@@ -33,6 +33,25 @@ public:
     int Unknown10;
 };
 
+struct Info_10B49D70
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+    int Unknown10;
+};
+
+// FUNCTION: 0x10B49D70 ?FUN_10b49d70@@YGXPAUInfo_10B49D70@@@Z
+void __stdcall FUN_10b49d70(Info_10B49D70* Out)
+{
+    Out->Unknown00 = 0x2999;
+    Out->Unknown04 = 0x4000;
+    Out->Unknown08 = 0x4000;
+    Out->Unknown0C = 0x2999;
+    Out->Unknown10 = 0x2999;
+}
+
 // FUNCTION: 0x10B4A260 ?FUN_10b4a260@Class_10E7E730@@UAEXPAUStruct_10B4A260@@@Z
 void Class_10E7E730::FUN_10b4a260(Struct_10B4A260* Out)
 {

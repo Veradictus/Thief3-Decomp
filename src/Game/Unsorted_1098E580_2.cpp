@@ -21,9 +21,11 @@ public:
     int UnknownB8;
 };
 
-inline void* operator new(unsigned int, void* Ptr)
+enum EInternal { EC_Internal };
+
+inline void* operator new(unsigned int, EInternal* Mem)
 {
-    return Ptr;
+    return Mem;
 }
 
 class AMetaProperty
@@ -42,5 +44,5 @@ void FUN_1098e580(AZoneProperties* Object)
 // FUNCTION: 0x1098E5A0 ?FUN_1098e5a0@@YAXPAX@Z
 void FUN_1098e5a0(void* Memory)
 {
-    new (Memory) AMetaProperty();
+    new ((EInternal*)Memory) AMetaProperty();
 }

@@ -18,6 +18,30 @@ public:
     virtual void FUN_10b3e160(int p1);
 };
 
+extern void* DAT_10e7ec88[];
+
+class Class_10B3ACB0
+{
+public:
+    Class_10B3ACB0* FUN_10b3acb0();
+
+    void** Unknown00;
+};
+
+class Class_10E7EC88 : public Class_10B3ACB0
+{
+public:
+    Class_10E7EC88* FUN_10b3d4f0();
+};
+
+// FUNCTION: 0x10B3D4F0 ?FUN_10b3d4f0@Class_10E7EC88@@QAEPAV1@XZ
+Class_10E7EC88* Class_10E7EC88::FUN_10b3d4f0()
+{
+    FUN_10b3acb0();
+    Unknown00 = DAT_10e7ec88;
+    return this;
+}
+
 // FUNCTION: 0x10B3E160 ?FUN_10b3e160@Class_10e7e538@@UAEXH@Z
 void Class_10e7e538::FUN_10b3e160(int p1)
 {

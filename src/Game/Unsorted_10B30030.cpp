@@ -128,6 +128,30 @@ public:
     void FUN_10b31570(unsigned char param);
 };
 
+class Class_10E7BB2C
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void FUN_10b30030(const float* p1);
+
+    char Unknown04[0x10];
+    float Unknown14;
+    float Unknown18;
+    float Unknown1C;
+};
+
+// FUNCTION: 0x10B30030 ?FUN_10b30030@Class_10E7BB2C@@UAEXPBM@Z
+void Class_10E7BB2C::FUN_10b30030(const float* p1)
+{
+    Unknown18 = *p1;
+    Unknown1C = Unknown18 - Unknown14;
+}
+
 // FUNCTION: 0x10B30190 ?FUN_10b30190@Class_10B30190@@QAE?AVClass_1090A780@@H@Z
 Class_1090A780 Class_10B30190::FUN_10b30190(int Index)
 {

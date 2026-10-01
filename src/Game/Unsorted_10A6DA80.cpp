@@ -27,6 +27,30 @@ public:
     virtual void Virtual15(int A, int B, int C);
 };
 
+class Class_10A6E690
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual int Virtual10(int A);
+
+    bool FUN_10a6e690(int A);
+};
+
+// FUNCTION: 0x10A6E690 ?FUN_10a6e690@Class_10A6E690@@QAE_NH@Z
+bool Class_10A6E690::FUN_10a6e690(int A)
+{
+    return Virtual10(A) != 0;
+}
+
 // FUNCTION: 0x10A6E6B0 ?FUN_10a6e6b0@Class_10E6BA00@@UAEXHHHH@Z
 void Class_10E6BA00::FUN_10a6e6b0(int Type, int A, int B, int C)
 {

@@ -155,6 +155,16 @@ void __stdcall FUN_10aed930(void* Ptr);
 
 extern "C" __declspec(dllimport) void __stdcall _RADSetMemory(void* (__stdcall* Alloc)(unsigned), void (__stdcall* Free)(void*));
 
+extern float DAT_10f35b20;
+
+void FUN_109e1410(float p1, bool p2);
+
+// FUNCTION: 0x109E1E60 ?FUN_109e1e60@@YAX_N@Z
+void FUN_109e1e60(bool p1)
+{
+    FUN_109e1410(DAT_10f35b20, p1);
+}
+
 // FUNCTION: 0x109E2990 ?FUN_109e2990@@YAXXZ
 void FUN_109e2990()
 {

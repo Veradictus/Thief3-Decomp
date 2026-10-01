@@ -137,6 +137,28 @@ public:
     virtual void* FUN_10b21380();
 };
 
+struct Info_10B21360
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+class Class_10B21360
+{
+public:
+    void FUN_10b21360(const Info_10B21360* In);
+
+    char Unknown00[0x468];
+    Info_10B21360 Unknown468;
+};
+
+// FUNCTION: 0x10B21360 ?FUN_10b21360@Class_10B21360@@QAEXPBUInfo_10B21360@@@Z
+void Class_10B21360::FUN_10b21360(const Info_10B21360* In)
+{
+    Unknown468 = *In;
+}
+
 // FUNCTION: 0x10B21380 ?FUN_10b21380@AGarrett@@UAEPAXXZ
 void* AGarrett::FUN_10b21380()
 {

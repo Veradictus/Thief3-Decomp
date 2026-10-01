@@ -25,6 +25,29 @@ public:
     char Unknown1D1;
 };
 
+class Class_10B3ED20
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual int Virtual4();
+
+    void FUN_10b3ea80();
+    void FUN_10b3ed20();
+
+    char Unknown04[0x48];
+    bool Unknown4C;
+};
+
+// FUNCTION: 0x10B3ED20 ?FUN_10b3ed20@Class_10B3ED20@@QAEXXZ
+void Class_10B3ED20::FUN_10b3ed20()
+{
+    if (Unknown4C)
+        FUN_10b3ea80();
+}
+
 // FUNCTION: 0x10B3FD90 ?FUN_10b3fd90@Class_10E7EDC0@@QAEPAV1@XZ
 Class_10E7EDC0* Class_10E7EDC0::FUN_10b3fd90()
 {

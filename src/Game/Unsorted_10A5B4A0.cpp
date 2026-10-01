@@ -26,6 +26,34 @@ public:
     int Unknown1C8;
 };
 
+class Class_109081E0
+{
+public:
+    Class_109081E0& operator=(const Class_109081E0& Other);
+
+    void* Unknown00;
+};
+
+class Class_1090FD40
+{
+public:
+    int FUN_1090fd40(const Class_109081E0& Item);
+    void FUN_1090f2c0(int Count);
+    void FUN_10a5b5b0(int A, int B);
+    void FUN_10a5c560(int Index);
+
+    int Unknown00;
+    int Unknown04;
+    Class_109081E0* Unknown08;
+};
+
+// FUNCTION: 0x10A5C560 ?FUN_10a5c560@Class_1090FD40@@QAEXH@Z
+void Class_1090FD40::FUN_10a5c560(int Index)
+{
+    FUN_10a5b5b0(Index, Unknown00 - 1);
+    FUN_1090f2c0(Unknown00 - 1);
+}
+
 // FUNCTION: 0x10A5D3C0 ?FUN_10a5d3c0@Class_10E696A8@@QAEPAV1@XZ
 Class_10E696A8* Class_10E696A8::FUN_10a5d3c0()
 {
