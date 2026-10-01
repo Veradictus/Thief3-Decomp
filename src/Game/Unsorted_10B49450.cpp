@@ -42,6 +42,69 @@ struct Info_10B49D70
     int Unknown10;
 };
 
+class AGarrett
+{
+public:
+    void FUN_10b21b90(int A);
+
+    char Unknown00[0x450];
+    unsigned bInBowDraw : 1;
+    unsigned isCrouching : 1;
+    unsigned CanDoItemSearch : 1;
+    unsigned CanUseItems : 1;
+    unsigned bUpdatePhysHeight : 1;
+};
+
+class Class_10B3ADC0
+{
+public:
+    void FUN_10b3ae90(AGarrett* Garrett);
+    void FUN_10b3b130(AGarrett* Garrett);
+    void FUN_10b49d10(AGarrett* Garrett);
+
+    char Unknown00[0x1C];
+    bool Unknown1C;
+};
+
+class Class_10B49D40
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual int Virtual4();
+
+    int FUN_10b49d40(int A);
+
+    char Unknown04[0x18];
+    bool Unknown1C;
+};
+
+// FUNCTION: 0x10B49D10 ?FUN_10b49d10@Class_10B3ADC0@@QAEXPAVAGarrett@@@Z
+void Class_10B3ADC0::FUN_10b49d10(AGarrett* Garrett)
+{
+    Unknown1C = true;
+    FUN_10b3b130(Garrett);
+    FUN_10b3ae90(Garrett);
+    Garrett->bUpdatePhysHeight = 1;
+    Garrett->FUN_10b21b90(0);
+}
+
+// FUNCTION: 0x10B49D40 ?FUN_10b49d40@Class_10B49D40@@QAEHH@Z
+int Class_10B49D40::FUN_10b49d40(int A)
+{
+    if (Unknown1C)
+        return Virtual4();
+    switch (A)
+    {
+    case 1:
+        return 0;
+    default:
+        return Virtual4();
+    }
+}
+
 // FUNCTION: 0x10B49D70 ?FUN_10b49d70@@YGXPAUInfo_10B49D70@@@Z
 void __stdcall FUN_10b49d70(Info_10B49D70* Out)
 {

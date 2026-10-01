@@ -58,6 +58,32 @@ public:
     FArray Unknown154;
 };
 
+class Class_10B78780
+{
+public:
+    void FUN_10b78780();
+
+    void** Unknown00;
+    char Unknown04[0x18C];
+};
+
+class Class_10E86A28 : public Class_10B78780
+{
+public:
+    Class_10E86A28* FUN_10b6d970();
+
+    int Unknown190;
+};
+
+// FUNCTION: 0x10B6D970 ?FUN_10b6d970@Class_10E86A28@@QAEPAV1@XZ
+Class_10E86A28* Class_10E86A28::FUN_10b6d970()
+{
+    FUN_10b78780();
+    Unknown00 = DAT_10e86a28;
+    Unknown190 = 0;
+    return this;
+}
+
 // FUNCTION: 0x10B6D990 ?FUN_10b6d990@Class_10B6D990@@QAEXXZ
 void Class_10B6D990::FUN_10b6d990()
 {

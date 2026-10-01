@@ -26,6 +26,12 @@ public:
 
 void FUN_10b20650(Class_10B21820* Object);
 
+// FUNCTION: 0x10B1DBD0 ?FUN_10b1dbd0@@YAMMMMM@Z
+float FUN_10b1dbd0(float A, float B, float C, float D)
+{
+    return ((D - C) * A + C) * B;
+}
+
 // FUNCTION: 0x10B1DC40 ?FUN_10b1dc40@@YAHXZ
 int FUN_10b1dc40()
 {

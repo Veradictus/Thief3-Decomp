@@ -72,6 +72,92 @@ public:
     Object_10B79150* Unknown158;
 };
 
+class Class_10905A90_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(int* Obj);
+};
+
+Class_10905A90_Member* FUN_10905aa0();
+
+class Class_10B78380
+{
+public:
+    void FUN_10b78380();
+
+    char Unknown00[0x168];
+    int* Unknown168;
+};
+
+class FArray
+{
+public:
+    FArray() : Data(0), ArrayNum(0), ArrayMax(0) {}
+
+    void* Data;
+    int ArrayNum;
+    int ArrayMax;
+};
+
+class Class_10E88AF8
+{
+public:
+    Class_10E88AF8();
+
+    virtual ~Class_10E88AF8();
+
+    char Unknown04[0xE4];
+    int Unknown0E8;
+    char Unknown0EC[0x74];
+};
+
+class Class_10E886D0 : public Class_10E88AF8
+{
+public:
+    Class_10E886D0();
+
+    virtual ~Class_10E886D0();
+
+    int Unknown160;
+    int Unknown164;
+    FArray Unknown168;
+    int Unknown174;
+    int Unknown178;
+    int Unknown17C;
+    int Unknown180;
+    int Unknown184;
+    int Unknown188;
+    bool Unknown18C;
+};
+
+// FUNCTION: 0x10B78380 ?FUN_10b78380@Class_10B78380@@QAEXXZ
+void Class_10B78380::FUN_10b78380()
+{
+    if (Unknown168)
+    {
+        int* Obj = Unknown168 - 1;
+        FUN_10905aa0()->Virtual5(Obj);
+        Unknown168 = 0;
+    }
+}
+
+// FUNCTION: 0x10B78780 ??0Class_10E886D0@@QAE@XZ
+Class_10E886D0::Class_10E886D0()
+    : Unknown160(0), Unknown164(0), Unknown174(0), Unknown17C(0), Unknown180(0), Unknown184(0),
+      Unknown188(0), Unknown18C(false)
+{
+    Unknown178 = 0x40;
+    Unknown0E8 = 0x26;
+}
+
+// FUNCTION: 0x10B790C0 ??_GClass_10E886D0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B78780's definition in this unit.
+
 // FUNCTION: 0x10B79150 ?FUN_10b79150@Class_10B79150@@QAEX_N@Z
 void Class_10B79150::FUN_10b79150(bool Flag)
 {

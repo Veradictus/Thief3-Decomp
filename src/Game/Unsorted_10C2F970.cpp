@@ -1,7 +1,6 @@
 // Game/Unsorted_10C2F970.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-
 class Class_10C32C70
 {
 public:
@@ -15,6 +14,31 @@ public:
     char Unknown10[4];
     void* Unknown14;
 };
+
+class Class_10E9AC80
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual bool FUN_10c32a70(void* A);
+
+    void FUN_10c32970(void* A, int B);
+};
+
+// FUNCTION: 0x10C32A70 ?FUN_10c32a70@Class_10E9AC80@@UAE_NPAX@Z
+bool Class_10E9AC80::FUN_10c32a70(void* A)
+{
+    if (!A)
+        return false;
+    FUN_10c32970(A, 0);
+    return true;
+}
 
 // FUNCTION: 0x10C32C70 ?FUN_10c32c70@Class_10C32C70@@QAEXXZ
 void Class_10C32C70::FUN_10c32c70()

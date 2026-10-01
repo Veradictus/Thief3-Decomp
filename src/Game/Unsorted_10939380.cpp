@@ -34,7 +34,6 @@ public:
     int FUN_1093bcb0(Struct_1093BCB0* Info);
 };
 
-
 class Class_1093C750
 {
 public:
@@ -48,6 +47,30 @@ public:
     int Unknown10;
     void* Unknown14;
 };
+
+class Class_10905A90_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(int* Obj);
+};
+
+Class_10905A90_Member* FUN_10905aa0();
+
+// FUNCTION: 0x109393E0 ?FUN_109393e0@@YGXPAPAH@Z
+void __stdcall FUN_109393e0(int** Slot)
+{
+    if (*Slot)
+    {
+        int* Obj = *Slot - 1;
+        FUN_10905aa0()->Virtual5(Obj);
+        *Slot = 0;
+    }
+}
 
 // FUNCTION: 0x109394C0 ?FUN_109394c0@Class_109394C0@@QAEPAV1@XZ
 Class_109394C0* Class_109394C0::FUN_109394c0()

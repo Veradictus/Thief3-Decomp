@@ -49,6 +49,34 @@ public:
     Class_10AA78A0_Field0C* Unknown0C;
 };
 
+class Class_10AA7880_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4(void* p1);
+};
+
+extern void* DAT_10f46d9c;
+
+class Class_10AA7880
+{
+public:
+    void FUN_10aa7880();
+
+    char Unknown00[0xC];
+    Class_10AA7880_Member* Unknown0C;
+};
+
+// FUNCTION: 0x10AA7880 ?FUN_10aa7880@Class_10AA7880@@QAEXXZ
+void Class_10AA7880::FUN_10aa7880()
+{
+    if (Unknown0C)
+        Unknown0C->Virtual4(DAT_10f46d9c);
+}
+
 // FUNCTION: 0x10AA78A0 ?FUN_10aa78a0@Class_10AA78A0@@QAEXXZ
 void Class_10AA78A0::FUN_10aa78a0()
 {

@@ -93,6 +93,20 @@ public:
     void FUN_10b3ae70(AGarrett* Garrett);
 };
 
+// FUNCTION: 0x10B3ADD0 ?FUN_10b3add0@@YGHE@Z
+int __stdcall FUN_10b3add0(unsigned char A)
+{
+    switch (A)
+    {
+    case 2:
+    case 10:
+        return 0x1c;
+    case 3:
+        return 0x18;
+    }
+    return 0x21;
+}
+
 // FUNCTION: 0x10B3AE50 ?FUN_10b3ae50@Class_10B3AE50@@QAEXPAVAGarrett@@@Z
 void Class_10B3AE50::FUN_10b3ae50(AGarrett* Garrett)
 {

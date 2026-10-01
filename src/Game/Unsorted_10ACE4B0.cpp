@@ -25,6 +25,20 @@ public:
     void FUN_10acee50();
 };
 
+class Class_10E701C8
+{
+public:
+    virtual void FUN_10ace5b0(int Code, int A, int B, int C);
+    void FUN_10ace4d0(int A, int B, int C);
+};
+
+// FUNCTION: 0x10ACE5B0 ?FUN_10ace5b0@Class_10E701C8@@UAEXHHHH@Z
+void Class_10E701C8::FUN_10ace5b0(int Code, int A, int B, int C)
+{
+    if (Code == 0x10)
+        FUN_10ace4d0(A, B, C);
+}
+
 // FUNCTION: 0x10ACE5D0 ??0Class_10E70204@@QAE@XZ
 Class_10E70204::Class_10E70204()
 {

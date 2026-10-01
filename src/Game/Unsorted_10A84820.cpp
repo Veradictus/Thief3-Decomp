@@ -62,6 +62,25 @@ public:
     int Unknown30;
 };
 
+class Class_10E5D498
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual bool FUN_10a84cb0(const Class_109022E0& Name);
+
+    FName Unknown04;
+};
+
+// FUNCTION: 0x10A84CB0 ?FUN_10a84cb0@Class_10E5D498@@UAE_NABVClass_109022E0@@@Z
+bool Class_10E5D498::FUN_10a84cb0(const Class_109022E0& Name)
+{
+    const char* Text = Name.Unknown00 ? Name.Unknown00 : DAT_10e47660;
+    return Unknown04.Value == FName(Text, FNAME_Add).Value;
+}
+
 // FUNCTION: 0x10A84CE0 ?FUN_10a84ce0@Class_10A84CE0@@QAEXABVClass_109022E0@@@Z
 void Class_10A84CE0::FUN_10a84ce0(const Class_109022E0& Name)
 {

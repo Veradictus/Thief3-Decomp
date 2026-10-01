@@ -104,6 +104,34 @@ public:
     void FUN_10a6ea30(int Flags, int Value);
 };
 
+extern void* DAT_10e67b54[];
+
+class Class_10AF4B90
+{
+public:
+    Class_10AF4B90* FUN_10af4b90(int A, void* B);
+
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+class Class_10A4FD00
+{
+public:
+    Class_10A4FD00* FUN_10a4fd00();
+
+    char Unknown00[4];
+    Class_10AF4B90 Unknown04;
+};
+
+// FUNCTION: 0x10A4FD00 ?FUN_10a4fd00@Class_10A4FD00@@QAEPAV1@XZ
+Class_10A4FD00* Class_10A4FD00::FUN_10a4fd00()
+{
+    Unknown04.FUN_10af4b90(9, DAT_10e67b54);
+    return this;
+}
+
 // FUNCTION: 0x10A500E0 ?FUN_10a500e0@APawn@@UAEXH@Z
 void APawn::FUN_10a500e0(int param)
 {

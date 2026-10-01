@@ -31,6 +31,15 @@ public:
     short* Unknown08;
 };
 
+extern "C" void* memcpy(void* Dest, const void* Src, unsigned Count);
+
+// FUNCTION: 0x10942760 ?FUN_10942760@@YGXPAXHHPBDPAH@Z
+void __stdcall FUN_10942760(void* Dest, int Size, int Count, const char* Source, int* Position)
+{
+    memcpy(Dest, Source + *Position, Size * Count);
+    *Position += Size * Count;
+}
+
 // FUNCTION: 0x10942BB0 ?FUN_10942bb0@Class_10942BB0@@QAEXHI@Z
 void Class_10942BB0::FUN_10942bb0(int Flag, unsigned int Value)
 {

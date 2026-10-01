@@ -415,8 +415,10 @@ finds where the code ends from the references to the tables either way.
 
 A few functions were built without optimization: a frame (`push ebp; mov
 ebp, esp`) even in a one-line method, `this` spilled to `[ebp-4]` and read
-back at every use. `configure.py` gives the units holding them `/Od` in
-place of `/O2` (`UNITS`, with the units declared in `splits.txt`), and the
-gate compiles a candidate with its unit's flags, so a worker writes them
-like any other function. 0x10BF7810 to 0x10BF7AD0 is one such file, broken
+back at every use. `configure.py` lists their address ranges in
+`UNIT_RANGES` with the unit each belongs to, and gives those units `/Od` in
+place of `/O2` (`UNITS`): the gate compiles a candidate in such a range with
+its unit's flags, so a worker writes them like any other function, and
+integrate.py puts them in that unit. `splits.txt` declares only what `src/`
+holds, as for any unit. 0x10BF7810 to 0x10BF7AD0 is one such file, broken
 by one optimized function at 0x10BF7990, and 0x10BF8F00 another.

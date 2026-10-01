@@ -201,6 +201,31 @@ public:
     void* Unknown00;
 };
 
+class Class_10bbefc0;
+
+struct Struct_10BBFEF0
+{
+    int Unknown00;
+    int Unknown04;
+    int* Unknown08;
+};
+
+class Class_10BBFEF0
+{
+public:
+    int FUN_10bbfef0(Class_10bbefc0* p1);
+
+    Struct_10BBFEF0* Unknown00;
+};
+
+// FUNCTION: 0x10BBFEF0 ?FUN_10bbfef0@Class_10BBFEF0@@QAEHPAVClass_10bbefc0@@@Z
+int Class_10BBFEF0::FUN_10bbfef0(Class_10bbefc0* p1)
+{
+    if (Unknown00->Unknown00 == 0)
+        return 0;
+    return *Unknown00->Unknown08;
+}
+
 // FUNCTION: 0x10BC2080 ?FUN_10bc2080@Class_10BC2080@@QAEXPAVClass_10bbefa0@@@Z
 void Class_10BC2080::FUN_10bc2080(Class_10bbefa0* p1)
 {

@@ -18,6 +18,15 @@ public:
     Struct_10950310* Unknown00;
 };
 
+extern int DAT_10eff700;
+
+// FUNCTION: 0x10950180 ?FUN_10950180@@YAXH@Z
+void FUN_10950180(int Value)
+{
+    if (Value == 0x19 || Value == 0x1e)
+        DAT_10eff700 = Value;
+}
+
 // FUNCTION: 0x10950310 ?FUN_10950310@Class_10950310@@QAEXM@Z
 void Class_10950310::FUN_10950310(float Volume)
 {

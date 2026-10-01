@@ -49,12 +49,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
   (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
-  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 2,366
-  matched functions in 790 units, one per auto unit of the split
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 3,100
+  matched functions in 1,143 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (2,352 of 12,074 functions at 100%, 1.7% of its bytes; hidden from decomp.dev's list
+  game code (3,082 of 12,080 functions at 100%, 2.7% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -202,11 +202,25 @@ Later the same day, played by the user:
    After each integration: write it and commit it with the source. On
    decomp.dev, set the project's default category to **main** (owner).
 3. **Matching** (game code only):
-   - The first naming pass is done ([agent-workflow.md](agent-workflow.md),
-     "Name conflicts"): `operator delete`, `Class_109081E0::operator=`, the
-     slot-64 `Serialize` overrides and 40 more callees have their real
-     names, the jump wrappers are methods, and 46 blocked functions
-     matched. Run `tools/agent/retry.py` after any naming pass.
+   - Matching runs as a swarm ([agent-workflow.md](agent-workflow.md),
+     "Swarms"): 8 to 16 workers at once, Opus on functions of 80 bytes and
+     more, each freed slot refilled; drain it for a checkpoint (sweep,
+     review, naming pass, `integrate.py`, `dtors.py`, `progress_report.py
+     write`, commit). Integration and `retry.py` check in parallel now, so
+     a checkpoint takes minutes. 8,000 game functions are still queued,
+     most of them 80 bytes and more.
+   - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
+     conflicts"): a blocked function's candidate names its callee, and
+     the old guess stays as an alias (`type:alias`) so callers in `src/`
+     keep matching. Four passes so far unblocked about 150 functions.
+     Run `tools/agent/retry.py` after any naming pass.
+   - Known debt: about 130 accepted constructors are written as methods
+     that store their vtable by hand (symbols.txt named them
+     `?FUN_x@C@@QAEPAV1@XZ` before anything showed they were
+     constructors); a pass like `dtors.py` should make them real
+     constructors. Native classes' InternalConstructors are written as
+     Unreal does (`new ((EInternal*)X) T()`), and their constructors
+     carry `??0T@@QAE@XZ`.
    - After each batch's integration, run `tools/agent/dtors.py`: it plans
      the deleting destructors of every class whose vtable `src/` emits (19 so
      far; about 600 are excluded until their class's constructor or
@@ -233,15 +247,15 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report now counts what the gate matched, but for 14 of the
-     2,366 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 18 of the
+     3,100 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
-     inside `FUN_10c67f90` in `symbols.txt`, four constructors and
-     destructors score 99.5% or more, and a switch's tables until the
-     labels were folded (`tools/cc.py` and `tools/split.py` now give both
-     sides the function plus an offset; `0x10BC4930` went from 6.8% to 100%). integrate.py names the vtables
-     functions store (`??_7`), and `tools/split.py` relocates `fs:[0]`.
+     inside `FUN_10c67f90` in `symbols.txt`, and a few constructors and
+     destructors score 95% to 99.8%. A switch's tables no longer do: the
+     labels are folded on both sides (`tools/cc.py`, `tools/split.py`).
+     integrate.py names the vtables functions store (`??_7`), and
+     `tools/split.py` relocates `fs:[0]`.
    - Review every accepted file before integrating: workers stand in for
      what the header lacks (local types, `Shim` subclasses to reach
      undeclared members, `DAT_` slices of tables); add the real declarations

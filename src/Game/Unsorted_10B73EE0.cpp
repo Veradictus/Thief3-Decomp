@@ -35,8 +35,44 @@ public:
     int Unknown2FC;
 };
 
+class Class_10BFBD70
+{
+public:
+    ~Class_10BFBD70();
+
+    int Unknown00;
+    int Unknown04;
+    int* Unknown08;
+};
+
+class Class_10B73EE0
+{
+public:
+    Class_10BFBD70 FUN_10a5aac0();
+    Class_10BFBD70 FUN_10b73ee0();
+};
+
+class Class_10B73F00
+{
+public:
+    Class_10BFBD70 FUN_10a5a920();
+    Class_10BFBD70 FUN_10b73f00();
+};
+
 // FUNCTION: 0x10B64440 ??_GClass_10E87B68@@UAEPAXI@Z
 // Compiler-generated: emitted with the class's vtable by 0x10B755F0's definition in this unit.
+
+// FUNCTION: 0x10B73EE0 ?FUN_10b73ee0@Class_10B73EE0@@QAE?AVClass_10BFBD70@@XZ
+Class_10BFBD70 Class_10B73EE0::FUN_10b73ee0()
+{
+    return FUN_10a5aac0();
+}
+
+// FUNCTION: 0x10B73F00 ?FUN_10b73f00@Class_10B73F00@@QAE?AVClass_10BFBD70@@XZ
+Class_10BFBD70 Class_10B73F00::FUN_10b73f00()
+{
+    return FUN_10a5a920();
+}
 
 // FUNCTION: 0x10B755F0 ??0Class_10E87B68@@QAE@XZ
 Class_10E87B68::Class_10E87B68()

@@ -29,6 +29,20 @@ public:
     virtual void FUN_10acb3b0(Info_10ACB3B0* Out);
 };
 
+class Class_10E6FEE8
+{
+public:
+    virtual void FUN_10acb0c0(int Code, int A, int B, int C);
+    void FUN_10acae80(int A, int B, int C);
+};
+
+// FUNCTION: 0x10ACB0C0 ?FUN_10acb0c0@Class_10E6FEE8@@UAEXHHHH@Z
+void Class_10E6FEE8::FUN_10acb0c0(int Code, int A, int B, int C)
+{
+    if (Code == 0xd)
+        FUN_10acae80(A, B, C);
+}
+
 // FUNCTION: 0x10ACB3B0 ?FUN_10acb3b0@Class_10E6FFA0@@UAEXPAUInfo_10ACB3B0@@@Z
 void Class_10E6FFA0::FUN_10acb3b0(Info_10ACB3B0* Out)
 {

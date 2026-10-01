@@ -81,12 +81,19 @@ public:
 class FString : public FArray
 {
 public:
-    FString();                                  // 0x10AF8230
-    ~FString();                                 // 0x10AF83B0
+    FString();                                                // 0x10AF8230
+    FString(const FString& Other);                            // 0x10AF8250
+    FString(const ANSICHAR* In);                              // 0x10AF82B0
+    ~FString();                                               // 0x10AF83B0
 
-    FString& operator=(const ANSICHAR* Other);  // 0x10AF81C0
+    FString& operator=(const ANSICHAR* Other);                // 0x10AF81C0
+    FString& operator=(const FString& Other);                 // 0x10AF8340
+    FString& operator+=(const ANSICHAR* Str);                 // 0x10AF8420
+    FString& operator+=(const FString& Str);                  // 0x10AF8490
+    INT InStr(const ANSICHAR* SubStr, UBOOL Right = 0) const; // 0x10AF80F0
+    INT InStr(const FString& SubStr, UBOOL Right = 0) const;  // 0x10AF8190
 
-    INT Len() const;                            // 0x10AF7F70
+    INT Len() const;                                          // 0x10AF7F70
 };
 
 class FVector
@@ -96,6 +103,15 @@ public:
     FVector(FLOAT InX, FLOAT InY, FLOAT InZ) : X(InX), Y(InY), Z(InZ) {}
 
     FVector operator+(const FVector& V) const { return FVector(X + V.X, Y + V.Y, Z + V.Z); }
+    FVector operator+=(const FVector& V)
+    {
+        X += V.X;
+        Y += V.Y;
+        Z += V.Z;
+        return *this;
+    }
+
+    UBOOL Normalize();
 
     FLOAT X, Y, Z;
 };

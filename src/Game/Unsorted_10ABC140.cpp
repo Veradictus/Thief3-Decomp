@@ -92,6 +92,29 @@ struct Struct_10ABC6F0
     INT Unknown20;
 };
 
+struct Struct_10ABC530
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+
+    Struct_10ABC530(int A, int B, int C) : Unknown00(A), Unknown04(B), Unknown08(C) {}
+};
+
+struct Object_10ABC530
+{
+    char Unknown00[0x68];
+    void* Unknown68;
+};
+
+// FUNCTION: 0x10ABC530 ?FUN_10abc530@@YA?AUStruct_10ABC530@@PAUObject_10ABC530@@@Z
+Struct_10ABC530 FUN_10abc530(Object_10ABC530* P)
+{
+    if (P && P->Unknown68)
+        return Struct_10ABC530(0, 0, 0);
+    return Struct_10ABC530(0, 0, 0);
+}
+
 // FUNCTION: 0x10ABC6F0 ?FUN_10abc6f0@@YAXPAUStruct_10ABC6F0@@ABVFVector@@@Z
 void FUN_10abc6f0(Struct_10ABC6F0* Out, const FVector& V)
 {

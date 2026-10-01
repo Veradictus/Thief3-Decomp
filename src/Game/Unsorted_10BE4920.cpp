@@ -80,6 +80,42 @@ public:
     virtual bool Virtual73();
 };
 
+class Class_10BBDB40
+{
+public:
+    unsigned char FUN_10bbdb80();
+};
+
+class Class_10DBD510
+{
+public:
+    Class_10BBDB40* FUN_10dbd510(int Id);
+};
+
+struct Struct_10BE4980
+{
+    char Unknown00[8];
+    Class_10DBD510* Unknown08;
+};
+
+class Class_10BE4980
+{
+public:
+    bool FUN_10be4980();
+
+    char Unknown00[4];
+    Struct_10BE4980* Unknown04;
+};
+
+// FUNCTION: 0x10BE4980 ?FUN_10be4980@Class_10BE4980@@QAE_NXZ
+bool Class_10BE4980::FUN_10be4980()
+{
+    int Value = Unknown04->Unknown08->FUN_10dbd510(0x42000585)->FUN_10bbdb80();
+    if (Value > 0 && Value <= 2)
+        return true;
+    return false;
+}
+
 // FUNCTION: 0x10BE4A60 ?FUN_10be4a60@Class_10E96810@@UAEDXZ
 char Class_10E96810::FUN_10be4a60()
 {

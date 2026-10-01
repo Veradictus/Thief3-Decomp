@@ -33,6 +33,14 @@ public:
     bool Unknown812;
 };
 
+// FUNCTION: 0x10AAE320 ?FUN_10aae320@@YG_NH@Z
+bool __stdcall FUN_10aae320(int A)
+{
+    if ((A >= 200 && A <= 215) || (A >= 240 && A <= 243))
+        return true;
+    return false;
+}
+
 // FUNCTION: 0x10AAEBD0 ?FUN_10aaebd0@Class_10AAEBD0@@QAEXH@Z
 void Class_10AAEBD0::FUN_10aaebd0(int param)
 {

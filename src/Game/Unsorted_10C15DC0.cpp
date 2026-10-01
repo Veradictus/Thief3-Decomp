@@ -30,6 +30,30 @@ public:
     Class_10C15E60 Unknown4014;
 };
 
+class Class_10C15EB0_Member
+{
+public:
+    char Unknown00[4];
+    int Unknown04;
+};
+
+class Class_10C15EB0
+{
+public:
+    int FUN_10c15eb0();
+
+    char Unknown00[0x4018];
+    Class_10C15EB0_Member* Unknown4018;
+};
+
+// FUNCTION: 0x10C15EB0 ?FUN_10c15eb0@Class_10C15EB0@@QAEHXZ
+int Class_10C15EB0::FUN_10c15eb0()
+{
+    if (Unknown4018)
+        return Unknown4018->Unknown04;
+    return 0;
+}
+
 // FUNCTION: 0x10C161F0 ?FUN_10c161f0@Class_10C161F0@@QAEXPAUStruct_10C161F0@@@Z
 void Class_10C161F0::FUN_10c161f0(Struct_10C161F0* Source)
 {

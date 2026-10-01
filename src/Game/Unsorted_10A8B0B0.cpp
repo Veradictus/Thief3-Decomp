@@ -59,6 +59,64 @@ public:
     FName Unknown04;
 };
 
+extern int DAT_10f3a1dc;
+
+extern void* DAT_10e6c610[];
+
+class Class_1090FD40
+{
+public:
+    void FUN_1090f2c0(int Count);
+};
+
+extern Class_1090FD40 DAT_10f3a1e0;
+
+void FUN_10c3fbd0();
+
+struct Class_10E6C610
+{
+    void* VTable;
+};
+
+class Class_10C4CD50
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8(Class_10E6C610* Event);
+};
+
+Class_10C4CD50* FUN_10c4cd50();
+
+class Class_10E6C620
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void FUN_10a8b1e0();
+};
+
+// FUNCTION: 0x10A8B1E0 ?FUN_10a8b1e0@Class_10E6C620@@UAEXXZ
+void Class_10E6C620::FUN_10a8b1e0()
+{
+    FUN_10c3fbd0();
+    DAT_10f3a1e0.FUN_1090f2c0(0);
+    DAT_10f3a1dc = 0;
+    Class_10C4CD50* Mgr = FUN_10c4cd50();
+    Class_10E6C610 Event;
+    Event.VTable = DAT_10e6c610;
+    Mgr->Virtual8(&Event);
+}
+
 // FUNCTION: 0x10A8B640 ?FUN_10a8b640@Class_10E6C580@@UAEXHPAX@Z
 void Class_10E6C580::FUN_10a8b640(int A, void* Stream)
 {

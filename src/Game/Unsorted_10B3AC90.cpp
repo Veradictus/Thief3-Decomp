@@ -57,6 +57,34 @@ public:
     Class_10B3ACB0* FUN_10b3acb0();
 };
 
+struct Struct_10AA3520
+{
+    char Unknown00[0x08];
+    void* Unknown08;
+};
+
+extern Struct_10AA3520* DAT_10f35dec;
+
+class Class_10B3AC90
+{
+public:
+    void* FUN_10b3ac90();
+
+    void* Unknown00;
+};
+
+// FUNCTION: 0x10B3AC90 ?FUN_10b3ac90@Class_10B3AC90@@QAEPAXXZ
+void* Class_10B3AC90::FUN_10b3ac90()
+{
+    if (Unknown00 == 0)
+    {
+        void* Value = DAT_10f35dec->Unknown08;
+        if (Value != 0)
+            Unknown00 = Value;
+    }
+    return Unknown00;
+}
+
 // FUNCTION: 0x10B3ACB0 ?FUN_10b3acb0@Class_10B3ACB0@@QAEPAV1@XZ
 Class_10B3ACB0* Class_10B3ACB0::FUN_10b3acb0()
 {

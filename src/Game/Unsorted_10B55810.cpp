@@ -74,6 +74,31 @@ public:
     void FUN_10b45d10();
 };
 
+struct Struct_10B55810
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+class Class_10E81C20
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual Struct_10B55810 FUN_10b55810();
+
+    char Unknown04[0x50];
+    Struct_10B55810 Unknown54;
+};
+
+// FUNCTION: 0x10B55810 ?FUN_10b55810@Class_10E81C20@@UAE?AUStruct_10B55810@@XZ
+Struct_10B55810 Class_10E81C20::FUN_10b55810()
+{
+    return Unknown54;
+}
+
 // FUNCTION: 0x10B56520 ?FUN_10b56520@Class_10B56520@@QAEXXZ
 void Class_10B56520::FUN_10b56520()
 {

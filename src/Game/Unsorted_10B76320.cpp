@@ -294,6 +294,69 @@ public:
     bool Unknown18C;
 };
 
+struct Struct_10B76320
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+};
+
+class Class_10F3A3D8
+{
+public:
+    char Unknown00[0x150];
+    Struct_10B76320* Unknown150;
+};
+
+extern Class_10F3A3D8* DAT_10f3a3d8;
+
+class Class_10B76320
+{
+public:
+    int FUN_10b76320();
+
+    char Unknown00[0x190];
+    int Unknown190;
+};
+
+class Class_10A2AEF0
+{
+public:
+    void FUN_10a2aef0(int* A, int B, int C, int D, int E, int F, int G, int H, int* I);
+};
+
+class Class_10B78040
+{
+public:
+    void FUN_10b78040(int A, int B, int C, int D, int E, int F);
+
+    char Unknown00[0x160];
+    Class_10A2AEF0* Unknown160;
+    int Unknown164;
+    int Unknown168;
+    int Unknown16C;
+};
+
+// FUNCTION: 0x10B76320 ?FUN_10b76320@Class_10B76320@@QAEHXZ
+int Class_10B76320::FUN_10b76320()
+{
+    switch (Unknown190)
+    {
+    case 1:
+        return DAT_10f3a3d8->Unknown150->Unknown04;
+    case 2:
+        return DAT_10f3a3d8->Unknown150->Unknown0C;
+    }
+    return 0;
+}
+
+// FUNCTION: 0x10B78040 ?FUN_10b78040@Class_10B78040@@QAEXHHHHHH@Z
+void Class_10B78040::FUN_10b78040(int A, int B, int C, int D, int E, int F)
+{
+    Unknown160->FUN_10a2aef0(&Unknown168, A, B, C, D, E, F, 0, &Unknown16C);
+}
+
 // FUNCTION: 0x10B781E0 ?FUN_10b781e0@Class_10B781E0@@QAEXXZ
 void Class_10B781E0::FUN_10b781e0()
 {

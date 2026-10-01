@@ -19,6 +19,30 @@ public:
     void FUN_10ab72d0();
 };
 
+class Class_10E49AC4
+{
+public:
+    Class_10E49AC4();
+
+    virtual void Virtual0();
+
+    void FUN_10ab6e50();
+
+    char Unknown04[0x54];
+    bool Unknown58;
+    bool Unknown59;
+    bool Unknown5A;
+};
+
+// FUNCTION: 0x10AB6EB0 ??0Class_10E49AC4@@QAE@XZ
+Class_10E49AC4::Class_10E49AC4()
+{
+    Unknown58 = false;
+    Unknown59 = false;
+    Unknown5A = false;
+    FUN_10ab6e50();
+}
+
 // FUNCTION: 0x10AB72D0 ?FUN_10ab72d0@Class_10AB72D0@@QAEXXZ
 void Class_10AB72D0::FUN_10ab72d0()
 {

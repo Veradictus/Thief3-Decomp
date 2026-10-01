@@ -62,9 +62,16 @@ UNITS: Dict[str, dict] = {}
 
 # Built without optimization: every method spills `this` to [ebp-4] (docs/matching.md, "/Od units").
 OD_CFLAGS = ["/Od" if flag == "/O2" else flag for flag in CFLAGS]
-UNITS["Game/Unsorted_10BF7810.cpp"] = {"cflags": OD_CFLAGS}
-UNITS["Game/Unsorted_10BF79D0.cpp"] = {"cflags": OD_CFLAGS}
-UNITS["Game/Unsorted_10BF8F00.cpp"] = {"cflags": OD_CFLAGS}
+
+# Address ranges whose functions belong to a unit before they are matched: the gate compiles them with
+# the unit's flags and integrate.py puts them there. splits.txt declares only what src/ holds.
+UNIT_RANGES = [
+    (0x10BF7810, 0x10BF7990, "Game/Unsorted_10BF7810.cpp"),
+    (0x10BF79D0, 0x10BF7AD0, "Game/Unsorted_10BF79D0.cpp"),
+    (0x10BF8F00, 0x10BF8F5C, "Game/Unsorted_10BF8F00.cpp"),
+]
+for _start, _end, _source in UNIT_RANGES:
+    UNITS[_source] = {"cflags": OD_CFLAGS}
 
 # objdiff/decomp.dev progress categories, from config/<version>/categories.txt
 # (tools/classify.py). "main" is the headline (decomp.dev's default category):
@@ -182,8 +189,9 @@ def main() -> None:
         print(f"warning: {exe} is missing; copy it from the game's System/ folder (see README.md)")
 
     units = plan_units(config_dir)
+    ranged = {source for _, _, source in UNIT_RANGES}  # declared once they hold a function
     for source in options:
-        if not any(u.source == source for u in units):
+        if source not in ranged and not any(u.source == source for u in units):
             sys.exit(f"UNITS entry {source} is not declared in {splits_txt}")
 
     # -- tools -----------------------------------------------------------------

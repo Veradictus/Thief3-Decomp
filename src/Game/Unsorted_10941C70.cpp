@@ -36,6 +36,39 @@ public:
     int Unknown60;
 };
 
+class Class_10941E90
+{
+public:
+    void FUN_10941e90();
+
+    void* Unknown00;
+};
+
+class Class_10941F40
+{
+public:
+    void FUN_10941f40();
+
+    char Unknown00[4];
+    void* Unknown04;
+};
+
+// FUNCTION: 0x10941E90 ?FUN_10941e90@Class_10941E90@@QAEXXZ
+void Class_10941E90::FUN_10941e90()
+{
+    if (Unknown00)
+        ::operator delete(Unknown00);
+    Unknown00 = 0;
+}
+
+// FUNCTION: 0x10941F40 ?FUN_10941f40@Class_10941F40@@QAEXXZ
+void Class_10941F40::FUN_10941f40()
+{
+    if (Unknown04)
+        ::operator delete(Unknown04);
+    Unknown04 = 0;
+}
+
 // FUNCTION: 0x10942000 ?FUN_10942000@Class_10e4a668@@UAEXH@Z
 void Class_10e4a668::FUN_10942000(int A)
 {

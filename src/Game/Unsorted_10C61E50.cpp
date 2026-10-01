@@ -43,6 +43,36 @@ public:
 
 extern unsigned char DAT_10ff7115;
 
+class Class_10E9CB00
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual int FUN_10c61e50();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual int Virtual13();
+
+    char Unknown04[0x110];
+    bool Unknown114;
+};
+
+// FUNCTION: 0x10C61E50 ?FUN_10c61e50@Class_10E9CB00@@UAEHXZ
+int Class_10E9CB00::FUN_10c61e50()
+{
+    if (Unknown114)
+        return 0;
+    return Virtual13();
+}
+
 // FUNCTION: 0x10C62A20 ?FUN_10c62a20@Class_10c62a20@@QAEXXZ
 void Class_10c62a20::FUN_10c62a20()
 {

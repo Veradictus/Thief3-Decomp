@@ -12,7 +12,6 @@ public:
     int* Unknown30;
 };
 
-
 class Class_10C49200
 {
 public:
@@ -96,6 +95,44 @@ public:
     char Unknown78[4];
     Object_10C4A030* Unknown7C;
 };
+
+class Class_10E9BB60 {
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual unsigned int FUN_10c48200(int p1, unsigned int p2, unsigned int p3, unsigned int p4);
+};
+
+class Class_10E9BB80
+{
+public:
+    virtual void Virtual0();
+    virtual int FUN_10c483e0(unsigned int* A, unsigned int* B);
+};
+
+// FUNCTION: 0x10C48200 ?FUN_10c48200@Class_10E9BB60@@UAEIHIII@Z
+unsigned int Class_10E9BB60::FUN_10c48200(int p1, unsigned int p2, unsigned int p3, unsigned int p4)
+{
+    unsigned int Avail = p3 - p2;
+    if (p4 < Avail)
+        return p4;
+    return Avail;
+}
+
+// FUNCTION: 0x10C483E0 ?FUN_10c483e0@Class_10E9BB80@@UAEHPAI0@Z
+int Class_10E9BB80::FUN_10c483e0(unsigned int* A, unsigned int* B)
+{
+    unsigned int X = *A;
+    unsigned int Y = *B;
+    if (X == Y)
+        return 0;
+    return X > Y ? 1 : -1;
+}
 
 // FUNCTION: 0x10C49020 ?FUN_10c49020@Class_10C49020@@QAEHXZ
 int Class_10C49020::FUN_10c49020()

@@ -1,6 +1,8 @@
 // Game/Unsorted_10A49020.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
+#include "Core/Core.h"
+
 int FUN_10a48b30(int A, int B);
 
 void FUN_10a4a100(int A, int B, int C, int D);
@@ -24,6 +26,30 @@ public:
     Struct_10A4C4A0* FUN_10a4c0d0(int A, int B);
     void FUN_10a4c4a0(int A, int B, Struct_10A4C4A0_Pair* C);
 };
+
+class FCoords
+{
+public:
+    FCoords() {}
+
+    FRotator OrthoRotation() const;
+
+    FVector Origin;
+    FVector XAxis;
+    FVector YAxis;
+    FVector ZAxis;
+};
+
+void FUN_10a48f20(int A, int B, FCoords* Out);
+
+// FUNCTION: 0x10A4A100 ?FUN_10a4a100@@YAXHHPAVFVector@@PAVFRotator@@@Z
+void FUN_10a4a100(int A, int B, FVector* OutLocation, FRotator* OutRotation)
+{
+    FCoords Coords;
+    FUN_10a48f20(A, B, &Coords);
+    *OutRotation = Coords.OrthoRotation();
+    *OutLocation = Coords.Origin;
+}
 
 // FUNCTION: 0x10A4A160 ?FUN_10a4a160@@YAXHHHH@Z
 void FUN_10a4a160(int A, int B, int C, int D)

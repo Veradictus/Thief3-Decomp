@@ -31,6 +31,27 @@ public:
     bool Unknown40;
 };
 
+extern float DAT_10eafbdc;
+
+class Class_10B7AD50
+{
+public:
+    float FUN_10b7ad50(int Index);
+
+    char Unknown00[0x34];
+    int Unknown34;
+    char Unknown38[4];
+    float* Unknown3C;
+};
+
+// FUNCTION: 0x10B7AD50 ?FUN_10b7ad50@Class_10B7AD50@@QAEMH@Z
+float Class_10B7AD50::FUN_10b7ad50(int Index)
+{
+    if (Unknown34 > Index)
+        return Unknown3C[Index];
+    return DAT_10eafbdc;
+}
+
 // FUNCTION: 0x10B7AFA0 ??0Class_10B7AFA0@@QAE@HH_N@Z
 Class_10B7AFA0::Class_10B7AFA0(int A, int B, bool C)
     : Unknown00(A), Unknown04(0), Unknown08(0x101), Unknown10(-1.0f), Unknown14(B), Unknown18(false),
