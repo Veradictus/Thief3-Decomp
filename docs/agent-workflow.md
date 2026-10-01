@@ -115,6 +115,36 @@ callers; and the claim must re-check the records after taking the lock
 (next.py now does), or a worker can be handed a function another one has just
 accepted.
 
+### Swarms (2026-10-01)
+
+Then a continuous swarm: 8 to 12 workers at once, later 16, each freed slot
+refilled at once, with one to three Opus workers on functions of 80 bytes and
+more (`FILTERS=--min-size 80 N=6 COUNT=1 CAP=10`). Three swarms, each drained
+for a checkpoint (sweep, review, naming pass, integration), 109 workers in
+all. "Priced" as above, plus output at 5x; Opus's higher price per token is
+not included.
+
+| Swarm | Band | Model | Workers | Matched | Priced per match |
+|---|---|---|---|---|---|
+| 1 | head, up to 31 bytes | Sonnet | 25 | 466 (97%) | 26K |
+| 1 | main, 32 bytes and more | Sonnet | 10 | 81 (81%) | 105K |
+| 1 | big, 80 bytes and more | Opus | 6 | 30 (83%) | 110K |
+| 2 | head | Sonnet | 7 | 127 (91%) | 36K |
+| 2 | main | Sonnet | 15 | 118 (79%) | 85K |
+| 2 | big | Opus | 6 | 28 (78%) | 97K |
+| 3 | head | Sonnet | 13 | 248 (97%) | 28K |
+| 3 | main | Sonnet | 21 | 162 (81%) | 90K |
+| 3 | big | Opus | 6 | 24 (67%) | 205K |
+
+The lead adds what needs no model between swarms: a naming pass over the
+name-blocked deferrals (each blocked function's candidate names its callee;
+the old guess stays as an alias, so callers in `src/` keep matching), 66
+InternalConstructor thunks rewritten from one template, and families of
+byte-identical functions matched from one accepted member (68 wrappers
+returning `Class_109081E0(DAT_x)`). Library and compiler-generated shapes the
+workers recognize (STL `_Tidy`, `_Ufill`, `std::fill`, global initializers)
+go to `excluded.json` as they report them.
+
 ## Workers are Agent-tool sub-agents
 
 The lead launches workers with the Agent tool: `subagent_type: t3-matcher`,

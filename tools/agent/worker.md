@@ -98,6 +98,9 @@ inlines any body in the file, even one defined after the caller). Use
 - `movzx eax, al` after a call returning bool: the caller returns int.
   `neg eax; sbb eax, eax; neg eax` after a call: `return F() != 0;` (bool).
   `setge dl; mov eax, edx`: an int return; a bool return is `mov al, dl`.
+- `delete P` with no destructor call (operator delete only): give P a
+  complete empty type, `struct Struct_<addr> {};`, not `void*` (deleting a
+  `void*` is undefined C++, though MSVC compiles it the same).
 - COM interfaces (Direct3D): declare slots `virtual int __stdcall
   VirtualN(...)`: `this` is pushed last, no ecx.
 - `mov ecx, [esp+4]; test ecx, ecx; je; jmp <ctor>` (14 bytes) is a native
