@@ -93,13 +93,15 @@ highest number, `+0x10` `TArray<DWORD>` per-number flags, `+0x1C` ANSI text
 | `0x1C` | ObjectFlags | static, probable |
 | `0x20` | Name (FName) | verified |
 | `0x24` | Class | verified |
+| `0x28` | `ObjectInternalPropertyHash` (Ion Storm's, `Object.uc`) | static: `UObject` registers `0x2C` bytes |
 | `0x2C` | `UStruct` SuperField (on class objects) | verified: all 287 classes chain up to `Object` |
 | class `+0xE8` | the class's default object | static, probable |
 
-Stock Unreal Engine 2 has SuperField at `0x28`; this fork has one more field
-before it. The SDK re-detects Outer and SuperField at startup instead of
-trusting these numbers. The checks are structural runtime validation, not a
-proof that every object or class layout in this document is correct.
+Stock Unreal Engine 2 has SuperField at `0x28`; this fork's `UObject` is one
+field longer ("Class layouts" below). The SDK re-detects Outer and SuperField
+at startup instead of trusting these numbers. The checks are structural
+runtime validation, not a proof that every object or class layout in this
+document is correct.
 
 Runtime numbers from a test run: 4,488 objects and 287 classes once the core
 packages are loaded, about 6,000 objects and 9,800 names at the main menu. The
@@ -138,6 +140,39 @@ Engine are Ion Storm's own (the `*LinkDataObject` links, `MetaProperty`,
 `AISubsystem`, ...): their UnrealScript source has no Epic header. The tool
 uses them to tell Ion Storm's code from Epic's ([decomp-dev.md](decomp-dev.md),
 "Whose code it is").
+
+It also writes `config/PC_20040610/classes.txt`, one line per class: C++ name
+(`A` for `Actor` and its subclasses, else `U`), package, whose code, super
+class, object size and class flags (the getter passes both to the `UClass`
+constructor, after the name), the vtable its internal constructor stores, and
+the getter, initializer and internal constructor. The super class is the first
+class the initializer registers. Every native class the game's scripts declare
+is there; 74 more have no script (`UClass`, the property classes, `ULevel`,
+...). 22 classes share one vtable (`0x10E70A50`) and three another
+(`0x10E4D808`): the linker folded identical tables.
+
+### Class layouts
+
+A native class's C++ members are the variables its script declares, in order,
+except two kinds:
+
+- Ion Storm's gamesys properties, `inherited(N)` and `runtimeinstantiated(N)`:
+  they live in the property database (`tools/assets/t3props.py`), not in the
+  object, which is why `AActor` is only `0xC0` bytes;
+- `deusexprop` variables, which exist only in Deus Ex: Invisible War's build
+  of the shared code (`AController::CameraBob`).
+
+Unreal Engine 2's property linker places the rest: bytes 1-aligned, everything
+else 4-aligned (structs too, their size rounded up to 4), and a bool shares the
+32-bit word of the bool member before it, gamesys properties in between
+notwithstanding. Laid out this way, all 191 native classes with a script and a
+super class come out at their registered size (`tools/assets/t3classes.py
+check`). `UObject` is `0x2C` bytes: Ion Storm added `ObjectInternalPropertyHash`
+at `0x28` after stock Unreal Engine 2's fields, so `UField::SuperField` is at
+`0x2C`. `t3classes.py headers` writes the layouts as
+`include/<Package>/<Package>Classes.h` (names, types and offsets, each class's
+size checked at compile time). One accessor confirms a member: `AGarrett`'s
+virtual at `0x10B21280` returns bit 1 of the word at `0x450`, `isCrouching`.
 
 ## Script natives
 

@@ -142,16 +142,21 @@ and call `this->VirtualK()`; never model a vtable as a struct of function
 pointers.
 
 When the packet shows `== vtable slots`, the function is a virtual method of
-the class owning that table: declare `class Class_<table>` with `virtual`
+the class owning that table: the class the packet names (`AGarrett's
+vtable`), else `Class_<table>`. Declare that class with `virtual`
 placeholder methods `Virtual0()`... before its slot, the function itself
-`virtual` at its slot, and define `Class_<table>::FUN_x`.
+`virtual` at its slot, and define `AGarrett::FUN_x` (or
+`Class_<table>::FUN_x`).
 
-Use the symbols.txt and header names the packet shows. An unnamed free
-function keeps its placeholder (`void FUN_10926680();`). A member of an
-unknown class goes in `Class_<vtable address>` when a constructor stores the
-vtable, else `Class_<function address>` (never a made-up name such as
-`UNK_Class`), and keeps its placeholder method name. A field gets a name
-only when the code shows what it holds, else `Unknown34`.
+Use the symbols.txt and header names the packet shows. A generated header
+(`include/<Package>/<Package>Classes.h`) lists a class's fields with their
+offsets: name and type the fields you use from it, in your own declaration
+of the class (do not include it). An unnamed free function keeps its
+placeholder (`void FUN_10926680();`). A member of an unknown class goes in
+`Class_<vtable address>` when a constructor stores the vtable, else
+`Class_<function address>` (never a made-up name such as `UNK_Class`), and
+keeps its placeholder method name. Any other field gets a name only when the
+code shows what it holds, else `Unknown34`.
 
 ## Finish
 
