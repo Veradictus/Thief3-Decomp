@@ -90,6 +90,26 @@ inlines any body in the file, even one defined after the caller). Use
   `memset(&Field, 0, size)` (declare `extern "C" void* memset(void*, int, unsigned);`).
 - 32-byte struct copy: rep movsd; short fixed loops are unrolled. Signed char
   loads movsx, unsigned movzx. Dense switch: cmp; ja; jmp [eax*4+table].
+- `if (Member) Member->F();` loads the member into eax and copies it to ecx;
+  `C* P = Member; if (P) P->F();` loads straight into ecx. Likewise
+  `int Key = A; F(&Key);` stores back into the argument's own slot, `F(&A)`
+  does not. A global load hoisted above a member store: `int v = G; f = 0;
+  if (v) ...`.
+- `movzx eax, al` after a call returning bool: the caller returns int.
+  `neg eax; sbb eax, eax; neg eax` after a call: `return F() != 0;` (bool).
+  `setge dl; mov eax, edx`: an int return; a bool return is `mov al, dl`.
+- COM interfaces (Direct3D): declare slots `virtual int __stdcall
+  VirtualN(...)`: `this` is pushed last, no ecx.
+- `mov ecx, [esp+4]; test ecx, ecx; je; jmp <ctor>` (14 bytes) is a native
+  class's InternalConstructor: config/PC_20040610/classes.txt names the class
+  whose `constructor:` is this address. Write it as Unreal does: declare
+  `enum EInternal { EC_Internal };` and `inline void* operator new(unsigned
+  int, EInternal* Mem) { return Mem; }` (not a `void*` placement new: it
+  clashes with `<new>`), the class with `T(); static void
+  InternalConstructor(void* X);`, and define `void
+  T::InternalConstructor(void* X) { new ((EInternal*)X) T(); }`. The jmp
+  target is `T::T()`: declare it as the constructor even when symbols.txt
+  calls it a method.
 
 ## Rules (accept.py rejects the rest)
 

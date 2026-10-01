@@ -187,6 +187,22 @@ one) the address's own name: the gate and objdiff's report then pair them.
 configure.py writes `build/<version>/aliases.json` from symbols.txt and
 rebuilds the objects when it changes.
 
+Aliases also keep an earlier match valid when a better name arrives. Native
+classes' constructors were often matched as methods that store the vtable
+by hand (`?FUN_x@C@@QAEPAV1@XZ`), before anything showed they were
+constructors. Each class's InternalConstructor (`classes.txt`'s
+`constructor:`) is written as Unreal writes it, so its jump target becomes
+`??0T@@QAE@XZ`, and the method name stays on as an alias:
+
+    enum EInternal { EC_Internal };
+    inline void* operator new(unsigned int, EInternal* Mem) { return Mem; }
+
+    void T::InternalConstructor(void* X) { new ((EInternal*)X) T(); }
+
+The `EInternal*` overload has no matching placement delete, so `/GX` adds
+no exception frame (the `void*` placement new from `<new>` adds one), and it
+does not clash with `<new>` when both end up in one unit.
+
 try.py refuses a file byte-identical to an earlier attempt, counts only
 attempts that compiled, and refuses the 13th attempt of a claim.
 
