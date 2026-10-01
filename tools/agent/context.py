@@ -8,7 +8,9 @@ Sections, each left out when its input is missing:
   function    symbols.txt name, demangled signature, size, split unit, status
   target      the target's instructions (objdiff on the split object)
   references  callees and globals with their symbols.txt names; unnamed ones
-              are flagged, with any name another accepted function proposed
+              are flagged, with any name another accepted function proposed,
+              the registered class whose vtable a reference is, and the value
+              of each float or double the code loads (`initially` for a variable)
   ghidra      the cached Ghidra decompile (build/agent/cache/ghidra/<ADDR>.c)
   headers     include/ headers declaring the classes involved
   similar     accepted functions most like this one, with their source
@@ -19,7 +21,9 @@ Sections, each left out when its input is missing:
 import argparse
 import difflib
 import json
+import math
 import re
+import struct
 import subprocess
 import sys
 from typing import Dict, List, Sequence
@@ -43,7 +47,7 @@ def references(p: Project, address: int) -> List[dict]:
     fn = target_symbol(obj, f.name, address)
     if fn is None:
         return []
-    code_end, _ = p.code_extent(address)
+    code_end, region_end = p.code_extent(address)
     proposals: Dict[int, str] = {}
     for a, rec in p.accepted().items():
         if a == address:
@@ -51,11 +55,16 @@ def references(p: Project, address: int) -> List[dict]:
         for b in rec.get("bindings", []):
             if b.get("status") == "provisional":
                 proposals.setdefault(int(b["addr"], 16), f"{b['name']} (accepted {rec['addr']})")
+    floats = fpu_operands(obj, fn, code_end - address)
+    vtables: Dict[int, List[str]] = {}
+    for c in p.classes().values():
+        vtables.setdefault(c.vtable, []).append(c.name)
+    image = None
     out, seen = [], set()
     for _, r in obj.relocations(fn.section, fn.value, fn.value + code_end - address):
         sym = obj.slots[r.symbol]
         base = p.address_of(sym.name)
-        if sym.defined and sym.section == fn.section or sym.name in seen:
+        if sym.defined and sym.section == fn.section and fn.value <= sym.value < fn.value + region_end - address                 or sym.name in seen:
             continue  # its own labels and tables
         seen.add(sym.name)
         known = p.by_addr.get(base) if base is not None else None
@@ -66,12 +75,58 @@ def references(p: Project, address: int) -> List[dict]:
             entry["size"] = known.size
         if base in proposals:
             entry["proposed"] = proposals[base]
+        if len(vtables.get(base, [])) == 1:
+            entry["vtable_of"] = vtables[base][0]
+        width = floats.get(r.offset)
+        if width and base is not None and not sym.name.startswith("__real@"):
+            image = image or TargetImage(p)
+            view = image.view(base, width)
+            if view is not None:
+                entry["value"] = fpu_literal(view.data)
+                sec = image.pe.section_for_rva(base - image.pe.image_base) if image.pe else None
+                if sec is not None and sec.writable:
+                    entry["value"] = "initially " + entry["value"]  # a variable, not a constant
         out.append(entry)
     dem = demangle(p, [e["name"] for e in out])
     for e in out:
         if dem.get(e["name"]):
             e["demangled"] = dem[e["name"]]
     return out
+
+
+def fpu_operands(obj: coff.Coff, fn: coff.Symbol, length: int) -> Dict[int, int]:
+    """Relocation offsets inside the function's FPU memory operands (fld, fmul, fcomp, ...), with the
+    operand's width: the constants the code loads as float (4) or double (8)."""
+    try:
+        from iced_x86 import Decoder, MemorySize
+    except ImportError:
+        return {}
+    widths = {MemorySize.FLOAT32: 4, MemorySize.FLOAT64: 8}
+    sec = obj.section(fn.section)
+    relocs = [r.offset for _, r in obj.relocations(fn.section, fn.value, fn.value + length)]
+    out = {}
+    for insn in Decoder(32, sec.data[fn.value:fn.value + length], ip=fn.value):
+        width = widths.get(insn.memory_size)
+        if width:
+            out.update({o: width for o in relocs if insn.ip <= o < insn.ip + insn.len})
+    return out
+
+
+def fpu_literal(data: bytes) -> str:
+    """A float or double constant as the shortest source literal that has its bits, e.g. `0.1f`."""
+    if len(data) == 8:
+        value = struct.unpack("<d", data)[0]
+        return f"{value!r} (double)" if math.isfinite(value) else f"0x{data[::-1].hex()} (double)"
+    value = struct.unpack("<f", data)[0]
+    if not math.isfinite(value):
+        return f"0x{data[::-1].hex()} (float)"
+    for digits in range(1, 10):
+        text = f"{value:.{digits}g}"
+        if struct.pack("<f", float(text)) == data:
+            break
+    if "e" not in text and "." not in text:
+        text += ".0"
+    return f"{text}f"
 
 
 def headers(p: Project, classes: List[str], whole: Sequence[str] = (), max_lines: int = 40) -> List[dict]:
@@ -278,6 +333,10 @@ def print_packet(pk: dict) -> None:
             note = "" if r["named"] else "  (unnamed)"
             if r.get("proposed"):
                 note += f"  proposed: {r['proposed']}"
+            if r.get("vtable_of"):
+                note += f"  ({r['vtable_of']}'s vtable)"
+            if r.get("value"):
+                note += f"  {'' if r['value'].startswith('initially') else '= '}{r['value']}"
             print(f"{r['kind']:<5} {r['addr'] or '?':<11} {r['name']}{note}")
             if r.get("demangled"):
                 print(f"                  {r['demangled']}")
@@ -321,12 +380,15 @@ def main() -> None:
         parser = argparse.ArgumentParser(prog="context.py fill-ghidra")
         parser.add_argument("addrs", nargs="*")
         parser.add_argument("--next", type=int, default=0, help="also the next N functions of the queue")
+        parser.add_argument("--min-size", type=int, help="of the queue's functions this size or larger")
+        parser.add_argument("--max-size", type=int, help="of the queue's functions this size or smaller")
         args = parser.parse_args(sys.argv[2:])
         p = Project()
         addresses = [p.parse_addr(a) for a in args.addrs]
         if args.next:
             import next as queue_mod
-            ns = argparse.Namespace(unit=None, max_size=None, all_regions=False, include_deferred=False)
+            ns = argparse.Namespace(unit=None, min_size=args.min_size, max_size=args.max_size, all_regions=False,
+                                    include_deferred=False)
             addresses += [int(e["addr"], 16) for e in queue_mod.queue(p, ns)[:args.next]]
         fill_ghidra(p, addresses)
         return

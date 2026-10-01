@@ -259,7 +259,13 @@ patterns that need no judgement:
 - The context packet lists the vtable slots that hold a function (tables in
   read-only data whose start the code uses as a constant), so workers
   declare virtual methods as virtual methods instead of guessing a free
-  function, the most common source of name conflicts.
+  function, the most common source of name conflicts. Its references name
+  the registered class whose vtable a constant is, and print the value of
+  each float or double the code loads from an unnamed address, so a worker
+  writes `0.01f` instead of guessing a global.
+- A switch's jump table carries a label symbol in the split object, which
+  objdiff does not treat as the end of a function: the gate bounds the
+  target at the end of its code anyway, as it does the candidate.
 
 ## Trust the records, not the reports
 
