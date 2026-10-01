@@ -60,6 +60,12 @@ CFLAGS = [
 #   "cflags":   replaces CFLAGS for this unit
 UNITS: Dict[str, dict] = {}
 
+# Built without optimization: every method spills `this` to [ebp-4] (docs/matching.md, "/Od units").
+OD_CFLAGS = ["/Od" if flag == "/O2" else flag for flag in CFLAGS]
+UNITS["Game/Unsorted_10BF7810.cpp"] = {"cflags": OD_CFLAGS}
+UNITS["Game/Unsorted_10BF79D0.cpp"] = {"cflags": OD_CFLAGS}
+UNITS["Game/Unsorted_10BF8F00.cpp"] = {"cflags": OD_CFLAGS}
+
 # objdiff/decomp.dev progress categories, from config/<version>/categories.txt
 # (tools/classify.py). "main" is the headline (decomp.dev's default category):
 # Ion Storm's game code, which the decompilation covers. Epic's engine and the

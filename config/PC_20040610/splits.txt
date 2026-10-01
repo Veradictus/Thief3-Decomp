@@ -2777,6 +2777,15 @@ Game/Unsorted_10BF6BE0.cpp:
 	.text  start:0x10BFBB50 end:0x10BFBB5A
 	.text  start:0x10BFBB80 end:0x10BFBB8A
 
+Game/Unsorted_10BF7810.cpp:
+	.text  start:0x10BF7810 end:0x10BF7990
+
+Game/Unsorted_10BF79D0.cpp:
+	.text  start:0x10BF79D0 end:0x10BF7AD0
+
+Game/Unsorted_10BF8F00.cpp:
+	.text  start:0x10BF8F00 end:0x10BF8F5C
+
 Game/Unsorted_10BFBB90.cpp:
 	.text  start:0x10BFBB90 end:0x10BFBB9A
 

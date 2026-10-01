@@ -407,3 +407,12 @@ both fold such labels into the function plus an offset
 (`coff.Coff.fold_labels`), so both sides of a switch read the same; the gate
 finds where the code ends from the references to the tables either way.
 
+## /Od units
+
+A few functions were built without optimization: a frame (`push ebp; mov
+ebp, esp`) even in a one-line method, `this` spilled to `[ebp-4]` and read
+back at every use. `configure.py` gives the units holding them `/Od` in
+place of `/O2` (`UNITS`, with the units declared in `splits.txt`), and the
+gate compiles a candidate with its unit's flags, so a worker writes them
+like any other function. 0x10BF7810 to 0x10BF7AD0 is one such file, broken
+by one optimized function at 0x10BF7990, and 0x10BF8F00 another.
