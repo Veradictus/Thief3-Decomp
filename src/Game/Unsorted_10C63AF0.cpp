@@ -53,6 +53,27 @@ public:
     void FUN_10c63d00();
 };
 
+class Class_109E3C90
+{
+public:
+    void FUN_109e3c90(int p1);
+};
+
+class Class_10C63AF0
+{
+public:
+    void FUN_10c63af0(int p1);
+
+    char Unknown00[0xC];
+    Class_109E3C90 Field0C;
+};
+
+// FUNCTION: 0x10C63AF0 ?FUN_10c63af0@Class_10C63AF0@@QAEXH@Z
+void Class_10C63AF0::FUN_10c63af0(int p1)
+{
+    Field0C.FUN_109e3c90(p1);
+}
+
 // FUNCTION: 0x10C63CF0 ?FUN_10c63cf0@Class_10C63CF0@@QAEXXZ
 void Class_10C63CF0::FUN_10c63cf0()
 {

@@ -16,7 +16,7 @@ class Class_10E67FD0
 public:
     Class_10E67FD0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E67FD0();
 
     char Unknown04[0x114];
 };
@@ -26,7 +26,7 @@ class Class_10E87F90 : public Class_10E67FD0
 public:
     Class_10E87F90();
 
-    virtual void Virtual0();
+    virtual ~Class_10E87F90();
 
     int Unknown118;
     char Unknown11C[0xC];
@@ -41,3 +41,6 @@ public:
 Class_10E87F90::Class_10E87F90() : Unknown118(0), Unknown134(0), Unknown138(0), Unknown13C(true), Unknown13D(true)
 {
 }
+
+// FUNCTION: 0x10B76250 ??_GClass_10E87F90@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B76200's definition in this unit.

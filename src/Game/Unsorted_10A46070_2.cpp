@@ -213,7 +213,7 @@ class Class_10E67FD0
 public:
     Class_10E67FD0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E67FD0();
 
     char Unknown04[0x114];
 };
@@ -223,7 +223,7 @@ class Class_10E682F0 : public Class_10E67FD0
 public:
     Class_10E682F0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E682F0();
 
     int Unknown118;
     Class_1090A780 Unknown11C;
@@ -381,6 +381,9 @@ unsigned char Class_10A54CC0::FUN_10a54cc0()
 Class_10E682F0::Class_10E682F0() : Unknown118(0), Unknown120(0), Unknown121(1)
 {
 }
+
+// FUNCTION: 0x10A54DF0 ??_GClass_10E682F0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A54D20's definition in this unit.
 
 // FUNCTION: 0x10A55080 ?FUN_10a55080@Class_10A55080@@QAEXE@Z
 void Class_10A55080::FUN_10a55080(unsigned char param)

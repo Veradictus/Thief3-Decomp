@@ -26,7 +26,7 @@ class Class_10E6C104
 public:
     Class_10E6C104();
 
-    virtual void Virtual0();
+    virtual ~Class_10E6C104();
 
     char Unknown04[4];
 };
@@ -45,7 +45,7 @@ class Class_10E6C290 : public Class_10E6C104
 public:
     Class_10E6C290();
 
-    virtual void Virtual0();
+    virtual ~Class_10E6C290();
 
     Struct_10A82E20 Unknown08;
     int Unknown14;
@@ -79,6 +79,9 @@ void Class_10E6C1F0::FUN_10a823c0(int Value)
 Class_10E6C290::Class_10E6C290() : Unknown14(0), Unknown18(-1)
 {
 }
+
+// FUNCTION: 0x10A82E50 ??_GClass_10E6C290@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A82E20's definition in this unit.
 
 // FUNCTION: 0x10A84800 ??0Class_10E6C364@@QAE@XZ
 Class_10E6C364::Class_10E6C364()

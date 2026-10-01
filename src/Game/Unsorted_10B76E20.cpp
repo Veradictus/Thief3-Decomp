@@ -32,7 +32,7 @@ class Class_10E822B0
 public:
     Class_10E822B0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E822B0();
 
     char Unknown04[0x150];
 };
@@ -62,6 +62,7 @@ struct Struct_10B7AA20
 class Class_10E88AF8 : public Class_10E822B0, public Base_10B7AA20
 {
 public:
+    virtual ~Class_10E88AF8();
     Class_10E88AF8();
 
     Struct_10B7AA20 Unknown158;
@@ -115,6 +116,9 @@ public:
 };
 
 void FUN_10cad410();
+
+// FUNCTION: 0x10B59E10 ??_GClass_10E88AF8@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B7AA20's definition in this unit.
 
 // FUNCTION: 0x10B78340 ?FUN_10b78340@Class_10B78340@@QAEPAXXZ
 void* Class_10B78340::FUN_10b78340()

@@ -6,7 +6,7 @@ class Class_10E6C104
 public:
     Class_10E6C104();
 
-    virtual void Virtual0();
+    virtual ~Class_10E6C104();
 
     int Unknown04;
 };
@@ -23,6 +23,7 @@ struct Struct_10A81C10
 class Class_10E6C1C8 : public Class_10E6C104
 {
 public:
+    virtual ~Class_10E6C1C8();
     Class_10E6C1C8();
 
     Struct_10A81C10 Unknown08;
@@ -33,3 +34,6 @@ public:
 Class_10E6C1C8::Class_10E6C1C8()
 {
 }
+
+// FUNCTION: 0x10A81C40 ??_GClass_10E6C1C8@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A81C10's definition in this unit.

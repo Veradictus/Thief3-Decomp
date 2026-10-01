@@ -48,12 +48,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   unclassified); `include/Core/Core.h` keeps the declarations the game code
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): batches of Sonnet sub-agents, 20 at a time,
-  from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,780
-  matched functions in 443 units, one per auto unit of the split
+  from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 1,805
+  matched functions in 448 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (1,772 of 12,074 functions at 100%, 1.1% of its bytes; hidden from decomp.dev's list
+  game code (1,797 of 12,074 functions at 100%, 1.1% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -206,12 +206,18 @@ Later the same day, played by the user:
      slot-64 `Serialize` overrides and 40 more callees have their real
      names, the jump wrappers are methods, and 46 blocked functions
      matched. Run `tools/agent/retry.py` after any naming pass.
-   - Gate: let one address carry several names (identical functions the
-     linker folded: `operator delete` and a class's sized one, 4-byte
-     getters, slot-0 virtuals of two classes), and resolve the weak `??_E`
-     symbol in vtable checks, so deleting destructors match from a real
-     virtual destructor instead of being excluded. These are the conflicts
-     left in `build/agent/lead-backlog.md`.
+   - After each batch's integration, run `tools/agent/dtors.py`: it plans
+     the deleting destructors of every class whose vtable `src/` emits (19 so
+     far; about 600 are excluded until their class's constructor or
+     destructor is matched). Left by hand: classes whose deleting destructor
+     inlines the destructor (it needs the destructor's definition in the
+     same unit) and classes matched with a non-virtual destructor. The 116
+     that call `operator delete` with a size need the class that declares
+     that operator: `UObject`'s is an alias of `::operator delete` already
+     (`??3UObject@@SAXPAXI@Z`), another class's would be one more.
+   - One address can carry several names (`type:alias` in symbols.txt,
+     `tools/cc.py`): give a folded function's other callers' names as
+     aliases instead of rewriting them.
    - Use the generated class headers in matching: units still declare their
      own classes (`Virtual0()`... placeholders, `Unknown34` fields); a
      shared header per class needs the virtual functions too, which the
@@ -227,7 +233,7 @@ Later the same day, played by the user:
      functions taken out of `src/` as unclassified can come back once it is
      game code.
    - objdiff's report now counts what the gate matched, but for 8 of the
-     1,780 functions in `src/`: a static local's guard and `$E` destructor
+     1,805 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, and `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`. integrate.py names the vtables

@@ -16,7 +16,7 @@ class Class_10E6C104
 public:
     Class_10E6C104();
 
-    virtual void Virtual0();
+    virtual ~Class_10E6C104();
 
     char Unknown04[4];
 };
@@ -26,7 +26,7 @@ class Class_10E6D940 : public Class_10E6C104
 public:
     Class_10E6D940();
 
-    virtual void Virtual0();
+    virtual ~Class_10E6D940();
 
     int Unknown08;
     int Unknown0C;
@@ -37,3 +37,6 @@ public:
 Class_10E6D940::Class_10E6D940() : Unknown08(0), Unknown0C(0)
 {
 }
+
+// FUNCTION: 0x10AA7A20 ??_GClass_10E6D940@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10AA79F0's definition in this unit.

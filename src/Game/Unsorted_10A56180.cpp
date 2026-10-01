@@ -16,7 +16,7 @@ class Class_10E67FD0
 public:
     Class_10E67FD0();
 
-    virtual void Virtual0();
+    virtual ~Class_10E67FD0();
 
     char Unknown04[0xE4];
     int Unknown0E8;
@@ -28,7 +28,7 @@ class Class_10E68938 : public Class_10E67FD0
 public:
     Class_10E68938();
 
-    virtual void Virtual0();
+    virtual ~Class_10E68938();
 
     int Unknown118;
     FArray Unknown11C;
@@ -41,3 +41,6 @@ Class_10E68938::Class_10E68938() : Unknown118(0), Unknown134(false)
 {
     Unknown0E8 = 6;
 }
+
+// FUNCTION: 0x10A568A0 ??_GClass_10E68938@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A56620's definition in this unit.

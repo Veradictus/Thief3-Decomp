@@ -22,7 +22,7 @@ class Class_10E6D8F0
 public:
     Class_10E6D8F0();
 
-    virtual void FUN_10aa69e0();
+    virtual ~Class_10E6D8F0();
 
     int Unknown04;
     int Unknown08;
@@ -311,6 +311,9 @@ Class_10E6D8F0::Class_10E6D8F0()
     Unknown18 = 0;
     Unknown1C = 0;
 }
+
+// FUNCTION: 0x10AA69E0 ??_GClass_10E6D8F0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10AA6860's definition in this unit.
 
 // FUNCTION: 0x10AA71F0 ?FUN_10aa71f0@Class_10AA71F0@@QAEHPAU_iobuf@@H@Z
 int Class_10AA71F0::FUN_10aa71f0(FILE* File, int Param)

@@ -13,7 +13,7 @@ class Class_10E97BEC {
 public:
     Class_10E97BEC();
 
-    virtual void Virtual0();
+    virtual ~Class_10E97BEC();
 
     int Unknown04;
     int Unknown08;
@@ -56,6 +56,9 @@ Class_10E97BEC::Class_10E97BEC()
     Unknown08 = 0;
     Unknown0C = 0;
 }
+
+// FUNCTION: 0x10C0AE90 ??_GClass_10E97BEC@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10C0AD70's definition in this unit.
 
 // FUNCTION: 0x10C0B040 ?FUN_10c0b040@Class_10E97C18@@UAE_NXZ
 bool Class_10E97C18::FUN_10c0b040()
