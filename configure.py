@@ -133,6 +133,21 @@ def plan_units(config_dir: Path) -> List[splitslib.Unit]:
                           breaks=breaks(config_dir))
 
 
+def write_aliases(symbols_txt: Path, out: Path) -> None:
+    """{alias: the address's own name} from symbols.txt's `type:alias` lines, for tools/cc.py. Written only
+    when it changes, so the objects are rebuilt only then."""
+    symbols = symbolslib.load(symbols_txt)
+    own: Dict[int, str] = {}
+    for s in symbols:
+        if s.type != "alias" and (s.is_function or s.address not in own):
+            own[s.address] = s.name  # a function wins over a label at its address, as in the agent tools
+    aliases = {s.name: own[s.address] for s in symbols if s.type == "alias" and s.address in own}
+    text = json.dumps(aliases, indent=1, sort_keys=True) + "\n"
+    if not out.is_file() or out.read_text(encoding="utf-8") != text:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text, encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", default=DEFAULT_VERSION, choices=sorted(VERSIONS))
@@ -258,8 +273,14 @@ def main() -> None:
             runtime_dlls.append(str(dest))
     cl_cmd = f"{wrapper} {cl}" if wrapper else str(cl)
     includes = f"/I{compilers_dir / 'Win32' / '7.1' / 'Include'} /Iinclude /Isrc"
+    # Every object goes through tools/cc.py, which gives references to an address's other names (symbols.txt
+    # aliases) the address's own name. The rule names Python itself: the agent tools run it outside ninja.
+    aliases_json = build_dir / "aliases.json"
+    write_aliases(symbols_txt, aliases_json)
+    cc_deps = ["tools/cc.py", "tools/agent/coff.py", str(aliases_json)]
     n.rule(
         "cc",
+        f'"{python}" tools/cc.py --aliases {aliases_json} -- '
         f"{cl_cmd} /nologo /c /X {includes} $cflags /showIncludes /Fo$out $in",
         description="CC $in",
         deps="msvc",
@@ -273,7 +294,7 @@ def main() -> None:
         if not u.auto and source.is_file():
             base = build_dir / "src" / u.object
             n.build(str(base), "cc", inputs=str(source),
-                    implicit=[str(cl), *runtime_dlls] + ([str(wibo)] if wibo else []),
+                    implicit=[str(cl), *runtime_dlls, *cc_deps] + ([str(wibo)] if wibo else []),
                     variables={"cflags": " ".join(opts.get("cflags", CFLAGS))})
             base_objs.append(str(base))
         if not reported(u):

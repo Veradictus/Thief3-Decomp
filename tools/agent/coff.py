@@ -17,6 +17,7 @@ IMAGE_SCN_CNT_CODE = 0x00000020
 IMAGE_SCN_MEM_WRITE = 0x80000000
 IMAGE_SYM_CLASS_EXTERNAL = 2
 IMAGE_SYM_CLASS_STATIC = 3
+IMAGE_SYM_CLASS_WEAK_EXTERNAL = 105
 IMAGE_SYM_DTYPE_FUNCTION = 0x20
 IMAGE_REL_I386_DIR32 = 0x06
 IMAGE_REL_I386_REL32 = 0x14
@@ -146,6 +147,16 @@ class Coff:
         """The defined symbol called `name`, else an undefined one, else None."""
         found = [s for s in self.symbols if s.name == name]
         return next((s for s in found if s.defined), found[0] if found else None)
+
+    def resolve(self, sym: Symbol) -> Symbol:
+        """A weak external's default definition (MSVC's vector deleting destructor `??_E` stands for the
+        scalar one, `??_G`, unless something defines it), else the symbol itself."""
+        if sym.storage == IMAGE_SYM_CLASS_WEAK_EXTERNAL and not sym.defined and len(sym.aux) >= 4:
+            tag = struct.unpack_from("<I", sym.aux, 0)[0]
+            if 0 <= tag < len(self.slots) and self.slots[tag] is not None:
+                # MSVC points it at an undefined entry of that name; the definition (a COMDAT) is another one.
+                return self.symbol(self.slots[tag].name) or self.slots[tag]
+        return sym
 
     def extent(self, sym: Symbol) -> Tuple[int, int]:
         """[start, end) of a defined symbol in its section: up to the next symbol or the section end."""

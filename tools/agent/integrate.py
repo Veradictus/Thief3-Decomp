@@ -156,6 +156,8 @@ def auto_unit(p: Project, address: int) -> str:
 def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tuple[str, str]:
     """(source path relative to src/, category) for an accepted record."""
     address = int(rec["addr"], 16)
+    if rec.get("generated"):  # compiled where the function that makes the compiler emit it is
+        return p.integrated()[int(rec["with"], 16)], args.category or guess_category(p, rec)
     if args.unit:
         source = args.unit[4:] if args.unit.startswith("src/") else args.unit
         return source, args.category or guess_category(p, rec)
@@ -421,6 +423,9 @@ def integrate(p: Project, args) -> dict:
         if a in integrated:
             continue
         skip = skipped(p, accepted[a], args)
+        if not skip and accepted[a].get("generated") and int(accepted[a]["with"], 16) not in integrated:
+            skip = (f"is compiler-generated with {accepted[a]['with']}, which is not in src/ yet; skipped until "
+                    f"it is")
         if skip:
             summary["warnings"].append(f"{fmt_addr(a)} {skip}")
             continue
@@ -441,11 +446,18 @@ def integrate(p: Project, args) -> dict:
         symbols = {a: (FUNCTION_MARKER.search(b).group(2).strip() or None) for a, b in blocks.items()}
         new_decls: Dict[int, List[str]] = {}
         for a in sorted(addrs):
+            symbols[a] = accepted[a]["symbol"]
+            if accepted[a].get("generated"):
+                # No source of its own: the unit emits it with its class's vtable, which needs the unit's
+                # class declaration to match the accepted one (a virtual destructor for `??_G`).
+                new_decls[a] = []
+                blocks[a] = (f"// FUNCTION: {fmt_addr(a)} {symbols[a]}\n// Compiler-generated: emitted with the "
+                             f"class's vtable by {accepted[a]['with']}'s definition in this unit.\n")
+                continue
             decl, body = split_file((p.state / "accepted" / f"{addr_key(a)}.cpp").read_text(encoding="utf-8"))
             new_decls[a] = items(decl)
             blocks[a] = FUNCTION_MARKER.sub(f"// FUNCTION: {fmt_addr(a)} {accepted[a]['symbol']}",
                                             body, 1).rstrip() + "\n"
-            symbols[a] = accepted[a]["symbol"]
         cflags = p.configure.UNITS.get(source, {}).get("cflags", p.configure.CFLAGS)
         while True:
             declarations = items(head) + [d for a in sorted(new_decls) for d in new_decls[a]]

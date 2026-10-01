@@ -182,7 +182,9 @@ def main() -> None:
     pe = PE(exe_bytes)
     segments = build_segments(pe)
     image = Image(segments)
-    symbols = symbolslib.load(args.symbols)
+    # An address's other names (`type:alias`) stay out of the split: references use its own name, and
+    # tools/cc.py gives the compiled objects that name too.
+    symbols = [s for s in symbolslib.load(args.symbols) if s.type != "alias"]
     functions = [s for s in symbols if s.is_function and s.size > 0]
     # Data inside code (switch tables) is skipped when decoding and left unnamed,
     # so references to it resolve as <owning function> + offset.

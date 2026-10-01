@@ -488,6 +488,37 @@ TESTS = [
 ]
 
 
+def test_weak_externals_and_aliases(base: Path) -> None:
+    """A vtable's vector deleting destructor (??_E) resolves to the scalar one the file defines, and tools/cc.py
+    points references to an alias at the address's own name."""
+    import coff
+    sys.path.insert(0, str(ROOT / "tools"))
+    import cc
+    p = Project()
+    path = fixture.compile_reference(p, (
+        "struct Base { virtual ~Base(); };\n"
+        "struct Kid : Base { Kid(); ~Kid(); };\n"
+        "Kid::Kid() {}\n"
+        "void Freed(void*);\n"
+        "void Primary(void*);\n"
+        "void Once() { Freed(0); }\n"
+        "void Both() { Primary(0); Freed(0); }\n"), base / "weak")
+    obj = coff.Coff.load(path)
+    weak = obj.symbol("??_EKid@@UAEPAXI@Z")
+    check(weak is not None and not weak.defined, "the vtable references the vector deleting destructor")
+    check(obj.resolve(weak).name == "??_GKid@@UAEPAXI@Z" and obj.resolve(weak).defined,
+          "the weak ??_E resolves to the scalar deleting destructor the file defines")
+    cc.normalize(path, {"?Freed@@YAXPAX@Z": "?Primary@@YAXPAX@Z"})
+    obj = coff.Coff.load(path)
+    targets = {obj.slots[r.symbol].name for sec in obj.sections for r in sec.relocations
+               if obj.slots[r.symbol] is not None and not obj.slots[r.symbol].is_section}
+    check("?Freed@@YAXPAX@Z" not in targets and "?Primary@@YAXPAX@Z" in targets,
+          "every reference to the alias now names the primary")
+
+
+TESTS.append(test_weak_externals_and_aliases)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-k", help="run only tests whose name contains this")

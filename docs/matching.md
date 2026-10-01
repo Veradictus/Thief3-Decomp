@@ -160,6 +160,33 @@ ranges (EH handler and funclets), every binding with its status, the flags
 and the attempt count. Accepting an already accepted function needs
 `--replace`.
 
+A function MSVC writes itself, a scalar deleting destructor (`??_G`), has
+no definition to mark: its candidate is the file whose definition makes the
+compiler emit it (the class's constructor or destructor, with the class
+declaring `virtual ~C();` at slot 0), with the `// FUNCTION:` line moved to
+the deleting destructor's address, accepted with `--symbol ??_GC@@UAEPAXI@Z`.
+The record says `generated` and names that function (`with`, or `--with`);
+integrate.py puts only the marker in that function's unit, which emits it.
+In a vtable, the vector deleting destructor `??_E` is a weak external that
+stands for `??_G`; the rulers follow it.
+
+## One address, several names
+
+The linker folds identical functions into one copy, so the game's source
+called some addresses by several names: `::operator delete` and
+`UObject::operator delete(void*, size_t)`, a 4-byte getter of two classes, a
+one-byte `ret`. symbols.txt gives such an address its other names as
+`type:alias` lines after its own:
+
+    ??3@YAXPAX@Z = .text:0x10AD1DC0; // type:function size:0x12
+    ??3UObject@@SAXPAXI@Z = .text:0x10AD1DC0; // type:alias
+
+The split leaves aliases out, and every object is compiled through
+`tools/cc.py`, which gives references to an alias (and a definition under
+one) the address's own name: the gate and objdiff's report then pair them.
+configure.py writes `build/<version>/aliases.json` from symbols.txt and
+rebuilds the objects when it changes.
+
 try.py refuses a file byte-identical to an earlier attempt, counts only
 attempts that compiled, and refuses the 13th attempt of a claim.
 
@@ -349,7 +376,7 @@ the split objects are made rather than in the gate:
   references `??_7Class@@6B@`, the split object the label symbols.txt gives
   that address. integrate.py names the vtables of the functions it
   integrates, so the store pairs; a vtable the linker folded for several
-  classes can carry one name only.
+  classes takes the others' names as aliases (see above).
 - A static local: its guard (`?$S1@...`) and the `$E` function that
   registers its destructor are named only in their own object file.
 - A reference into a named array at an offset (`GNatives[2 * 256 + B]`): the

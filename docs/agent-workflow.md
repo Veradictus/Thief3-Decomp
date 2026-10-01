@@ -319,11 +319,24 @@ old names, hand-written candidates) after checking every edit, and
 functions. [retry.py](../tools/agent/retry.py) re-checks every deferred
 function's candidates after names change and accepts what matches now.
 
-Some conflicts are the gate's to settle: the linker folds identical small
-bodies (`mov eax, [ecx+4]; ret`, a 1-byte `ret`, two classes' slot-0
-virtuals) into one address that callers name differently, and deleting
-destructors need the weak `??_E` symbol resolved. Both need one address to
-carry several names.
+The linker folds identical small bodies (`mov eax, [ecx+4]; ret`, a 1-byte
+`ret`, two classes' slot-0 virtuals, `operator delete` and `UObject`'s sized
+one) into one address that callers name differently. Such an address gets
+more names in symbols.txt (`type:alias`, with `fixnames.py spec`'s
+`aliases`), and every object is compiled through
+[tools/cc.py](../tools/cc.py), which gives references to an alias the
+address's own name, so the gate and objdiff's report pair them
+([matching.md](matching.md), "One address, several names").
+
+Scalar deleting destructors (`??_G`) are compiler-generated: they match
+from a class that declares `virtual ~C();` at slot 0, where the class's
+vtable is emitted, never from a hand-written body (the queue excludes them).
+After integrating, [dtors.py](../tools/agent/dtors.py) writes a plan for
+every one whose class's vtable a function in `src/` emits: the class gets
+its virtual destructor, the constructor is re-accepted, and the deleting
+destructor is accepted as generated with it (`fixnames.py spec`,
+`configure.py && ninja`, `fixnames.py spec-accept`, `integrate.py`). The
+first run matched 19.
 
 ## Guard and permissions
 

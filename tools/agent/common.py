@@ -224,7 +224,8 @@ class Project:
         if not hasattr(self, "_by_addr"):
             self._by_addr = {}
             for s in self.symbols:
-                self._by_addr.setdefault(s.address, s)
+                if s.type != "alias":  # an address's other names (symbols.txt), never its own
+                    self._by_addr.setdefault(s.address, s)
             for f in self.functions:  # a function wins over a label at its address
                 self._by_addr[f.address] = f
         return self._by_addr

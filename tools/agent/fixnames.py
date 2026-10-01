@@ -35,6 +35,7 @@ the fix (docs/agent-workflow.md, "Name conflicts"); a plan file carries it:
     python tools/agent/fixnames.py spec-accept <plan.json>
 
     {"renames":    {"0x10A58CF0": "??0Class_10E69080@@QAE@XZ", ...},   # symbols.txt
+     "aliases":    {"0x10AD1DC0": ["??3UObject@@SAXPAXI@Z"]},          # more names for a folded address
      "patches":    [{"binder": "0x10B5AB90",                            # an accepted caller that bound the old name
                      "replace": [["old text", "new text"], ...],        # in its accepted source
                      "unit_replace": [...]}],                           # in its src/ unit (default: replace)
@@ -207,6 +208,16 @@ def spec_prepare(p: Project, spec: dict) -> None:
             sys.exit(f"{new} is already in symbols.txt")
         print(f"{addr}: {m.group(1)} -> {new}")
         text = text[:m.start(1)] + new + text[m.end(1):]
+    for addr, names in spec.get("aliases", {}).items():  # more names for an address (tools/cc.py)
+        m = re.search(r"(?m)^\S+ = (\.\w+):%s;[^\n]*\n" % fmt_addr(p.parse_addr(addr)), text)
+        if not m:
+            sys.exit(f"{addr}: no symbols.txt line")
+        for name in names:
+            if re.search(r"(?m)^%s = " % re.escape(name), text):
+                sys.exit(f"{name} is already in symbols.txt")
+            print(f"{addr}: + alias {name}")
+            line = f"{name} = {m.group(1)}:{fmt_addr(p.parse_addr(addr))}; // type:alias\n"
+            text = text[:m.end()] + line + text[m.end():]
     writes[p.symbols_txt] = text
     integrated = p.integrated()
     for patch in spec.get("patches", []):

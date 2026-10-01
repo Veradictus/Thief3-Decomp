@@ -475,7 +475,7 @@ class _Check:
             notes.append(f"bytes differ at +{diff[0]:#x}")
         for k in sorted(set(c_rel) | set(t_rel)):
             cr = c_rel.get(k)
-            csym = cobj.slots[cr.symbol] if cr else None
+            csym = cobj.resolve(cobj.slots[cr.symbol]) if cr else None
             # A plain value in the exe; tools/split.py relocates __except_list in the split objects.
             if csym is not None and csym.name in ABSOLUTE and (k not in t_rel or t_rel[k][1] == csym.name):
                 if struct.unpack_from("<I", t_bytes, k)[0] != ABSOLUTE[csym.name] + cobj.addend(csec.index, cr):
