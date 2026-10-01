@@ -34,8 +34,9 @@ changed. Only then are the files written:
     .text$x ranges (EH handlers and unwind funclets), checked with
     tools/splits.py;
   - symbols.txt: the functions' decorated names, the names their references
-    were bound to (callees, globals, __real@/??_C@ literals, __ehhandler$
-    stubs), never overwriting a real name with a different one.
+    were bound to (callees, globals, the vtables they store, __real@/??_C@
+    literals, __ehhandler$ stubs), never overwriting a real name with a
+    different one.
 Serialised by build/agent/integrate.lock. Afterwards run configure.py and
 ninja, and compare the report with the previous one.
 """
@@ -312,6 +313,9 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
                 want(a, b["name"], b["kind"], compatible_with=b.get("target", ""))
             elif b["kind"] in ("literal", "ehhandler"):
                 want(a, b["name"], "literal" if b["kind"] == "literal" else "function", b.get("size", 0))
+            elif b["kind"] == "data" and b["name"].startswith("??_7"):
+                # A vtable the function stores, compared by value: named, the report pairs the store.
+                want(a, b["name"], "literal", b.get("size", 0))
     return renames, sorted(added.items()), warnings
 
 

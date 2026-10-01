@@ -27,7 +27,9 @@ python tools/ghidra_headless.py bootstrap                          # rebuild ghi
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
 python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
 .venv/Scripts/python tools/progress_report.py write|check                          # decomp.dev report: write after integrating, commit progress/
-.venv/Scripts/python tools/classify.py write|explain <addr>|stats                  # whose code: game/engine/libs (config/*/categories.txt)
+.venv/Scripts/python tools/classify.py write|explain <addr>|stats                  # whose code: game/engine/libs (config/*/categories.txt, classes.txt)
+.venv/Scripts/python tools/assets/t3classes.py check|show <class>|headers          # class layouts from the scripts (include/<Package>/)
+.venv/Scripts/python tools/agent/retry.py; rename.py --registered; fixnames.py spec <plan>   # naming passes (docs/agent-workflow.md)
 python tools/assets/t3pack.py roundtrip|apply|install|restore                    # write edited maps back
 cd launcher && yarn install && yarn tauri dev                                      # the launcher (docs/launcher.md)
 cd launcher && yarn verify                                                         # launcher UI: types, lint, format, tests
@@ -57,8 +59,10 @@ python tools/mods/selftest.py                                                   
   plain C, `__cdecl`, and only grows (check `api->size`).
 - Engine: Ion Storm's early Unreal Engine 2 fork (script packages version 95 /
   licensee 133). FName carries a 16-bit instance number, printed as
-  `Name__N`. UStruct SuperField is at `0x2C`. Unreal's network layer is
-  absent.
+  `Name__N`. `UObject` is `0x2C` bytes (Ion Storm's property hash at
+  `0x28`), so UStruct SuperField is at `0x2C`. A native class's members are
+  its script's variables minus the gamesys properties (`inherited(N)`,
+  `runtimeinstantiated(N)`). Unreal's network layer is absent.
 - Workbench compiler: MSVC 13.10.3077 (`/O2 /GX`), verified byte for byte on
   three functions.
 

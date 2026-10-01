@@ -26,6 +26,25 @@ After a new split, `accept` accepts each patched caller (its old record
 moved to build/agent/rejected/, since accept.py --replace would still check
 names against it), then the deferred candidate, and takes the address off
 build/agent/excluded.json. Free functions only; the rest is reported.
+
+Methods, return types, constructors and jump wrappers need the lead to write
+the fix (docs/agent-workflow.md, "Name conflicts"); a plan file carries it:
+
+    python tools/agent/fixnames.py spec <plan.json>     # check every edit, then write them all
+    python configure.py && ninja
+    python tools/agent/fixnames.py spec-accept <plan.json>
+
+    {"renames":    {"0x10A58CF0": "??0Class_10E69080@@QAE@XZ", ...},   # symbols.txt
+     "patches":    [{"binder": "0x10B5AB90",                            # an accepted caller that bound the old name
+                     "replace": [["old text", "new text"], ...],        # in its accepted source
+                     "unit_replace": [...]}],                           # in its src/ unit (default: replace)
+     "candidates": {"0x10C13E80": "<source>"},                          # written to build/scratch/<addr>/lead-fix.cpp
+     "blocked":    ["0x10A56130", ...]}                                 # retried with retry.py afterwards
+
+`spec` writes each patched caller to build/scratch/<caller>/lead-fix.cpp and
+edits its src/ unit; `spec-accept` accepts the patched callers (a caller that
+no longer matches keeps its old record) and runs retry.py on the blocked
+functions and the candidates.
 """
 
 import json
@@ -176,12 +195,74 @@ def accept(p: Project, plan: list) -> None:
     atomic_write(excluded_path, json.dumps(excluded, indent=1) + "\n")
 
 
+def spec_prepare(p: Project, spec: dict) -> None:
+    """Check every edit of a plan, then write them all (nothing is written when one does not apply)."""
+    writes = {}
+    text = p.symbols_txt.read_text(encoding="utf-8")
+    for addr, new in spec.get("renames", {}).items():
+        m = re.search(r"(?m)^(\S+) = \.\w+:%s;" % fmt_addr(p.parse_addr(addr)), text)
+        if not m:
+            sys.exit(f"{addr}: no symbols.txt line")
+        if re.search(r"(?m)^%s = " % re.escape(new), text):
+            sys.exit(f"{new} is already in symbols.txt")
+        print(f"{addr}: {m.group(1)} -> {new}")
+        text = text[:m.start(1)] + new + text[m.end(1):]
+    writes[p.symbols_txt] = text
+    integrated = p.integrated()
+    for patch in spec.get("patches", []):
+        binder = p.parse_addr(patch["binder"])
+        source = (p.state / "accepted" / f"{binder:08X}.cpp").read_text(encoding="utf-8")
+        for old, new in patch["replace"]:
+            if old not in source:
+                sys.exit(f"{patch['binder']}: not in its accepted source: {old!r}")
+            source = source.replace(old, new)
+        writes[p.root / "build" / "scratch" / fmt_addr(binder) / "lead-fix.cpp"] = source
+        unit = integrated.get(binder)
+        if unit:
+            path = p.src_dir / unit
+            unit_text = writes.get(path) or path.read_text(encoding="utf-8")
+            for old, new in patch.get("unit_replace", patch["replace"]):
+                if old not in unit_text and new not in unit_text:
+                    sys.exit(f"{patch['binder']}: not in src/{unit}: {old!r}")
+                unit_text = unit_text.replace(old, new)
+            writes[path] = unit_text
+        print(f"caller {patch['binder']}" + (f" (src/{unit})" if unit else ""))
+    for addr, body in spec.get("candidates", {}).items():
+        writes[p.root / "build" / "scratch" / fmt_addr(p.parse_addr(addr)) / "lead-fix.cpp"] = body
+    for path, body in writes.items():
+        atomic_write(path, body)
+    print(f"{len(writes)} files written. Next: python configure.py && ninja, then fixnames.py spec-accept")
+
+
+def spec_accept(p: Project, spec: dict) -> None:
+    rejected = p.state_dir("rejected")
+    for patch in spec.get("patches", []):
+        binder = p.parse_addr(patch["binder"])
+        moved = []
+        for f in (p.state / "accepted").glob(f"{binder:08X}.*"):
+            f.replace(rejected / f.name)
+            moved.append(f)
+        proc = tool(p, "accept.py", fmt_addr(binder), str(p.root / "build" / "scratch" / fmt_addr(binder) / "lead-fix.cpp"))
+        print(f"caller {fmt_addr(binder)}: {first_line(proc)}")
+        if proc.returncode:
+            for f in moved:  # the caller stays as it was accepted
+                (rejected / f.name).replace(f)
+    blocked = list(dict.fromkeys(spec.get("blocked", []) + list(spec.get("candidates", {}))))
+    if blocked:
+        proc = tool(p, "retry.py", *blocked)
+        print((proc.stdout or proc.stderr).rstrip())
+
+
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "constants", "accept"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("prepare", "constants", "accept", "spec", "spec-accept"):
         sys.exit(__doc__)
     if os.environ.get("T3_AGENT_ID"):
         sys.exit("fixnames.py is the lead's")
     p = Project()
+    if sys.argv[1] in ("spec", "spec-accept"):
+        spec = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+        (spec_prepare if sys.argv[1] == "spec" else spec_accept)(p, spec)
+        return
     plan_path = p.state / "fixnames-plan.json"
     if sys.argv[1] == "accept":
         accept(p, json.loads(plan_path.read_text(encoding="utf-8")))

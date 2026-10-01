@@ -219,7 +219,8 @@ close a failure seen in the pilot:
      `build/agent/excluded.json` (address to reason), which the queue skips;
    - settle the parked name conflicts (see [Name conflicts](#name-conflicts)):
      `fixnames.py prepare` with the addresses excluded as name conflicts,
-     `python configure.py && ninja`, `fixnames.py accept`;
+     `python configure.py && ninja`, `fixnames.py accept`; the rest with a
+     plan (`fixnames.py spec`), then `retry.py`;
    - integrate the accepted addresses (`integrate.py --dry-run` first). Free
      functions, and methods of classes known only by a placeholder name
      (`Class_<address>`), go to one unit per auto unit of the split
@@ -287,8 +288,42 @@ gives each address its real name in symbols.txt and patches the callers'
 declarations (their accepted sources and `src/` units), then, after
 `configure.py && ninja` (the split must carry the new names),
 `fixnames.py accept` re-accepts the callers, accepts the candidates and
-lifts the exclusions. Methods and vtable slots are settled by hand. A `jmp` stub whose callee is a method is written as a method
-call (the protocol says so), which avoids most of these.
+lifts the exclusions. A `jmp` stub whose callee is a method is written as a
+method call (the protocol says so), which avoids most of these.
+
+The first naming pass (2026-09-30) settled the rest by hand: 44 symbols got
+their real names, the 32 accepted callers that had pinned the guesses were
+rewritten (and `operator delete`'s 33), and 46 blocked functions matched.
+The kinds it met, and their fixes:
+
+- A **jump wrapper** (`void FUN_x() { FUN_y(); }`) is a method forwarding its
+  arguments: a virtual override calling the base's implementation
+  (`Super::Serialize(Ar)` at the same vtable slot), a member's assignment or
+  destructor at offset 0, or a getter returning its callee's result. MSVC
+  7.1 tail-jumps all of these, arguments included.
+- A **base constructor or destructor** called as a free function: the class
+  derives from the base and calls `this->Base::Base()`, or the base is an
+  empty class at offset 0.
+- A **return type** a tail call passes through (`return p->Virtual6();`), a
+  `float` parameter written as `int` (`push 0` is `0.0f`), an argument pushed
+  early for the next call rather than for the callee.
+- A **global** recorded as `int` or `void*` that holds an object.
+- A **function split in two** in symbols.txt: merge the entries.
+
+[rename.py](../tools/agent/rename.py) renames a class everywhere (symbols.txt,
+`src/`, records, scratch files); `--registered` gives every `Class_<vtable>`
+its registered name from classes.txt. `fixnames.py spec <plan.json>` applies
+a lead-written plan (symbols.txt renames, edits to the callers that bound the
+old names, hand-written candidates) after checking every edit, and
+`fixnames.py spec-accept` re-accepts the callers and retries the blocked
+functions. [retry.py](../tools/agent/retry.py) re-checks every deferred
+function's candidates after names change and accepts what matches now.
+
+Some conflicts are the gate's to settle: the linker folds identical small
+bodies (`mov eax, [ecx+4]; ret`, a 1-byte `ret`, two classes' slot-0
+virtuals) into one address that callers name differently, and deleting
+destructors need the weak `??_E` symbol resolved. Both need one address to
+carry several names.
 
 ## Guard and permissions
 

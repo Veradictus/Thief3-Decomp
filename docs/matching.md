@@ -175,12 +175,13 @@ first) and puts each into a unit:
   per auto unit of the split (one file for all would let MSVC inline small
   callees into their callers). A function whose class definitions clash with
   its unit's goes to `--unit <Category>/Unsorted_<start>_2.cpp`.
-  The category is `--category`, else `engine` for Unreal-style names
-  (`UObject`, `AActor`, `FName`), else `game`. Library code (from the CRT
-  entry point on, outside `.text$x`) is not published (CONTRIBUTING.md), so
-  it is skipped unless `--category libs`; so is Epic's engine: an
-  Unreal-style class is skipped unless `--category` is given (`game` once the
-  class is known to be Ion Storm's).
+  The category is `--category`, else the function's in `categories.txt`,
+  except that a method of an Unreal-style class (`UObject`, `AActor`,
+  `FName`) counts as Epic's engine unless `classes.txt` has the class as Ion
+  Storm's (`AGarrett`, `UT3GameEngine`). Library code (from the CRT entry
+  point on, outside `.text$x`) is not published (CONTRIBUTING.md), so it is
+  skipped unless `--category libs`; so is Epic's engine, unless `--category`
+  is given (`game` once the class is known to be Ion Storm's).
 - The unit file gets the accepted files' declarations, deduplicated, then the
   functions in address order, each behind `// FUNCTION: 0x<ADDR> <decorated
   name>`.
@@ -341,14 +342,16 @@ The self-test cannot cover these, so they were checked on the real split:
 
 ## objdiff's report and the gate
 
-The report under-counts what the gate matched in two cases, both to fix in
-how the split objects are made rather than in the gate:
+The report under-counts what the gate matched in a few cases, to fix in how
+the split objects are made rather than in the gate:
 
-- A constructor's vtable: the compiled object references `??_7Class@@6B@`,
-  the split object the `DAT_` label of that address, while `symbols.txt` has
-  no vtable name there (identical vtables the linker folded share one
-  address, so one name cannot fit all of their classes); the store scores as
-  a different reference (about 20 constructors at 99.5%).
+- A vtable a constructor or destructor stores: the compiled object
+  references `??_7Class@@6B@`, the split object the label symbols.txt gives
+  that address. integrate.py names the vtables of the functions it
+  integrates, so the store pairs; a vtable the linker folded for several
+  classes can carry one name only.
+- A static local: its guard (`?$S1@...`) and the `$E` function that
+  registers its destructor are named only in their own object file.
 - A reference into a named array at an offset (`GNatives[2 * 256 + B]`): the
   model gives the address a `DAT_` label of its own, and delink turns an
   unnamed one into `<section> + offset`; either way objdiff's name ruler

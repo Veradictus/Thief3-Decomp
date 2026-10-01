@@ -131,9 +131,9 @@ constants all sit at offset 0). So functions enter `src/` only through
 value (see [matching.md](matching.md)): the report is the progress display, the
 gate is the proof.
 
-The report can still under-count: objdiff scores some functions the gate
-matched just below 100% (a constructor's vtable reference, while symbols.txt
-has no `??_7` name at that address; a reference into a named array at an
-offset; see [matching.md](matching.md), "objdiff's report and the gate").
+The report can still under-count: objdiff scores a few functions the gate
+matched just below 100% (a static local's guard, a reference into a named
+array at an offset; see [matching.md](matching.md), "objdiff's report and
+the gate"): 8 of the 1,780 in `src/`.
 Functions with an exception frame no longer do: `tools/split.py` gives the
 split objects the `__except_list` relocations the exe dropped.
