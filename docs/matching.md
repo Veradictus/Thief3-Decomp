@@ -30,6 +30,7 @@ the split target objects.
 | `context.py <addr>` | worker | The context packet for one function |
 | `context.py fill-ghidra --next N` | lead | Caches Ghidra decompiles for the queue head |
 | `try.py <addr> <file>` | worker | Compile, diff, verdict, `ATTEMPT k/12` |
+| `sidebyside.py <addr> <file>` | worker | Every instruction of a candidate next to the target's, references by name; no attempt spent, no verdict |
 | `accept.py <addr> <file>` | worker | The gate; records the function |
 | `accept.py defer <addr> "<blocker>"` | worker | Records the best attempt and the blocker |
 | `integrate.py` | lead | Accepted functions into `src/`, `splits.txt`, `symbols.txt` |
@@ -380,10 +381,16 @@ The self-test cannot cover these, so they were checked on the real split:
   (`GNatives`). Workers stand in for what the headers lack (local types,
   subclasses to reach undeclared members); review accepted files before
   integrating.
+- A function with a switch table (`FUN_10a85660`, a byte index table and a
+  jump table) first scored 38.9 with instructions identical to the target's:
+  delink labels the jump table (`jpt_...`, storage class `LABEL`) where the
+  code ends, verify.py took that for the end boundary and added none, and
+  objdiff, which does not end a function at a label, read the tables as rows.
+  verify.py now adds the boundary unless the symbol there is not a label;
+  `test_labelled_switch_table` reproduces the split's label.
 
 ## Not yet checked against the real exe
 
-- try.py on a function with a switch table.
 - The exe path of the data ruler on `__real@` constants (strings and EH
   tables are checked: `execBoolToString`, `execLen`).
 

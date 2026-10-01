@@ -125,8 +125,13 @@ def items(text: str) -> List[str]:
     return [s.strip("\n") + "\n" for s in out if linter.strip(s).strip()]
 
 
+COMMENT = re.compile(r"""("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|//[^\n]*|/\*.*?\*/""", re.S)
+
+
 def normal(item: str) -> str:
-    return " ".join(linter.strip(item).split())
+    """An item's identity: its code without comments or layout. String literals stay (linter.strip blanks
+    them): two #include lines, or declarations differing only in a literal, are different items."""
+    return " ".join(COMMENT.sub(lambda m: m.group(1) or " ", item).split())
 
 
 def compose(unit: str, declarations: List[str], blocks: Dict[int, str]) -> str:

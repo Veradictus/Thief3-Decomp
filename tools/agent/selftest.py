@@ -25,6 +25,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import coff  # noqa: E402
 import fixture  # noqa: E402
 from common import ROOT, Project, splitslib, symbolslib  # noqa: E402
 
@@ -56,6 +57,7 @@ FUNCTIONS = {
     "?Name@@YAPBDXZ": 'const char* Name() { return "hello world"; }',
     "?Callee@@YAHH@Z": "int Callee(int x) { return x * 5 + 3; }",
     "?Caller@@YAHH@Z": "int Caller(int x) { return Callee(x) + 1; }",
+    "?Fib@@YAHH@Z": "int Fib(int n) { return n < 2 ? n : Fib(n - 1) + Fib(n - 2); }",
 }
 # In the reference, Callee stays a call (as if it lived in another file); a unit defining it would inline it.
 REFERENCE = DECLS + "\n".join(("__declspec(noinline) " if s == "?Callee@@YAHH@Z" else "") + body
@@ -136,6 +138,37 @@ def test_different_expression_rejected(base: Path) -> None:
     check(proc.returncode == 1 and "switch tables" in proc.stdout, "a reordered switch should fail", proc)
 
 
+def test_labelled_switch_table(base: Path) -> None:
+    """delink labels the jump table after a function's code (jpt_..., storage class LABEL), and objdiff does
+    not end a function at a label: the target must still end at its code, as the candidate does."""
+    e = Env(base, "jpt")
+    sw = "?Sw@@YAHHH@Z"
+    table = e.target.addr(sw) + e.target.sizes[sw]
+    for path in (e.root / "build" / "PC_20040610" / "obj" / "auto").glob("*.obj"):
+        obj = coff.Coff.load(path)
+        fn = next(s for s in obj.symbols if s.name == e.target.names[sw])
+        path.write_bytes(obj.rewrite(add=[(f"jpt_{table:08X}", fn.value + e.target.sizes[sw], fn.section, 0,
+                                           coff.IMAGE_SYM_CLASS_LABEL)]))
+    proc = e.run("try.py", e.addr(sw), e.candidate(sw))
+    check(proc.returncode == 0 and "MATCH" in proc.stdout, "a switch whose table delink labelled should match", proc)
+
+
+def test_sidebyside(base: Path) -> None:
+    """sidebyside.py: every row of an exact match lines up (named callee, float literal, switch), a
+    different expression shows, a build error fails, and no attempt is spent."""
+    e = Env(base, "sidebyside")
+    for sym in ("?Get@Foo@@QBEHXZ", "?Scale@@YAMPAUFoo@@@Z", "?Sw@@YAHHH@Z"):
+        proc = e.run("sidebyside.py", e.addr(sym), e.candidate(sym))
+        check(proc.returncode == 0 and "\n0 differing rows," in proc.stdout, f"{sym} should line up", proc)
+    sym = "?Get@Foo@@QBEHXZ"
+    proc = e.run("sidebyside.py", e.addr(sym), e.candidate(sym, "int Foo::Get() const { return a * 3 + b + Helper(g_counter); }"))
+    check(proc.returncode == 0 and "\n~ " in proc.stdout and "\n0 differing rows," not in proc.stdout,
+          "a different expression should show", proc)
+    proc = e.run("sidebyside.py", e.addr(sym), e.candidate(sym, "int Foo::Get() const { return nope; }"))
+    check(proc.returncode != 0 and "BUILD FAILED" in proc.stderr, "a build error should fail", proc)
+    check(not (e.root / "build/agent/attempts").exists(), "sidebyside.py records no attempt")
+
+
 def test_wrong_callee_rejected(base: Path) -> None:
     sym, body = "?Get@Foo@@QBEHXZ", "int Foo::Get() const { return a + b * 3 + Other(g_counter); }"
     # 1. symbols.txt names the callee: the instruction bytes are identical, the callee is not.
@@ -169,6 +202,27 @@ def test_wrong_callee_rejected(base: Path) -> None:
                                                    "r2.n); }", extra=extra))
     check(proc.returncode == 1 and "unwind funclet" in proc.stdout, "wrong destructors must fail in the funclets",
           proc)
+
+
+def test_self_call(base: Path) -> None:
+    """A function's calls to itself carry no relocation in the split (delink resolves them in the unit)."""
+    e = Env(base, "self-call")
+    fib = "?Fib@@YAHH@Z"
+    t_obj = coff.Coff.load(e.root / "build/PC_20040610/obj/auto" / f"text_{fixture.TEXT:08X}.obj")
+    fn = next(s for s in t_obj.symbols if s.name == f"FUN_{e.target.addr(fib):08x}")
+    sec = t_obj.section(fn.section)
+    start = fn.value
+    calls = [r for _, r in t_obj.relocations(sec.index, start, start + e.target.sizes[fib])
+             if t_obj.slots[r.symbol] is fn]
+    check(not calls, "the fixture drops the self-call relocations, as delink does")
+    proc = e.run("try.py", e.addr(fib), e.candidate(fib))
+    check(proc.returncode == 0 and "MATCH" in proc.stdout, "a recursive function matches", proc)
+    proc = e.run("accept.py", e.addr(fib), e.candidate(fib))
+    check(proc.returncode == 0 and "ACCEPTED" in proc.stdout, "and is accepted", proc)
+    other = "int Fib(int n) { return n < 2 ? n : Helper(n - 1) + Fib(n - 2); }"
+    proc = e.run("try.py", e.addr(fib), e.candidate(fib, other))
+    check(proc.returncode == 1 and "where the target calls itself" in proc.stdout,
+          "a call elsewhere where the target calls itself fails", proc)
 
 
 def test_class_method_names(base: Path) -> None:
@@ -330,6 +384,17 @@ def test_integrate(base: Path) -> None:
     check(status["integrated"] == 5, f"src/ markers count as integrated: {status}")
 
 
+def test_integrate_keeps_distinct_includes(base: Path) -> None:
+    """Declarations that differ only inside a string literal, such as two #include lines, are both kept."""
+    import integrate
+    decls = integrate.items('#include "A.h"\n#include "B.h"\n// again\n#include "A.h"\n'
+                            'const char* F() { return "x"; }\nconst char* F() { return "x"; }\n'
+                            'const char* G() { return "y"; }\n')
+    text = integrate.compose("Game/X.cpp", decls, {})
+    check(text.count('#include "A.h"') == 1 and '#include "B.h"' in text, f"both includes, once each: {text}")
+    check(text.count('return "x"') == 1 and 'return "y"' in text, f"literals tell items apart: {text}")
+
+
 def test_integrate_drops_what_breaks(base: Path) -> None:
     """A function that matches alone but not in its unit is left out of it."""
     e = Env(base, "integrate-context")
@@ -481,9 +546,11 @@ def test_categories_and_except_list(base: Path) -> None:
 
 
 TESTS = [
-    test_exact_match_accepted, test_different_expression_rejected, test_wrong_callee_rejected,
+    test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
+    test_wrong_callee_rejected, test_self_call,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
-    test_claims_concurrency, test_integrate, test_integrate_drops_what_breaks, test_context_and_queue, test_guard,
+    test_claims_concurrency, test_integrate, test_integrate_keeps_distinct_includes, test_integrate_drops_what_breaks,
+    test_context_and_queue, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
 
