@@ -524,10 +524,14 @@ def test_fold_labels(base: Path) -> None:
     whole, and the gate still finds where its code ends."""
     import coff
     p = Project()
-    path = fixture.compile_reference(p, (
-        "int Pick(int k)\n{\n    switch (k)\n    {\n"
-        "    case 0: return 3;\n    case 1: return 7;\n    case 2: return 11;\n    case 3: return 13;\n"
-        "    case 4: return 17;\n    case 5: return 19;\n    }\n    return 0;\n}\n"), base / "fold")
+    os.environ["T3_CC_NO_FOLD"] = "1"  # the compiler's own labels, as tools/cc.py receives them
+    try:
+        path = fixture.compile_reference(p, (
+            "int Pick(int k)\n{\n    switch (k)\n    {\n"
+            "    case 0: return 3;\n    case 1: return 7;\n    case 2: return 11;\n    case 3: return 13;\n"
+            "    case 4: return 17;\n    case 5: return 19;\n    }\n    return 0;\n}\n"), base / "fold")
+    finally:
+        del os.environ["T3_CC_NO_FOLD"]
     obj = coff.Coff.load(path)
     is_label = lambda s: s.storage == coff.IMAGE_SYM_CLASS_STATIC and s.name.startswith("$L") and not s.is_function
     fn = obj.symbol("?Pick@@YAHH@Z")

@@ -44,10 +44,12 @@ ninja, and compare the report with the previous one.
 import argparse
 import bisect
 import json
+import os
 import re
 import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -161,6 +163,9 @@ def unit_for(p: Project, rec: dict, args, declared: List[splitslib.Unit]) -> Tup
     if args.unit:
         source = args.unit[4:] if args.unit.startswith("src/") else args.unit
         return source, args.category or guess_category(p, rec)
+    for start, end, source in getattr(p.configure, "UNIT_RANGES", []):
+        if start <= address < end:
+            return source, args.category or guess_category(p, rec)
     for u in declared:
         if any(a <= address < b for a, b in u.text):
             return u.source, args.category or guess_category(p, rec)
@@ -380,6 +385,8 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="check and report, write nothing")
     parser.add_argument("--no-names", action="store_true", help="leave symbols.txt alone")
     parser.add_argument("--json", action="store_true", help="print the summary as JSON")
+    parser.add_argument("--jobs", type=int, default=0, help="units checked at once (default: one per CPU)")
+    parser.add_argument("--plan", help="JSON {unit: [address, ...]}: put each function in its unit")
     args = parser.parse_args()
 
     p = Project()
@@ -411,7 +418,10 @@ def main() -> None:
 def integrate(p: Project, args) -> dict:
     accepted = p.accepted()
     integrated = p.integrated()
-    wanted = [p.parse_addr(a) for a in args.addrs] or sorted(accepted)
+    # --plan: {unit: [address, ...]} puts each listed function in its unit (tools/agent overflow bins)
+    plan = {p.parse_addr(a): unit for unit, addrs in (json.loads(Path(args.plan).read_text(encoding="utf-8"))
+                                                       if getattr(args, "plan", None) else {}).items() for a in addrs}
+    wanted = [p.parse_addr(a) for a in args.addrs] or (sorted(plan) if plan else sorted(accepted))
     missing = [fmt_addr(a) for a in wanted if a not in accepted]
     if missing:
         sys.exit(f"not accepted: {', '.join(missing)}")
@@ -430,6 +440,7 @@ def integrate(p: Project, args) -> dict:
             summary["warnings"].append(f"{fmt_addr(a)} {skip}")
             continue
         source, category = unit_for(p, accepted[a], args, declared)
+        source = plan.get(a, source)
         groups.setdefault(source, []).append(a)
         categories.setdefault(source, category)
 
@@ -439,7 +450,10 @@ def integrate(p: Project, args) -> dict:
     text_x = p.text_x_range()
     records: List[dict] = []
     writes: Dict[Path, str] = {}
-    for source, addrs in sorted(groups.items()):
+
+    def prepare(source: str, addrs: List[int]) -> dict:
+        """Compose one unit with its new functions and check every function in it. Units are independent,
+        so they are checked in parallel; what they change is merged afterwards, in order."""
         unit_path = p.src_dir / source
         head, blocks = parse_unit(unit_path.read_text(encoding="utf-8")) if unit_path.is_file() else ("", {})
         existing = set(blocks)
@@ -459,24 +473,33 @@ def integrate(p: Project, args) -> dict:
             blocks[a] = FUNCTION_MARKER.sub(f"// FUNCTION: {fmt_addr(a)} {accepted[a]['symbol']}",
                                             body, 1).rstrip() + "\n"
         cflags = p.configure.UNITS.get(source, {}).get("cflags", p.configure.CFLAGS)
+        dropped, warnings, text = [], [], ""
         while True:
             declarations = items(head) + [d for a in sorted(new_decls) for d in new_decls[a]]
             text, failures = build_unit(p, verifier, source, declarations, blocks, symbols, workdir, cflags)
             broken = [a for a in failures if a in existing]
             if broken:
-                summary["warnings"].append(f"{source}: left unchanged; {fmt_addr(broken[0])}, already in the unit, "
-                                           f"breaks: {failures[broken[0]]}")
+                warnings.append(f"{source}: left unchanged; {fmt_addr(broken[0])}, already in the unit, "
+                                f"breaks: {failures[broken[0]]}")
                 new_decls = {}
                 break
             for a, why in failures.items():  # leave out what no longer matches here, then try again
-                summary["dropped"].append({"addr": fmt_addr(a), "unit": source, "reason": why})
+                dropped.append({"addr": fmt_addr(a), "unit": source, "reason": why})
                 del blocks[a], new_decls[a]
             if not failures or not new_decls:
                 break
-        added = sorted(new_decls)
+        return {"source": source, "path": unit_path, "text": text, "blocks": blocks, "added": sorted(new_decls),
+                "dropped": dropped, "warnings": warnings}
+
+    with ThreadPoolExecutor(max_workers=getattr(args, "jobs", 0) or os.cpu_count() or 1) as pool:
+        results = list(pool.map(lambda item: prepare(*item), sorted(groups.items())))
+    for r in results:
+        summary["dropped"] += r["dropped"]
+        summary["warnings"] += r["warnings"]
+        source, blocks, added, unit_path = r["source"], r["blocks"], r["added"], r["path"]
         if not added:
             continue
-        writes[unit_path] = text
+        writes[unit_path] = r["text"]
         old = next((u for u in declared if u.source == source), None)
         eh = [(int(x, 16), int(y, 16)) for a in added for x, y in accepted[a].get("text_x", [])]
         ranges = merge(p, (old.text if old else []) + [(a, p.code_extent(a)[1]) for a in blocks] + eh)

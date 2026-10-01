@@ -19,6 +19,7 @@ import json
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List
 
@@ -64,17 +65,27 @@ def main() -> None:
         conflicts |= {a for a, rec in deferred.items() if "name" in (rec.get("blocker") or "").lower()}
         todo = sorted(conflicts if args.conflicts else conflicts | set(deferred))
     verifier = Verifier(p)
-    matched = []
-    for address in todo:
-        if address in accepted:
-            continue
+
+    def matching(address: int) -> List[Path]:
+        """The candidates that pass the gate now, newest first (each address compiles in its own folder)."""
+        found = []
         for f in candidates(p, address):
             source = f.read_text(encoding="utf-8", errors="replace")
             if linter.lint(source, address):
                 continue
             res = verifier.run(address, f, p.state / "tmp" / f"lead-{addr_key(address)}-retry")
-            if not (res.build_ok and res.match and not res.problems and not res.mismatch_rows):
-                continue
+            if res.build_ok and res.match and not res.problems and not res.mismatch_rows:
+                found.append(f)
+                if args.dry_run:
+                    break
+        return found
+
+    todo = [a for a in todo if a not in accepted]
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:  # the gate runs compilers and objdiff
+        results = list(pool.map(matching, todo))
+    matched = []
+    for address, found in zip(todo, results):  # accept one at a time: accept.py checks again and records
+        for f in found:
             rel = os.path.relpath(f, p.main)
             if args.dry_run:
                 print(f"{fmt_addr(address)} matches: {rel}")

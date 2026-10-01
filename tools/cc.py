@@ -17,6 +17,7 @@ the same places differently.
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -80,7 +81,7 @@ def main() -> None:
         aliases = json.loads(aliases_path.read_text(encoding="utf-8"))
         if aliases:
             normalize(Path(out), aliases)
-    if out and Path(out).is_file():
+    if out and Path(out).is_file() and not os.environ.get("T3_CC_NO_FOLD"):  # set by tests that need the labels
         fold(Path(out))
 
 

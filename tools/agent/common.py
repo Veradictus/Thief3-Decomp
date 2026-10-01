@@ -24,6 +24,7 @@ import re
 import shlex
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -343,6 +344,9 @@ class Project:
         """The unit's cflags from configure.UNITS when a declared unit holds the address, else CFLAGS."""
         unit = self.unit_for(address) if address is not None else None
         opts = self.configure.UNITS.get(unit.source, {}) if unit and not unit.auto else {}
+        if not opts and address is not None:  # a range that belongs to a unit before it is integrated
+            source = next((s for a, b, s in getattr(self.configure, "UNIT_RANGES", []) if a <= address < b), None)
+            opts = self.configure.UNITS.get(source, {}) if source else {}
         return list(opts.get("cflags", self.configure.CFLAGS))
 
     def _ninja_cc(self) -> Optional[str]:
@@ -572,7 +576,7 @@ def demangle(project: Project, names: Sequence[str]) -> Dict[str, str]:
                 for name, text in re.findall(r'Undecoration of :- "(.*?)"\s*is :- "(.*?)"', out.stdout):
                     found[name] = text
         if not found and project.objdiff.is_file():
-            tmp = project.state_dir("tmp") / f"demangle-{os.getpid()}.obj"
+            tmp = project.state_dir("tmp") / f"demangle-{os.getpid()}-{threading.get_ident()}.obj"
             tmp.write_bytes(coff.undefined_object(todo))
             out = subprocess.run([str(project.objdiff), "diff", "-1", str(tmp), "-o", "-", "--format", "json",
                                   "_t3_anchor"], capture_output=True, text=True, errors="replace")
