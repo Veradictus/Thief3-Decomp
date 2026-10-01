@@ -365,8 +365,10 @@ class Verifier:
         tsec = tobj.section(tfn.section)
         t_code = code_end - address
         add = []
+        # A jump table's label does not end the function for objdiff: only a real symbol does.
         if tfn.value + t_code < len(tsec.data) and not any(
-                s.section == tfn.section and s.value == tfn.value + t_code for s in tobj.symbols):
+                s.section == tfn.section and s.value == tfn.value + t_code
+                and s.storage != coff.IMAGE_SYM_CLASS_LABEL for s in tobj.symbols):
             add = [(BOUNDARY, tfn.value + t_code, tfn.section, 0, coff.IMAGE_SYM_CLASS_STATIC)]
         tcopy = workdir / "target.obj"
         tcopy.write_bytes(tobj.rewrite(add=add))
