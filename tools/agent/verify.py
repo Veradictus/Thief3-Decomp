@@ -156,8 +156,8 @@ class TargetImage:
                         if a is not None:
                             entries.append((a, str(path), s.section, s.value))
             entries.sort()
-            self._index = entries
             self._starts = [e[0] for e in entries]
+            self._index = entries  # last: other threads test it before reading _starts
         i = bisect_right(self._starts, address) - 1
         while i >= 0:
             start, path, section, value = self._index[i]

@@ -229,12 +229,13 @@ class Project:
     @property
     def by_addr(self) -> Dict[int, symbolslib.Symbol]:
         if not hasattr(self, "_by_addr"):
-            self._by_addr = {}
+            by_addr: Dict[int, symbolslib.Symbol] = {}
             for s in self.symbols:
                 if s.type != "alias":  # an address's other names (symbols.txt), never its own
-                    self._by_addr.setdefault(s.address, s)
+                    by_addr.setdefault(s.address, s)
             for f in self.functions:  # a function wins over a label at its address
-                self._by_addr[f.address] = f
+                by_addr[f.address] = f
+            self._by_addr = by_addr  # published whole: threads (stamp, retry) never see it half filled
         return self._by_addr
 
     @property
