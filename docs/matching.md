@@ -29,10 +29,12 @@ the split target objects.
 | `next.py claim\|release\|status\|list\|requeue` | worker, lead | The queue, easy first, with claims |
 | `context.py <addr>` | worker | The context packet for one function |
 | `context.py fill-ghidra --next N` | lead | Caches Ghidra decompiles for the queue head |
-| `try.py <addr> <file>` | worker | Compile, diff, verdict, `ATTEMPT k/12` |
+| `try.py <addr> <file>` | worker | Compile, diff, verdict, `ATTEMPT k/12`; stops a claim after 3 attempts with no new best |
 | `sidebyside.py <addr> <file>` | worker | Every instruction of a candidate next to the target's, references by name; no attempt spent, no verdict |
 | `accept.py <addr> <file>` | worker | The gate; records the function |
 | `accept.py defer <addr> "<blocker>"` | worker | Records the best attempt and the blocker |
+| `clusters.py list\|show\|stamp` | lead | Families of functions equal but for their references; `stamp` matches open members from an accepted one, through accept.py |
+| `sweep.py "<prefix>-*"` | lead | Closes a batch of workers: forgotten matches, claims, parking, stamps, costs |
 | `integrate.py` | lead | Accepted functions into `src/`, `splits.txt`, `symbols.txt` |
 | `wave.py --workers N` | lead | Runs N headless workers in worktrees |
 | `selftest.py` | anyone | Tests the whole chain on synthetic targets |
@@ -61,7 +63,16 @@ A claim is a file that appears in one atomic step (written aside, then
 hard-linked into place, which fails if it exists), so two workers never get
 the same function. It expires after two hours (`--ttl`); try.py renews it on
 every attempt. Taking over an expired claim, renewing and releasing run
-under a short lock. `--unit` restricts a worker to one split unit.
+under a short lock. `--unit` restricts a worker to one split unit, and
+`--by-class` gives a worker, after the queue head, the queued functions of
+the same class (by name, else by vtable) or its nearest neighbours.
+
+Families ([clusters.py](../tools/agent/clusters.py)) are served one member at
+a time: the first goes early (its difficulty divided by the family's size),
+the others wait while it is open, claimed, or accepted and not yet stamped,
+and go to the workers only if the stamp fails (`--include-siblings` lists
+them all). `claim` hands out nothing while the split or the toolchain is
+missing.
 
 ### Context packet
 
@@ -76,8 +87,13 @@ cached Ghidra decompile (`build/agent/cache/ghidra/<ADDR>.c`, filled by
 `fill-ghidra`, which runs `Decompile.java ... out:<dir>` once for many
 functions); `include/` headers declaring the classes involved; up to three
 accepted functions most like this one (opcode-sequence similarity, class and
-shared references) with their source; earlier attempts and deferrals; and
-the cheat-sheet entries for the function's features (EH, x87, switch).
+shared references) with their source; for a virtual method, what the
+nearest registered super class holds at the same slot (an override's base
+method, whose real name gives the override's); the decorated name accepted
+callers already bound the function to; its family and why a stamp failed;
+earlier attempts and deferrals, with the best earlier attempt's source as a
+starting point for a second pass; and the cheat-sheet entries for the
+function's features (EH, x87, switch).
 
 ### Scratch files
 

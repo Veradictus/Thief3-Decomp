@@ -172,6 +172,7 @@ export default defineConfig({
           { text: "Progress on decomp.dev", link: "/decomp-dev" },
           { text: "Assets and formats", link: "/assets" },
           { text: "Research: LLM matching", link: "/research/llm-matching" },
+          { text: "Research: Unreal decomps and swarms", link: "/research/ue2-decomps" },
           { text: "This site", link: "/site" },
         ],
       },
