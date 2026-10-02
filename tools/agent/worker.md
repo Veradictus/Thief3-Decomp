@@ -133,8 +133,11 @@ inlines any body in the file, even one defined after the caller). Use
   and accept.py `--symbol "??$Cast@VC@@@@YAPAVC@@PAVUObject@@@Z"`.
 - `~C() { ConditionalDestroy(); }` under an EH frame, then the base
   destructor: the destructor Unreal's DECLARE_CLASS gives every UObject class.
-  Use Core.h's `UObject::ConditionalDestroy()` and `~UObject()` (not the
-  Class_10B7C000 / Class_10E70A50 placeholders older sources use).
+  For a native class, `#include "<Package>/<Package>Classes.h"` and write
+  just `C::~C() { ConditionalDestroy(); }`: the generated header declares
+  each class's overrides of UObject's slots, so the vtable the destructor
+  stores matches slot for slot (not the Class_10B7C000 / Class_10E70A50
+  placeholders older sources use).
 - `mov ecx, [esp+4]; test ecx, ecx; je; jmp <ctor>` (14 bytes) is a native
   class's InternalConstructor: config/PC_20040610/classes.txt names the class
   whose `constructor:` is this address. Write it as Unreal does: declare

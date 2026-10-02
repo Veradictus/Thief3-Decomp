@@ -376,6 +376,18 @@ patterns that need no judgement:
   `categories.txt` yet). Their units are per package
   (`Game/<Package>Registration.cpp`): a class's own unit usually declares the
   class itself, which the generated header would redefine.
+- **Vtable slots** ([vtables.py](../tools/agent/vtables.py)): a function
+  that stores a vtable has every slot its classes declare compared, so each
+  slot function needs the name of the class that overrides it there.
+  `vtables.py spec` reads each native class's table from the exe, gives each
+  slot whose function is not its super's the name the class would declare
+  (`?Unknown18@AAIPathPoint@@UAEXXZ`, the deleting destructor in slot 2, and
+  `??1C@@UAE@XZ` for the destructor that one calls), and writes a
+  `fixnames.py spec`; old names stay as aliases. `t3classes.py headers`
+  declares the same overrides and destructors in the generated class
+  headers, so a source that includes them gets the exe's vtable: each
+  `C::~C() { ConditionalDestroy(); }` is three lines there. The first run
+  named 252 slot functions and 147 destructors.
 - `fixnames.py constants` finds every queued function whose whole code is
   `mov eax, imm; ret` (or `xor eax, eax; ret`), writes `int FUN_x() { return
   imm; }` for it, and excludes it from the queue until `fixnames.py accept`

@@ -557,20 +557,23 @@ def inherited(classes, cpp: str, field: str, default):
     return default
 
 
-def registration(classes, cpp: str) -> List[str]:
+def registration(classes, cpp: str, virtuals: Optional[Dict[str, List[str]]] = None) -> List[str]:
     """The class's DECLARE_CLASS line (Core.h), and what it does not inherit: its within class and its
-    static constructor (classes.txt, from its registration in T3Main.exe)."""
+    static constructor (classes.txt, from its registration in T3Main.exe), and the slots of UObject's
+    vtable it overrides (tools/agent/vtables.py)."""
     n = classes[cpp]
     lines = [f"    DECLARE_CLASS({cpp}, {n.super}, 0x{n.flags:X}, {n.package})"]
     if n.within and n.within != inherited(classes, cpp, "within", "UObject"):
         lines.append(f"    DECLARE_WITHIN({n.within})")
     if n.static_constructor and n.static_constructor != inherited(classes, cpp, "static_constructor", 0):
         lines.append(f"    void StaticConstructor();       // 0x{n.static_constructor:08X}")
+    if virtuals and virtuals.get(cpp):
+        lines += ["", "public:"] + [f"    {d}" for d in virtuals[cpp]]
     return lines
 
 
-def generate(model: Model) -> Dict[str, str]:
-    """Package -> header text."""
+def generate(model: Model, virtuals: Optional[Dict[str, List[str]]] = None) -> Dict[str, str]:
+    """Package -> header text; `virtuals`: each class's overrides of UObject's slots (vtables.py)."""
     em = Emitter(model)
     classes = model.classes
     # The native classes with a script, Ion Storm's without one (opaque), and their supers.
@@ -598,7 +601,7 @@ def generate(model: Model) -> Dict[str, str]:
         if align(end, 4) != n.size and fields_:
             raise ValueError(f"{cpp}: the script lays out 0x{align(end, 4):X} bytes, the game registers 0x{n.size:X}")
         em.collect(fields_)
-        lines = [f"class {cpp} : public {n.super}", "{"] + registration(classes, cpp) + ["", "public:"]
+        lines = [f"class {cpp} : public {n.super}", "{"] + registration(classes, cpp, virtuals) + ["", "public:"]
         lines += em.members(fields_, start, n.size if not fields_ else end) if fields_ or n.size > start else []
         lines += ["};", f"T3_CHECK_SIZE({cpp}, 0x{n.size:X});", ""]
         bodies[n.package] += lines
@@ -752,7 +755,16 @@ def main() -> None:
             print(f"class {cpp} : public {n.super}  // {n.package}, {n.category}, 0x{n.size:X} bytes")
             print("\n".join(em.members(fields_, start, n.size if fields_ else start)))
         return
-    headers = generate(model)
+    virtuals = None
+    sys.path.insert(0, str(ROOT / "tools" / "agent"))
+    from common import Project  # noqa: E402
+    p = Project()
+    if p.exe and p.exe.is_file():  # the vtables are read from the exe, which stays local
+        import vtables  # noqa: E402
+        virtuals = vtables.declarations(p)
+    else:
+        print("no exe: the headers declare no virtual functions (tools/agent/vtables.py)")
+    headers = generate(model, virtuals)
     out = Path(args.output)
     for pkg, text in headers.items():
         path = out / pkg / f"{pkg}Classes.h"

@@ -629,6 +629,22 @@ def test_stamp_derive(base: Path) -> None:
           == "class AInfo : public AAIModelBase { ~AInfo(); };", "renamed as whole words only")
 
 
+def test_vtables(base: Path) -> None:
+    """vtables.py names each slot function after the class whose table first holds it: inherited slots
+    are left to the super, a class whose own table is not known takes what its subclasses agree on."""
+    import vtables
+    supers = {"UObject": "", "AActor": "UObject", "ALink": "UObject", "AKid1": "ALink", "AKid2": "ALink",
+              "APawn": "AActor"}
+    tables = {"UObject": [1, 2, 3], "AActor": [1, 20, 3], "ALink": None, "AKid1": [1, 2, 30], "AKid2": [1, 2, 31],
+              "APawn": [1, 20, 300]}
+    got = vtables.attribute(supers, tables, slots=3)
+    check(got == [(1, "UObject", 0), (2, "UObject", 1), (3, "UObject", 2), (20, "AActor", 1), (300, "APawn", 2)],
+          f"the root's slots, then each override; a slot under an unknown table is left alone: {got}")
+    check(vtables.slot_name("AActor", 2) == "??_GAActor@@UAEPAXI@Z"
+          and vtables.slot_name("AActor", 6) == "?Unknown18@AActor@@UAEXXZ"
+          and vtables.slot_name("AActor", 19) == "?Register@AActor@@UAEXXZ", "slots named as Core.h declares them")
+
+
 def test_sweep(base: Path) -> None:
     """sweep.py with a glob: accepts a forgotten MATCH, parks out-of-scope deferrals, logs the batch."""
     e = Env(base, "sweep")
@@ -796,8 +812,8 @@ TESTS = [
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_keeps_distinct_includes,
     test_integrate_drops_what_breaks,
-    test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_stamp_derive, test_sweep,
-    test_guard,
+    test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_stamp_derive, test_vtables,
+    test_sweep, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
 
