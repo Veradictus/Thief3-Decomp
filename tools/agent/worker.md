@@ -126,6 +126,15 @@ inlines any body in the file, even one defined after the caller). Use
   "Core/Core.h"`, declare `class Super;` and `class C { DECLARE_CLASS(C, Super,
   <flags>, <Package>) };` (classes.txt gives super, flags and package), and
   call `C::StaticClass()`.
+- That inlined `C::StaticClass()`, then `push eax; mov ecx, esi; call
+  UObject::IsA` and `Src` or 0 is Unreal's `Cast<C>(Src)`: Core.h's template,
+  one copy per C. Declare the class as above and write the marker over an
+  explicit instantiation, `template C* Cast<C>(UObject* Src);`; pass try.py
+  and accept.py `--symbol "??$Cast@VC@@@@YAPAVC@@PAVUObject@@@Z"`.
+- `~C() { ConditionalDestroy(); }` under an EH frame, then the base
+  destructor: the destructor Unreal's DECLARE_CLASS gives every UObject class.
+  Use Core.h's `UObject::ConditionalDestroy()` and `~UObject()` (not the
+  Class_10B7C000 / Class_10E70A50 placeholders older sources use).
 - `mov ecx, [esp+4]; test ecx, ecx; je; jmp <ctor>` (14 bytes) is a native
   class's InternalConstructor: config/PC_20040610/classes.txt names the class
   whose `constructor:` is this address. Write it as Unreal does: declare

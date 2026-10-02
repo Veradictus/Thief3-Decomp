@@ -220,6 +220,17 @@ The `EInternal*` overload has no matching placement delete, so `/GX` adds
 no exception frame (the `void*` placement new from `<new>` adds one), and it
 does not clash with `<new>` when both end up in one unit.
 
+Unreal's templates are written as templates. Each `Cast<T>` the game keeps
+is an explicit instantiation of Core.h's `Cast`, under the marker:
+
+    // FUNCTION: 0x109E9FD0
+    template AGarrett* Cast<AGarrett>(UObject* Src);
+
+The instantiation is a COMDAT like the inline functions the file also
+emits, so the gate picks it by the name symbols.txt gives the address
+(`??$Cast@VAGarrett@@@@YAPAVAGarrett@@PAVUObject@@@Z`), or by try.py's
+`--symbol` before the address has it.
+
 try.py refuses a file byte-identical to an earlier attempt, counts only
 attempts that compiled, and refuses the 13th attempt of a claim.
 

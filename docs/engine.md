@@ -80,7 +80,19 @@ highest number, `+0x10` `TArray<DWORD>` per-number flags, `+0x1C` ANSI text
 | `UObject::GObjAvailable` (free slots) | `0x10F3E4AC` | static |
 | `GObjHash[4096]`, bucket = `Name.Index & 0xFFF` | `0x10F3A418` | static |
 | `UObject::AddObject(INT Index)` | `0x10AD4070` | static |
+| `UObject::IsA(UClass*) const` | `0x10AD1EE0` | static: every `Cast<T>` instance calls it after `T::StaticClass()` |
+| `UObject::ConditionalDestroy()` | `0x10AD5310` | static: logs "%s failed to route Destroy" through GError |
+| `UObject::~UObject()`; its deleting destructor (vtable slot 2) | `0x10ADC750`; `0x10ADD4C0` | static |
 | object iterator begin / next (per-class lists, Ion Storm addition) | `0x1096BD50` / `0x1096C8D0` | static |
+
+Every native class's destructor is the one Unreal's `DECLARE_CLASS` writes,
+`virtual ~TClass() { ConditionalDestroy(); }`: an EH frame, the class's
+vtable stored, `ConditionalDestroy`, then the parent's destructor (133
+functions call `ConditionalDestroy`; 103 of them are one family of 79-byte
+destructors). The destructor is slot 2 of UObject's
+vtable (`0x10E70A50`), not slot 0 as in stock Unreal Engine 2; slot 0
+(`0x10ADB3A0`) is not identified yet. `Cast<T>` is stock: the game keeps one
+out-of-line copy per class it casts to (`Cast<AGarrett>` at `0x109E9FD0`).
 
 `UObject` layout (the first 0x28 bytes match stock Unreal Engine 2):
 

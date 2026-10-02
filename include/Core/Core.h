@@ -148,8 +148,8 @@ public:
 
 // The first 0x28 bytes match stock Unreal Engine 2 (the SDK checks Name, Class
 // and Outer at runtime); the game registers UObject with 0x2C. Of the virtual
-// functions, only CallFunction's slot is known; the others are named by their
-// vtable offset.
+// functions, the destructor's (slot 2), CallFunction's (17) and Register's (19)
+// slots are known; the others are named by their vtable offset.
 // A globally unique id (stock Unreal Engine 2): native classes register with a zero one.
 class FGuid
 {
@@ -188,9 +188,10 @@ class UObject
     typedef UObject WithinClass;
 
 public:
-    virtual ~UObject();
+    virtual void Unknown00();
     virtual void Unknown04();
-    virtual void Unknown08();
+    // Slot 2: the deleting destructor (0x10ADD4C0) calls ~UObject (0x10ADC750).
+    virtual ~UObject();
     virtual void Unknown0C();
     virtual void Unknown10();
     virtual void Unknown14();
@@ -218,6 +219,10 @@ public:
 
     // Whether the object system is up (0x10AD1D60).
     static UBOOL GetInitialized();
+    // Whether the object's class is SomeBaseClass or below it (0x10AD1EE0).
+    UBOOL IsA(UClass* SomeBaseClass) const;
+    // Routes Destroy() once (0x10AD5310); each class's destructor calls it first.
+    UBOOL ConditionalDestroy();
     // The class's static constructor (none for most: UObject's is empty).
     void StaticConstructor();
     // The .ini section of the class's config properties.
@@ -479,6 +484,13 @@ public:
     DWORD PropertyHash;             // 0x28: Ion Storm's (Object.uc: ObjectInternalPropertyHash)
 };
 T3_CHECK_SIZE(UObject, 0x2C);
+
+// Unreal's checked downcast: Src when it is a T, else NULL. The game keeps an
+// out-of-line copy for each T it casts to.
+template <class T> T* Cast(UObject* Src)
+{
+    return Src && Src->IsA(T::StaticClass()) ? (T*)Src : NULL;
+}
 
 // SuperField is at 0x2C in this build (0x28 in stock Unreal Engine 2): UObject
 // is one field longer.
