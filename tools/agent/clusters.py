@@ -22,8 +22,11 @@ either side (its declaration may differ) or is a literal, when the function
 is only a jump to its callee (whose signature is still a guess; matching it
 would spread the guess), or when the accepted member is a method of a class
 the rewrite does not rename (nothing then says the other function belongs to
-it; a virtual method's class follows its vtable). Every outcome is recorded in
-build/agent/cache/stamps.json; a member that failed goes back to the workers.
+it; a virtual method's class follows its vtable). Members the lead excluded
+(build/agent/excluded.json: library code, compiler-generated functions) are
+never stamped, whatever an accepted member looks like. Every outcome is
+recorded in build/agent/cache/stamps.json; a member that failed goes back to
+the workers.
 
 The queue (next.py) serves one member of a family at a time: the others are
 held while it is open, claimed or accepted and not yet stamped. A family's
@@ -118,6 +121,13 @@ def families(p: Project, idx: Optional[Dict[str, dict]] = None) -> Dict[str, Lis
 
 def stamps(p: Project) -> Dict[str, dict]:
     return read_json(p.state / "cache" / "stamps.json", {}) or {}
+
+
+def excluded(p: Project) -> set:
+    """Addresses the lead took out of the queue (excluded.json): library code, compiler-generated functions,
+    name conflicts. A family member there is not stamped: its family's shape says nothing about whose
+    code it is."""
+    return {int(a, 16) for a in (read_json(p.state / "excluded.json", {}) or {})}
 
 
 def held(p: Project, queued: List[int]) -> Dict[int, int]:
@@ -257,6 +267,7 @@ def stamp(p: Project, targets: Optional[List[int]] = None, dry_run: bool = False
     accepted = p.accepted()
     integrated = set(p.integrated())
     deferred = set(p.deferred())
+    skip = excluded(p)
     records = stamps(p)
     claims = Claims(p)
     work = []
@@ -265,7 +276,7 @@ def stamp(p: Project, targets: Optional[List[int]] = None, dry_run: bool = False
         if not templates:
             continue
         for m in members:
-            if m in accepted or m in integrated or m in deferred or addr_key(m) in records:
+            if m in accepted or m in integrated or m in deferred or m in skip or addr_key(m) in records:
                 continue
             if targets and m not in targets:
                 continue
@@ -334,9 +345,10 @@ def main() -> None:
     if args.cmd == "list":
         idx = index(p)
         accepted, integrated, deferred = p.accepted(), set(p.integrated()), set(p.deferred())
+        skip = excluded(p)
         rows = []
         for k, members in families(p, idx).items():
-            open_ = [m for m in members if m not in accepted and m not in integrated]
+            open_ = [m for m in members if m not in accepted and m not in integrated and m not in skip]
             if len(open_) < args.min:
                 continue
             size = p.function(members[0]).size
@@ -355,9 +367,11 @@ def main() -> None:
             return
         members = families(p, idx).get(e["key"], [address])
         accepted, records = p.accepted(), stamps(p)
+        skip = excluded(p)
         emit({"addr": fmt_addr(address), "key": e["key"], "members": [
             {"addr": fmt_addr(m), "symbol": p.function(m).name,
-             "status": "accepted" if m in accepted else "deferred" if m in p.deferred() else "open",
+             "status": "accepted" if m in accepted else "deferred" if m in p.deferred() else
+             "excluded" if m in skip else "open",
              **({"stamp": records[addr_key(m)]} if addr_key(m) in records else {})} for m in members]})
     else:
         emit(stamp(p, [p.parse_addr(a) for a in args.addrs] or None, args.dry_run, args.jobs))

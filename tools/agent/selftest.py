@@ -528,6 +528,16 @@ def test_families(base: Path) -> None:
           and any(int(x["addr"], 16) == e.target.addr(other) for x in record["bindings"]),
           f"through the gate, under its own name and with its own callee: {record}")
 
+    e = Env(base, "families-excluded")  # the lead excluded the other member (library code, say)
+    (e.root / "build/agent").mkdir(parents=True, exist_ok=True)
+    (e.root / "build/agent/excluded.json").write_text(json.dumps({e.addr(b): "library: an STL member"}))
+    proc = e.run("accept.py", e.addr(a), template(e))
+    check(proc.returncode == 0, "the template is accepted", proc)
+    out = json.loads(e.run("clusters.py", "stamp", agent="").stdout)
+    check(not out["stamped"] and not out["failed"], f"an excluded member is not stamped: {out}")
+    listed = json.loads(e.run("clusters.py", "list", "--min", "1", agent="").stdout)
+    check(listed["open_members"] == 0, f"nor counted as open: {listed}")
+
     e = Env(base, "families-named", named={helper})
     proc = e.run("accept.py", e.addr(a), template(e))
     check(proc.returncode == 0, "the template with a named callee is accepted", proc)
