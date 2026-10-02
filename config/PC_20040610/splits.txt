@@ -493,6 +493,11 @@ Game/Unsorted_109615B0.cpp:
 Game/Unsorted_10961620.cpp:
 	.text  start:0x109616A0 end:0x109616B1
 
+Game/T3GamePhysicsRegistration.cpp:
+	.text  start:0x109616F0 end:0x109617F8
+	.text  start:0x10961960 end:0x10961A24
+	.text  start:0x10E06410 end:0x10E06433  # .text$x: EH handlers and unwind funclets
+
 Game/Unsorted_109616D0.cpp:
 	.text  start:0x109618A0 end:0x109618B9
 
@@ -511,6 +516,11 @@ Game/Unsorted_10962DD0.cpp:
 	.text  start:0x10962EF0 end:0x10962F02
 	.text  start:0x10963740 end:0x10963759
 
+Game/T3AIRegistration.cpp:
+	.text  start:0x10962F90 end:0x109635E8
+	.text  start:0x10964540 end:0x10964A13
+	.text  start:0x10E066A0 end:0x10E066C3  # .text$x: EH handlers and unwind funclets
+
 Game/AT3AIPawnController.cpp:
 	.text  start:0x109644E0 end:0x109644EE
 
@@ -528,6 +538,21 @@ Game/AT3MovementModel.cpp:
 
 Game/AT3SensoryModel.cpp:
 	.text  start:0x10964530 end:0x1096453E
+
+Game/EngineRegistration.cpp:
+	.text  start:0x109771B0 end:0x10977631
+	.text  start:0x10977930 end:0x109779F1
+	.text  start:0x1098AAE0 end:0x1098ABE8
+	.text  start:0x1098ACB0 end:0x1098AD71
+	.text  start:0x1098CD30 end:0x1098CDF3
+	.text  start:0x1098F540 end:0x109903B3
+	.text  start:0x10995000 end:0x109950C7
+	.text  start:0x1099BD50 end:0x1099F1A8
+	.text  start:0x109A19F0 end:0x109A4440
+	.text  start:0x10E073F0 end:0x10E07413  # .text$x: EH handlers and unwind funclets
+	.text  start:0x10E08340 end:0x10E08363  # .text$x: EH handlers and unwind funclets
+	.text  start:0x10E08A50 end:0x10E08A73  # .text$x: EH handlers and unwind funclets
+	.text  start:0x10E08F80 end:0x10E08FA3  # .text$x: EH handlers and unwind funclets
 
 Game/Unsorted_1097B0B0.cpp:
 	.text  start:0x1097B760 end:0x1097B784
@@ -1798,6 +1823,13 @@ Game/Unsorted_10AB3800.cpp:
 Game/UT3GameRegistrar.cpp:
 	.text  start:0x10AB3D50 end:0x10AB3D5E
 
+Game/T3GameRegistration.cpp:
+	.text  start:0x10AB40A0 end:0x10AB4D18
+	.text  start:0x10AB5070 end:0x10AB53A3
+	.text  start:0x10AB5400 end:0x10AB57C0
+	.text  start:0x10AB59B0 end:0x10AB5A73
+	.text  start:0x10E181A0 end:0x10E181C3  # .text$x: EH handlers and unwind funclets
+
 Game/AWakeupCameraPoint.cpp:
 	.text  start:0x10AB4D20 end:0x10AB4D2E
 
@@ -1998,6 +2030,14 @@ Game/UBitfieldEnum.cpp:
 Game/Unsorted_10ADD850.cpp:
 	.text  start:0x10ADD850 end:0x10ADD85E
 
+Game/CoreRegistration.cpp:
+	.text  start:0x10ADD960 end:0x10ADDA20
+	.text  start:0x10AF0430 end:0x10AF04F0
+	.text  start:0x10B0F240 end:0x10B0F418
+	.text  start:0x10E19E50 end:0x10E19E73  # .text$x: EH handlers and unwind funclets
+	.text  start:0x10E1BCF0 end:0x10E1BD13  # .text$x: EH handlers and unwind funclets
+	.text  start:0x10E1D610 end:0x10E1D633  # .text$x: EH handlers and unwind funclets
+
 Game/Unsorted_10AEF9B0.cpp:
 	.text  start:0x10AEF9B0 end:0x10AEF9BE
 
@@ -2022,6 +2062,17 @@ Game/Unsorted_10B10250.cpp:
 
 Game/Unsorted_10B10C40.cpp:
 	.text  start:0x10B11190 end:0x10B111A0
+
+Game/T3PlayerRegistration.cpp:
+	.text  start:0x10B12250 end:0x10B129B8
+	.text  start:0x10B12C50 end:0x10B12D14
+	.text  start:0x10B12E20 end:0x10B13120
+	.text  start:0x10B13560 end:0x10B13627
+	.text  start:0x10B136F0 end:0x10B137B4
+	.text  start:0x10B13920 end:0x10B13A28
+	.text  start:0x10B15380 end:0x10B15444
+	.text  start:0x10E1DA70 end:0x10E1DA93  # .text$x: EH handlers and unwind funclets
+	.text  start:0x10E1DE20 end:0x10E1DE43  # .text$x: EH handlers and unwind funclets
 
 Game/Unsorted_10B12120_2.cpp:
 	.text  start:0x10B129C0 end:0x10B129E2
@@ -2846,6 +2897,11 @@ Game/Unsorted_10B7AD50.cpp:
 Game/Unsorted_10B7B000.cpp:
 	.text  start:0x10B7B8A0 end:0x10B7B8CB
 
+Game/GamePhysicsRegistration.cpp:
+	.text  start:0x10B7BEF0 end:0x10B7BFF8
+	.text  start:0x10B7C5A0 end:0x10B7C664
+	.text  start:0x10E23F00 end:0x10E23F23  # .text$x: EH handlers and unwind funclets
+
 Game/Unsorted_10B7B920.cpp:
 	.text  start:0x10B7C000 end:0x10B7C013
 
@@ -2995,6 +3051,13 @@ Game/Unsorted_10B93F10.cpp:
 	.text  start:0x10B93F90 end:0x10B93FA2
 	.text  start:0x10B94030 end:0x10B94042
 	.text  start:0x10B940D0 end:0x10B940E2
+
+Game/AICoreRegistration.cpp:
+	.text  start:0x10B94170 end:0x10B95118
+	.text  start:0x10B952E0 end:0x10B97658
+	.text  start:0x10B97700 end:0x10B97B38
+	.text  start:0x10B97B50 end:0x10B97C13
+	.text  start:0x10E24D80 end:0x10E24DA3  # .text$x: EH handlers and unwind funclets
 
 Game/AAIContextVolume.cpp:
 	.text  start:0x10B95120 end:0x10B9512E

@@ -149,7 +149,49 @@ the getter, initializer and internal constructor. The super class is the first
 class the initializer registers. Every native class the game's scripts declare
 is there; 74 more have no script (`UClass`, the property classes, `ULevel`,
 ...). 22 classes share one vtable (`0x10E70A50`) and three another
-(`0x10E4D808`): the linker folded identical tables.
+(`0x10E4D808`): the linker folded identical tables. `classes.txt` also gives
+each class's within class (the second class its initializer registers,
+unless that is `UClass`: properties live in `UField`s, `UEnum` and `UConst`
+in `UStruct`s, `UFunction` in `UState`s, `UClass` in `UPackage`s, as in stock
+Unreal Engine 2), config name (always `System`), static constructor (nine
+classes have their own; the rest inherit `UObject`'s empty one) and the
+global its `StaticClass()` fills (`tools/classify.py classes` rewrites only
+this file).
+
+Both functions are stock Unreal Engine 2's statically linked
+`IMPLEMENT_CLASS`, with one Ion Storm change in the getter. `Core.h`
+declares the members (`DECLARE_CLASS`), the generated class headers declare
+them in every class, and `tools/agent/classreg.py` writes and matches both
+functions for each of Ion Storm's classes; 250 are in
+`src/Game/<Package>Registration.cpp`:
+
+- **The getter** (`GetPrivateStaticClass<Class>`, 192 to 196 bytes) opens a
+  scope of Ion Storm's memory manager (the singleton `0x10905AA0`, slots 8
+  and 9 around the allocation), then `new(0, 0, 0, 0, 0) UClass(...)`
+  through Ion Storm's placement `operator new` (`0x10905C10`, which passes the
+  size and the last four arguments to the manager's slot 2 and ignores the
+  second, a `const&`). Its placement `operator delete`, called by the unwind
+  code if the constructor throws, is folded into `::operator delete`
+  (`0x10AD1DC0`). The `UClass` constructor (`0x10AE7E30`) takes
+  `EC_StaticConstructor`, the object size, the class flags, a zero `FGuid`
+  by value, the name without its prefix letter (`&TEXT("AGarrett")[1]`), the
+  package, `StaticConfigName()`, `RF_Public | RF_Standalone | RF_Transient |
+  RF_Native` and the two constructors. The getters' exception code is the
+  same for every class, so the linker folded their handler stubs: 14 serve
+  136 getters (`symbols.txt` gives each stub every getter's name as an
+  alias).
+- **The initializer** (`InitializePrivateStaticClass<Class>`, 264 bytes):
+  `SuperField` is `Super::StaticClass()` unless that is the class itself,
+  `ClassWithin` is `WithinClass::StaticClass()`, `SetClass(UClass::StaticClass())`,
+  then, once `UObject::GetInitialized()` (`0x10AD1D60`) and if the object's
+  class is `UClass`, a tail call to the virtual `Register()` (slot 19). Each
+  `StaticClass()` is inlined. `UBitfieldEnum`'s, in Core, reads
+  `GObjInitialized` directly: its file defines `GetInitialized`.
+- **`InternalConstructor`**: 22 classes whose constructor is `UObject`'s
+  share one (`0x10964A80`, folded), named `UObject`'s.
+
+`UStruct`, `UState` and `UClass` are `0x74`, `0x8C` and `0x114` bytes (the
+sizes their registrations allocate); `ClassWithin` is at `0xA4`.
 
 ### Class layouts
 

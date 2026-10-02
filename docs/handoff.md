@@ -49,12 +49,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
   (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
-  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 3,100
-  matched functions in 1,143 units, one per auto unit of the split
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 3,350
+  matched functions in 1,151 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (3,082 of 12,080 functions at 100%, 2.7% of its bytes; hidden from decomp.dev's list
+  game code (3,331 of 12,108 functions at 100%, 4.9% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -228,6 +228,16 @@ Later the same day, played by the user:
      `IMPLEMENT_CLASS` to `Core.h`; confirm `UObject`'s 16 unknown virtuals
      against Republic Commando's and UT2004's order; dump the script natives
      from the running game with the SDK.
+   - Native class registration is matched ([engine.md](engine.md), "Native
+     class registration"): `Core.h`'s `DECLARE_CLASS` and the generated
+     headers declare every class's `StaticClass()`, and `classreg.py`
+     matched 271 of the 272 getters and initializers of Ion Storm's classes.
+     Left: 21 whose addresses `categories.txt` gives Epic or nobody (apply
+     the backlog's rule that a registration belongs to its class, then
+     integrate them), `UBitfieldEnum`'s initializer (needs `GetInitialized`
+     defined in its unit) and the report's pairing of `0x10961960` (its
+     static constructor is inside a mis-split function). Workers can now
+     write any inlined `StaticClass()` (worker.md).
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -271,8 +281,8 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 18 of the
-     3,100 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 19 of the
+     3,350 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`, and a few constructors and
