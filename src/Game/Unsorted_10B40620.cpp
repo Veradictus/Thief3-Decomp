@@ -77,6 +77,56 @@ public:
     bool Unknown204;
 };
 
+// A chained hash table's entry, allocated per insert.
+class Class_10B2A160_Node
+{
+public:
+    int Unknown00;
+    int Unknown04;
+    Class_10B2A160_Node* Next;
+};
+
+class Class_10B2A160
+{
+public:
+    void FUN_10b2a220(int Size);
+
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+    bool Unknown10;
+    Class_10B2A160_Node** Unknown14;
+};
+
+class Class_10B408D0 : public Class_10B2A160
+{
+public:
+    void FUN_10b40620(int Size);
+};
+
+// FUNCTION: 0x10B40620 ?FUN_10b40620@Class_10B408D0@@QAEXH@Z
+void Class_10B408D0::FUN_10b40620(int Size)
+{
+    for (int i = 0; i < Unknown0C; i++)
+    {
+        Class_10B2A160_Node* Node = Unknown14[i];
+        while (Node)
+        {
+            Class_10B2A160_Node* Next = Node->Next;
+            ::operator delete(Node);
+            Node = Next;
+        }
+    }
+    Unknown04 = 0;
+    Unknown0C = 0;
+    Unknown00 = 0;
+    ::operator delete(Unknown14);
+    Unknown14 = 0;
+    if (!Unknown10)
+        FUN_10b2a220(Size);
+}
+
 // FUNCTION: 0x10B406A0 ??0Class_10E7FB08@@QAE@XZ
 Class_10E7FB08::Class_10E7FB08()
     : Unknown1CC(0), Unknown1D0(0), Unknown1D4(0), Unknown1D8(0), Unknown1E0(0), Unknown1E4(0), Unknown1E8(0),

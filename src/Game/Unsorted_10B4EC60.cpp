@@ -39,6 +39,32 @@ public:
     virtual void Virtual8(int Value);
 };
 
+class AGarrett;
+
+class Class_10B3ADC0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+
+    void FUN_10b3ae90(AGarrett* Param);
+    void FUN_10b3adc0(AGarrett* Param);
+};
+
+class Class_10E7EB20 : public Class_10B3ADC0
+{
+public:
+    virtual void FUN_10b4f490(AGarrett* Param);
+};
+
+// FUNCTION: 0x10B4F490 ?FUN_10b4f490@Class_10E7EB20@@UAEXPAVAGarrett@@@Z
+void Class_10E7EB20::FUN_10b4f490(AGarrett* Param)
+{
+    FUN_10b3ae90(Param);
+    FUN_10b3adc0(Param);
+}
+
 // FUNCTION: 0x10B4F4B0 ?FUN_10b4f4b0@Class_10E7EA90@@UAEXPAUStruct_10B4F4B0@@@Z
 void Class_10E7EA90::FUN_10b4f4b0(Struct_10B4F4B0* Other)
 {

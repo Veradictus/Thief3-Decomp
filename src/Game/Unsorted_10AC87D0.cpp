@@ -26,6 +26,18 @@ public:
     Struct_10AC90F0 Unknown04;
 };
 
+void* FUN_10ac89c0();
+
+void FUN_10ac87f0(void* Obj, int A, int B);
+
+// FUNCTION: 0x10AC8BE0 ?FUN_10ac8be0@@YGXHH@Z
+void __stdcall FUN_10ac8be0(int A, int B)
+{
+    void* Obj = FUN_10ac89c0();
+    if (Obj)
+        FUN_10ac87f0(Obj, A, B);
+}
+
 // FUNCTION: 0x10AC90F0 ??0Class_10E6FCBC@@QAE@XZ
 Class_10E6FCBC::Class_10E6FCBC()
 {

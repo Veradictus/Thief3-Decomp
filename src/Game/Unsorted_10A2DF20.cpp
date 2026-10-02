@@ -26,6 +26,44 @@ public:
 
 extern void* DAT_10f39f34;
 
+extern const char DAT_10e662b4[];
+
+enum EFindName
+{
+    FNAME_Find = 0,
+    FNAME_Add = 1
+};
+
+class FName
+{
+public:
+    FName(const char* Name, EFindName FindType = FNAME_Add);
+
+    unsigned long Value;
+};
+
+class Class_10A174E0
+{
+public:
+    virtual int Virtual0(FName Name);
+};
+
+Class_10A174E0* FUN_10a18230();
+
+class Class_10A2E400
+{
+public:
+    void FUN_10a2e400();
+
+    int Unknown00;
+};
+
+// FUNCTION: 0x10A2E400 ?FUN_10a2e400@Class_10A2E400@@QAEXXZ
+void Class_10A2E400::FUN_10a2e400()
+{
+    Unknown00 = FUN_10a18230()->Virtual0(FName(DAT_10e662b4));
+}
+
 // FUNCTION: 0x10A2E430 ?FUN_10a2e430@Class_10A2E430@@QAE_NI@Z
 bool Class_10A2E430::FUN_10a2e430(unsigned Mask)
 {

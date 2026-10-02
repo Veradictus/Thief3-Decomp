@@ -12,6 +12,26 @@ public:
     FVector* Unknown10;
 };
 
+class Class_10C04840
+{
+public:
+    bool FUN_10c04840(unsigned char A);
+
+    char Unknown00[0x19];
+    unsigned char Unknown19[5];
+};
+
+// FUNCTION: 0x10C04840 ?FUN_10c04840@Class_10C04840@@QAE_NE@Z
+bool Class_10C04840::FUN_10c04840(unsigned char A)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        if (Unknown19[i] >= A)
+            return true;
+    }
+    return false;
+}
+
 // FUNCTION: 0x10C04A60 ?FUN_10c04a60@Class_10C04A60@@QAE?AVFVector@@XZ
 FVector Class_10C04A60::FUN_10c04a60()
 {

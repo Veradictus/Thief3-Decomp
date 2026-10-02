@@ -10,6 +10,28 @@ public:
     float Unknown62C[32];
 };
 
+class Class_10E4A538
+{
+public:
+    ~Class_10E4A538();
+
+    virtual void Virtual0();
+
+    void FUN_10940c50();
+};
+
+class Class_10E49F90 : public Class_10E4A538
+{
+public:
+    ~Class_10E49F90();
+};
+
+// FUNCTION: 0x10936180 ??1Class_10E49F90@@QAE@XZ
+Class_10E49F90::~Class_10E49F90()
+{
+    FUN_10940c50();
+}
+
 // FUNCTION: 0x109367A0 ?FUN_109367a0@Class_109367A0@@QAEXXZ
 void Class_109367A0::FUN_109367a0()
 {

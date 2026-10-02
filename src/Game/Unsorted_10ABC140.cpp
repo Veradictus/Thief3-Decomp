@@ -107,6 +107,16 @@ struct Object_10ABC530
     void* Unknown68;
 };
 
+extern "C" double sin(double);
+
+extern "C" double fabs(double);
+
+// FUNCTION: 0x10ABC480 ?FUN_10abc480@@YAMMMM@Z
+float FUN_10abc480(float A, float B, float C)
+{
+    return fabs(2.0f * (B * B) * sin(2.0f * C) / A);
+}
+
 // FUNCTION: 0x10ABC530 ?FUN_10abc530@@YA?AUStruct_10ABC530@@PAUObject_10ABC530@@@Z
 Struct_10ABC530 FUN_10abc530(Object_10ABC530* P)
 {

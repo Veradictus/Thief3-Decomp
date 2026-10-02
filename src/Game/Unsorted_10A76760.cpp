@@ -1,6 +1,8 @@
 // Game/Unsorted_10A76760.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
+#include "Core/Core.h"
+
 extern void* DAT_10e6bd64[];
 
 extern void* DAT_10e6bd60[];
@@ -64,6 +66,45 @@ class Class_10E6BD18 : public Class_10E67938
 public:
     void FUN_10a790b0(int A, int B, int C, int D);
 };
+
+class Object_10A76760
+{
+public:
+    int Unknown00;
+};
+
+class Class_10E6BC80
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual Object_10A76760* FUN_10a76760(int Value);
+
+    int Unknown04;
+    int Unknown08;
+    Object_10A76760** Unknown0C;
+};
+
+class ULevelBase;
+
+class ULevel
+{
+    DECLARE_CLASS(ULevel, ULevelBase, 0x0, Engine)
+};
+
+// FUNCTION: 0x10A76760 ?FUN_10a76760@Class_10E6BC80@@UAEPAVObject_10A76760@@H@Z
+Object_10A76760* Class_10E6BC80::FUN_10a76760(int Value)
+{
+    for (int i = 0; i < Unknown04; i++)
+    {
+        if (Unknown0C[i]->Unknown00 == Value)
+            return Unknown0C[i];
+    }
+    return 0;
+}
+
+// FUNCTION: 0x10A77300 ??$Cast@VULevel@@@@YAPAVULevel@@PAVUObject@@@Z
+template ULevel* Cast<ULevel>(UObject* Src);
 
 // FUNCTION: 0x10A790B0 ?FUN_10a790b0@Class_10E6BD18@@QAEXHHHH@Z
 void Class_10E6BD18::FUN_10a790b0(int A, int B, int C, int D)

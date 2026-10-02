@@ -12,6 +12,27 @@ public:
     int* Unknown0C;
 };
 
+class Class_10AC98B0
+{
+public:
+    void FUN_10ac9620(int A);
+    void FUN_10ac9840();
+    void FUN_10ac98c0(int A);
+
+    char Unknown00[0x4];
+    bool Unknown04;
+    bool Unknown05;
+};
+
+// FUNCTION: 0x10AC98C0 ?FUN_10ac98c0@Class_10AC98B0@@QAEXH@Z
+void Class_10AC98B0::FUN_10ac98c0(int A)
+{
+    if (Unknown05)
+        FUN_10ac9620(A);
+    else if (Unknown04)
+        FUN_10ac9840();
+}
+
 // FUNCTION: 0x10AC99D0 ?FUN_10ac99d0@Class_10AC99D0@@QAEHH@Z
 int Class_10AC99D0::FUN_10ac99d0(int Index)
 {

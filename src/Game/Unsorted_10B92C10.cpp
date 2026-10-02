@@ -41,6 +41,26 @@ public:
     INT Unknown48;
 };
 
+// Ion Storm's placement new (0x10905C10).
+void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D);
+
+class Class_10E89A8C
+{
+public:
+    Class_10E89A8C(int Value) : Unknown04(Value) {}
+
+    virtual void Virtual0();
+    virtual Class_10E89A8C* FUN_10b92c10();
+
+    int Unknown04;
+};
+
+// FUNCTION: 0x10B92C10 ?FUN_10b92c10@Class_10E89A8C@@UAEPAV1@XZ
+Class_10E89A8C* Class_10E89A8C::FUN_10b92c10()
+{
+    return new(0, 0, 0, 0, 0) Class_10E89A8C(Unknown04);
+}
+
 // FUNCTION: 0x10B92CB0 ?FUN_10b92cb0@Class_10E894C8@@UAEXH@Z
 void Class_10E894C8::FUN_10b92cb0(int p1)
 {

@@ -70,6 +70,47 @@ public:
     Info_10A34730* Unknown00;
 };
 
+class Class_10905A90_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(void* Block);
+};
+
+Class_10905A90_Member* FUN_10905aa0();
+
+struct Entry_10A34D50
+{
+    char Unknown00[0x6C];
+};
+
+class Class_10A34D50
+{
+public:
+    void FUN_10a33fd0(int NewCount);
+    void FUN_10a346f0();
+
+    int Unknown00;
+    int Unknown04;
+    Entry_10A34D50* Unknown08;
+};
+
+// FUNCTION: 0x10A346F0 ?FUN_10a346f0@Class_10A34D50@@QAEXXZ
+void Class_10A34D50::FUN_10a346f0()
+{
+    FUN_10a33fd0(0);
+    if (Unknown04)
+    {
+        FUN_10905aa0()->Virtual5(Unknown08);
+        Unknown08 = 0;
+        Unknown04 = 0;
+    }
+}
+
 // FUNCTION: 0x10A34730 ?FUN_10a34730@Class_10A34730@@QAE?AVClass_10AB5B20@@XZ
 Class_10AB5B20 Class_10A34730::FUN_10a34730()
 {

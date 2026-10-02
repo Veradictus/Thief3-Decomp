@@ -33,6 +33,30 @@ public:
     bool FUN_10bff6d0(int A, const float* B);
 };
 
+class Class_10978090
+{
+public:
+    int FUN_10978090();
+};
+
+class Class_10BFF280
+{
+public:
+    int FUN_10bff280();
+
+    char Unknown00[8];
+    Class_10978090 Unknown08;
+};
+
+// FUNCTION: 0x10BFF280 ?FUN_10bff280@Class_10BFF280@@QAEHXZ
+int Class_10BFF280::FUN_10bff280()
+{
+    int Result = Unknown08.FUN_10978090();
+    if (!Result)
+        return Result;
+    return Unknown08.FUN_10978090();
+}
+
 // FUNCTION: 0x10BFF300 ?Virtual0@Class_10E97AD4@@UAEXAAVFArchive@@@Z
 void Class_10E97AD4::Virtual0(FArchive& Ar)
 {
