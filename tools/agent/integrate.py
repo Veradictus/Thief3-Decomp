@@ -496,6 +496,10 @@ def integrate(p: Project, args) -> dict:
             if broken:
                 warnings.append(f"{source}: left unchanged; {fmt_addr(broken[0])}, already in the unit, "
                                 f"breaks: {failures[broken[0]]}")
+                # Said for each new function, so the lead can give them a unit of their own (an overflow unit).
+                dropped += [{"addr": fmt_addr(a), "unit": source,
+                             "reason": f"its unit breaks with it ({fmt_addr(broken[0])}, already there, then fails)"}
+                            for a in sorted(new_decls)]
                 new_decls = {}
                 break
             for a, why in failures.items():  # leave out what no longer matches here, then try again

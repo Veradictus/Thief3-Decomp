@@ -438,6 +438,16 @@ def test_integrate_drops_what_breaks(base: Path) -> None:
     caller_addr = e.target.addr(caller)
     check(not any(a <= caller_addr < b for a, b in unit.text), "the dropped function's range is not declared")
 
+    e = Env(base, "integrate-breaks")  # a new function that breaks one already in the unit
+    for sym in (callee, caller):
+        proc = e.run("accept.py", e.addr(sym), e.candidate(sym))
+        check(proc.returncode == 0, f"accept {sym} on its own", proc)
+    proc = e.run("integrate.py", e.addr(caller), "--unit", "Game/Pair.cpp", "--category", "game")
+    check(proc.returncode == 0 and (e.root / "src/Game/Pair.cpp").is_file(), "Caller alone in its unit", proc)
+    proc = e.run("integrate.py", e.addr(callee), "--unit", "Game/Pair.cpp", "--category", "game")
+    check(f"left out {e.addr(callee)} from Game/Pair.cpp: its unit breaks" in proc.stdout,
+          "a function that would break its unit's functions is said to be left out", proc)
+
 
 def test_context_and_queue(base: Path) -> None:
     e = Env(base, "context")

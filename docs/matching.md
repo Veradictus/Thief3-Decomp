@@ -260,7 +260,8 @@ first) and puts each into a unit:
   again** with the same rulers. A function that matched alone can stop
   matching in its unit (an inline body now visible, a declaration that
   changes codegen); it is left out and reported. If a function already in the
-  unit breaks, the unit is left unchanged. Units are checked in parallel, one
+  unit breaks, the unit is left unchanged and each new function is reported
+  left out ("its unit breaks with it"). Units are checked in parallel, one
   per CPU (`--jobs`), and their changes merged in order afterwards;
   `--plan <json>` (`{unit: [address, ...]}`) places many functions in many
   units in one run, which is how the lead's overflow units for class clashes
