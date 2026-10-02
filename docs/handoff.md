@@ -49,12 +49,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
   (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
-  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 3,886
-  matched functions in 1,469 units, one per auto unit of the split
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 4,320
+  matched functions in 1,789 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (3,846 of 12,191 functions at 100%, 6.3% of its bytes; hidden from decomp.dev's list
+  game code (4,245 of 12,248 functions at 100%, 7.3% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -208,7 +208,7 @@ Later the same day, played by the user:
      script, families stamped between workers. Drain it for a checkpoint
      (sweep, review, naming pass, `integrate.py`, `dtors.py`,
      `progress_report.py write`, commit). Integration and `retry.py` check
-     in parallel, so a checkpoint takes minutes. About 7,000 game functions are
+     in parallel, so a checkpoint takes minutes. About 6,700 game functions are
      still queued, most of them 80 bytes and more.
    - First run on the real split after the 2026-10-02 changes
      ([research/ue2-decomps.md](research/ue2-decomps.md), section 3): build
@@ -241,12 +241,20 @@ Later the same day, played by the user:
    - UObject's vtable: workers build classes on Core.h's `UObject` (`IsA`,
      `ConditionalDestroy`, `Cast<T>`, the destructor in slot 2), and a
      function that stores a vtable has every slot `UObject` declares
-     compared. The slots `AActor`, `AAIPathPoint` and the other classes
-     override carry old names or none, so such matches stop at a name
-     conflict. Next: a vtable naming pass from `classes.txt` that names each
-     slot function after the class that introduces it (old names kept as
-     aliases); then the 15 open `DECLARE_CLASS` destructors, and the
-     constructors of the same classes, can match.
+     compared. `vtables.py` named each native class's slot functions and
+     destructor after the class that introduces them, and the generated
+     class headers declare those overrides: a source that includes them
+     stores the exe's vtables (all but two `DECLARE_CLASS` destructors are
+     matched). Next: about 70 name-blocked deferrals still declare their
+     classes by hand with placeholder chains (`Class_10B7C000` for
+     `UObject`); rewrite them against the generated headers, and their
+     constructors too. Classes outside `classes.txt` (placeholders named by
+     vtable) still need their slots named the same way, and `dtors.py`
+     has not run since these names.
+   - Library code in `src/`: two STL members integrated in earlier batches
+     were found and taken out (`basic_string::assign`, a `hash_map`
+     constructor); look for more among functions whose callees are STL
+     instances the workers excluded.
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -290,8 +298,8 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 40 of the
-     3,886 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 75 of the
+     4,320 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`, and some constructors and
