@@ -73,6 +73,34 @@ public:
 
 extern Class_10B0AED0* DAT_10f3a248;
 
+struct Struct_10AA6050
+{
+    int Unknown00;
+};
+
+class Class_10AA6050
+{
+public:
+    Struct_10AA6050* FUN_10aa6050(int Value);
+
+    char Unknown00[4];
+    int Unknown04;
+    char Unknown08[4];
+    Struct_10AA6050** Unknown0C;
+};
+
+// FUNCTION: 0x10AA6050 ?FUN_10aa6050@Class_10AA6050@@QAEPAUStruct_10AA6050@@H@Z
+Struct_10AA6050* Class_10AA6050::FUN_10aa6050(int Value)
+{
+    for (int i = 0; i < Unknown04; i++)
+    {
+        Struct_10AA6050* Entry = Unknown0C[i];
+        if (Entry->Unknown00 == Value)
+            return Entry;
+    }
+    return 0;
+}
+
 // FUNCTION: 0x10AA6120 ??0Class_10AA6120@@QAE@H@Z
 Class_10AA6120::Class_10AA6120(int A)
     : Unknown00(A)

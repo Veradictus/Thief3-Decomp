@@ -25,6 +25,30 @@ public:
     void* Unknown08;
 };
 
+struct Struct_10A2C580
+{
+    char Unknown00[8];
+    void* Unknown08;
+    char Unknown0C[0x71];
+    char Unknown7D;
+};
+
+class Class_10A2C2F0
+{
+public:
+    int FUN_10a2c2f0(void* A, void* B);
+    bool FUN_10a2c580(void* A, void* B, void* C);
+};
+
+// FUNCTION: 0x10A2C580 ?FUN_10a2c580@Class_10A2C2F0@@QAE_NPAX00@Z
+bool Class_10A2C2F0::FUN_10a2c580(void* A, void* B, void* C)
+{
+    Struct_10A2C580* Entry = (Struct_10A2C580*)FUN_10a2c2f0(A, C);
+    if (Entry && !Entry->Unknown7D && Entry->Unknown08 == B)
+        return true;
+    return false;
+}
+
 // FUNCTION: 0x10A2C610 ?FUN_10a2c610@Class_10A2C610@@QAEXXZ
 void Class_10A2C610::FUN_10a2c610()
 {

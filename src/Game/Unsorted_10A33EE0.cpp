@@ -99,6 +99,28 @@ public:
     Entry_10A34D50* Unknown08;
 };
 
+struct Struct_10A33EE0_Vec
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+struct Struct_10A33EE0
+{
+    char Unknown00[0x2C];
+    Struct_10A33EE0_Vec Unknown2C;
+};
+
+// FUNCTION: 0x10A33EE0 ?FUN_10a33ee0@@YGXPAUStruct_10A33EE0@@0PBUStruct_10A33EE0_Vec@@1@Z
+void __stdcall FUN_10a33ee0(Struct_10A33EE0* A, Struct_10A33EE0* B, const Struct_10A33EE0_Vec* C, const Struct_10A33EE0_Vec* D)
+{
+    if (A)
+        A->Unknown2C = *C;
+    if (B)
+        B->Unknown2C = *D;
+}
+
 // FUNCTION: 0x10A346F0 ?FUN_10a346f0@Class_10A34D50@@QAEXXZ
 void Class_10A34D50::FUN_10a346f0()
 {

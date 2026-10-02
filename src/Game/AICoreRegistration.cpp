@@ -27,6 +27,72 @@ void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D
 
 void operator delete(void* Ptr, const int& Tag, int A, int B, int C, int D);
 
+// FUNCTION: 0x10B93900 ??1AAddAIPoint@@UAE@XZ
+AAddAIPoint::~AAddAIPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B939A0 ??1AChangeDirectionPoint@@UAE@XZ
+AChangeDirectionPoint::~AChangeDirectionPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93A40 ??1AFormationPoint@@UAE@XZ
+AFormationPoint::~AFormationPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93AE0 ??1AFormationPointAbsolute@@UAE@XZ
+AFormationPointAbsolute::~AFormationPointAbsolute()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93B80 ??1AHeadTurnPoint@@UAE@XZ
+AHeadTurnPoint::~AHeadTurnPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93BD0 ??1ALookPoint@@UAE@XZ
+ALookPoint::~ALookPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93CC0 ??1APlayAnimPoint@@UAE@XZ
+APlayAnimPoint::~APlayAnimPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93D60 ??1APlayBarkPoint@@UAE@XZ
+APlayBarkPoint::~APlayBarkPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93DB0 ??1APatrolPoint@@UAE@XZ
+APatrolPoint::~APatrolPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93EA0 ??1ACityPopPoint@@UAE@XZ
+ACityPopPoint::~ACityPopPoint()
+{
+    ConditionalDestroy();
+}
+
+// FUNCTION: 0x10B93F40 ??1AWanderPoint@@UAE@XZ
+AWanderPoint::~AWanderPoint()
+{
+    ConditionalDestroy();
+}
+
 // FUNCTION: 0x10B94170 ?InitializePrivateStaticClassAAIModel@AAIModel@@SAXXZ
 void AAIModel::InitializePrivateStaticClassAAIModel()
 {
@@ -769,6 +835,12 @@ void AHeadTurnPoint::InitializePrivateStaticClassAHeadTurnPoint()
     PrivateStaticClass->SetClass(UClass::StaticClass());
     if (GetInitialized() && PrivateStaticClass->GetClass() == PrivateStaticClass->StaticClass())
         PrivateStaticClass->Register();
+}
+
+// FUNCTION: 0x10B976B0 ??1AAIPawn@@UAE@XZ
+AAIPawn::~AAIPawn()
+{
+    ConditionalDestroy();
 }
 
 // FUNCTION: 0x10B97700 ?InitializePrivateStaticClassAWanderPoint@AWanderPoint@@SAXXZ

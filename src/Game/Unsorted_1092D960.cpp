@@ -62,6 +62,38 @@ public:
     void* Unknown08;
 };
 
+class Class_1092D960_Member
+{
+public:
+    virtual int __stdcall Virtual0();
+    virtual int __stdcall Virtual1();
+    virtual int __stdcall Virtual2();
+};
+
+class Class_1092D960
+{
+public:
+    void FUN_1092d960();
+
+    Class_1092D960_Member* Unknown00;
+    Class_1092D960_Member* Unknown04;
+};
+
+// FUNCTION: 0x1092D960 ?FUN_1092d960@Class_1092D960@@QAEXXZ
+void Class_1092D960::FUN_1092d960()
+{
+    if (Unknown00)
+    {
+        Unknown00->Virtual2();
+        Unknown00 = 0;
+    }
+    if (Unknown04)
+    {
+        Unknown04->Virtual2();
+        Unknown04 = 0;
+    }
+}
+
 // FUNCTION: 0x1092E8F0 ?FUN_1092e8f0@Class_1092E8F0@@QAEXXZ
 void Class_1092E8F0::FUN_1092e8f0()
 {

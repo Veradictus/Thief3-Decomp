@@ -72,6 +72,33 @@ public:
     Class_10C00F60_Field18 Unknown18;
 };
 
+struct Struct_10C00F30
+{
+    char Unknown00[0xC];
+    int Unknown0C;
+};
+
+class Class_10C00F30
+{
+public:
+    void FUN_10c00f30(int A);
+
+    int Unknown00;
+    char Unknown04[4];
+    Struct_10C00F30** Unknown08;
+};
+
+// FUNCTION: 0x10C00F30 ?FUN_10c00f30@Class_10C00F30@@QAEXH@Z
+void Class_10C00F30::FUN_10c00f30(int A)
+{
+    for (int i = 0; i < Unknown00; i++)
+    {
+        Struct_10C00F30* Entry = Unknown08[i];
+        if (Entry->Unknown0C == A)
+            Entry->Unknown0C = 0;
+    }
+}
+
 // FUNCTION: 0x10C01140 ?FUN_10c01140@Class_10C01140@@QAEIABH0@Z
 unsigned int Class_10C01140::FUN_10c01140(const int& Key, const int& Value)
 {

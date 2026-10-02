@@ -27,6 +27,12 @@ void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D
 
 void operator delete(void* Ptr, const int& Tag, int A, int B, int C, int D);
 
+// FUNCTION: 0x10AB4050 ??1ASpellProjectile@@UAE@XZ
+ASpellProjectile::~ASpellProjectile()
+{
+    ConditionalDestroy();
+}
+
 // FUNCTION: 0x10AB40A0 ?GetPrivateStaticClassUT3GameRegistrar@UT3GameRegistrar@@SAPAVUClass@@PBD@Z
 UClass* UT3GameRegistrar::GetPrivateStaticClassUT3GameRegistrar(const TCHAR* Package)
 {

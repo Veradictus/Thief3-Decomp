@@ -30,6 +30,39 @@ struct Static_10B3A410
     int Unknown18;
 };
 
+class Class_10B47180
+{
+public:
+    void FUN_10b47180(int A, int B, int C, int D);
+};
+
+class Class_10B3A460
+{
+public:
+    Class_10B3A460* FUN_10b3a460(int A);
+
+    char Unknown00[0x1C];
+    int Unknown1C;
+};
+
+Class_10B3A460* FUN_10b3abf0();
+
+class Class_10B397D0
+{
+public:
+    void FUN_10b397d0(int A, int B, int C, int D);
+
+    char Unknown00[0xC];
+    Class_10B47180* Unknown0C[1];
+};
+
+// FUNCTION: 0x10B397D0 ?FUN_10b397d0@Class_10B397D0@@QAEXHHHH@Z
+void Class_10B397D0::FUN_10b397d0(int A, int B, int C, int D)
+{
+    int Index = FUN_10b3abf0()->FUN_10b3a460(A)->Unknown1C;
+    Unknown0C[Index]->FUN_10b47180(A, B, C, D);
+}
+
 // FUNCTION: 0x10B39870 ?FUN_10b39870@Class_10B39870@@QAEHH@Z
 int Class_10B39870::FUN_10b39870(int A)
 {

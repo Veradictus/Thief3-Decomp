@@ -95,6 +95,62 @@ public:
     Class_10BB8700* Unknown04;
 };
 
+class Class_10BFF240
+{
+public:
+    void FUN_10bff240(unsigned char A);
+};
+
+class Class_10BFF460 : public Class_10BFF240
+{
+public:
+    bool FUN_10bff330();
+};
+
+class Class_10BBB410
+{
+public:
+    Class_10BFF460* FUN_10bbb410();
+};
+
+class Class_10E94578
+{
+public:
+    virtual void FUN_10bdb0a0();
+
+    void FUN_10bc5b50();
+};
+
+class Class_10E947B8 : public Class_10E94578
+{
+public:
+    virtual void FUN_10bdb0a0();
+
+    Class_10BBB410* Unknown04;
+    char Unknown08[0x58];
+    bool Unknown60;
+    int Unknown64;
+};
+
+// FUNCTION: 0x10BDB0A0 ?FUN_10bdb0a0@Class_10E947B8@@UAEXXZ
+void Class_10E947B8::FUN_10bdb0a0()
+{
+    Class_10BFF460* Obj = Unknown04->FUN_10bbb410();
+    if (Obj)
+    {
+        if (!Obj->FUN_10bff330())
+        {
+            Obj->FUN_10bff240(1);
+            FUN_10bc5b50();
+        }
+        else
+        {
+            ++Unknown64;
+            Unknown60 = false;
+        }
+    }
+}
+
 // FUNCTION: 0x10BDB0E0 ?FUN_10bdb0e0@Class_10E948D8@@UAEXXZ
 void Class_10E948D8::FUN_10bdb0e0()
 {

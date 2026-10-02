@@ -34,7 +34,6 @@ public:
     int Unknown28;
 };
 
-
 class Class_10BA1660
 {
 public:
@@ -48,6 +47,37 @@ public:
     char Unknown10[4];
     void* Unknown14;
 };
+
+class Class_10c7d570
+{
+public:
+    void* FUN_10c7d570();
+};
+
+class Object_10B9EEB0
+{
+public:
+    char Unknown00[8];
+    Class_10c7d570* Unknown08;
+};
+
+class Class_10B9EEB0
+{
+public:
+    void FUN_10b9eeb0(void* A);
+    void FUN_10b9e2c0(void* A);
+
+    char Unknown00[0xC];
+    Object_10B9EEB0* Unknown0C;
+};
+
+// FUNCTION: 0x10B9EEB0 ?FUN_10b9eeb0@Class_10B9EEB0@@QAEXPAX@Z
+void Class_10B9EEB0::FUN_10b9eeb0(void* A)
+{
+    if (A && A == Unknown0C->Unknown08->FUN_10c7d570())
+        return;
+    FUN_10b9e2c0(A);
+}
 
 // FUNCTION: 0x10B9F250 ?FUN_10b9f250@@YAHH@Z
 int FUN_10b9f250(int Bit)

@@ -1,6 +1,8 @@
 // Game/Unsorted_10A6DA80.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
+#include "Core/Core.h"
+
 class Class_10E67938
 {
 public:
@@ -44,6 +46,35 @@ public:
 
     bool FUN_10a6e690(int A);
 };
+
+class Class_10E6B9F8
+{
+public:
+    virtual void FUN_10a6e5e0(int Event, UObject* A, int B, int C);
+    virtual ~Class_10E6B9F8();
+
+    void FUN_10a6e1c0(UObject* A, int B, int C);
+    void FUN_10a6e370(UObject* A, int B, int C, int Event);
+    void FUN_10a6e490(UObject* A, int B, int C, int Event, int Id);
+};
+
+// FUNCTION: 0x10A6E5E0 ?FUN_10a6e5e0@Class_10E6B9F8@@UAEXHPAVUObject@@HH@Z
+void Class_10E6B9F8::FUN_10a6e5e0(int Event, UObject* A, int B, int C)
+{
+    switch (Event)
+    {
+    case 3:
+        FUN_10a6e1c0(A, B, C);
+        break;
+    case 51:
+    case 52:
+        FUN_10a6e370(A, B, C, Event);
+        break;
+    case 16:
+        FUN_10a6e490(A, B, C, Event, 0x25c7c38);
+        break;
+    }
+}
 
 // FUNCTION: 0x10A6E690 ?FUN_10a6e690@Class_10A6E690@@QAE_NH@Z
 bool Class_10A6E690::FUN_10a6e690(int A)

@@ -48,6 +48,54 @@ public:
     Class_10978090 Unknown08;
 };
 
+class Class_10c7d570
+{
+public:
+    void* FUN_10c7d570();
+};
+
+class Class_10BAA9D0 : public Class_10c7d570
+{
+};
+
+class Class_10DBBAE0
+{
+public:
+    Class_10BAA9D0* FUN_10dbbae0();
+};
+
+struct Struct_10BFF250_A
+{
+    char Unknown00[0x2C];
+    int Unknown2C;
+};
+
+struct Struct_10BFF250_B
+{
+    char Unknown00[0x2C];
+    int Unknown2C;
+};
+
+void FUN_10ba91e0(int* A, int* B);
+
+class Class_10BFF460
+{
+public:
+    void FUN_10bff250();
+
+    char Unknown00[4];
+    Class_10DBBAE0* Unknown04;
+    Class_10978090 Unknown08;
+};
+
+// FUNCTION: 0x10BFF250 ?FUN_10bff250@Class_10BFF460@@QAEXXZ
+void Class_10BFF460::FUN_10bff250()
+{
+    Class_10BAA9D0* P = Unknown04->FUN_10dbbae0();
+    FUN_10ba91e0(&((Struct_10BFF250_A*)P->FUN_10c7d570())->Unknown2C,
+                 &((Struct_10BFF250_B*)Unknown08.FUN_10978090())->Unknown2C);
+}
+
 // FUNCTION: 0x10BFF280 ?FUN_10bff280@Class_10BFF280@@QAEHXZ
 int Class_10BFF280::FUN_10bff280()
 {

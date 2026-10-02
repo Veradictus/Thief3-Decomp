@@ -1,0 +1,56 @@
+// Game/Unsorted_10932FB0_5.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
+// Declarations above the functions belong in include/ once they settle.
+
+class Object_109331D0;
+
+struct Data_10932FB0
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+class Class_10933230
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+
+    char Unknown04[0xC];
+    Data_10932FB0 Unknown10;
+};
+
+class Class_10E49D44
+{
+public:
+    virtual int FUN_10932fa0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual int FUN_10932fb0(unsigned int Index, Data_10932FB0* Out);
+    virtual void Virtual6();
+    virtual int FUN_10933200(unsigned int Index);
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual int FUN_10933140();
+
+    int Unknown04;
+    Object_109331D0* Unknown08;
+    unsigned int Unknown0C;
+    Class_10933230** Unknown10;
+};
+
+// FUNCTION: 0x10933140 ?FUN_10933140@Class_10E49D44@@UAEHXZ
+int Class_10E49D44::FUN_10933140()
+{
+    for (unsigned int i = 0; i < Unknown0C; i++)
+        Unknown10[i]->Virtual7();
+    return 0;
+}

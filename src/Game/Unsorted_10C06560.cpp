@@ -92,6 +92,72 @@ public:
     virtual int Virtual85();
 };
 
+class FArchive
+{
+public:
+    virtual ~FArchive();
+    virtual void Serialize(void* V, int Length);
+};
+
+class Class_10C065F0
+{
+public:
+    void FUN_10c065f0(FArchive& Ar);
+};
+
+class Class_10C066A0
+{
+public:
+    void FUN_10c066a0(FArchive& Ar);
+};
+
+class Class_10E8C008
+{
+public:
+    virtual void FUN_10c06750(FArchive& Ar);
+
+    char Unknown04[0xC];
+    Class_10C065F0 Unknown10;
+    char Unknown11[0xB];
+    Class_10C066A0 Unknown1C;
+};
+
+class Class_10963740
+{
+public:
+    Class_10963740* FUN_10963740(int A, int B, int C);
+
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+class Class_10C06F30
+{
+public:
+    Class_10963740* FUN_10c06f30(Class_10963740* Out, int Index);
+    int FUN_10c06d30(int Index, int* B, int* C);
+};
+
+// FUNCTION: 0x10C06750 ?FUN_10c06750@Class_10E8C008@@UAEXAAVFArchive@@@Z
+void Class_10E8C008::FUN_10c06750(FArchive& Ar)
+{
+    int Version = 3;
+    Ar.Serialize(&Version, 4);
+    Unknown10.FUN_10c065f0(Ar);
+    Unknown1C.FUN_10c066a0(Ar);
+}
+
+// FUNCTION: 0x10C06F30 ?FUN_10c06f30@Class_10C06F30@@QAEPAVClass_10963740@@PAV2@H@Z
+Class_10963740* Class_10C06F30::FUN_10c06f30(Class_10963740* Out, int Index)
+{
+    int X = 0;
+    int Y = 0;
+    int Z = FUN_10c06d30(Index, &Y, &X);
+    Out->FUN_10963740(Z, Y, X);
+    return Out;
+}
+
 // FUNCTION: 0x10C06F80 ?FUN_10c06f80@@YAHPAVClass_10C06F80@@@Z
 int FUN_10c06f80(Class_10C06F80* Obj)
 {

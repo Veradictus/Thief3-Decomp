@@ -15,6 +15,21 @@ float FUN_10c05a50(const Struct_10C05A50* A, const Struct_10C05A50* B);
 
 int FUN_109688a0(int A, int B, int C);
 
+void FUN_10c05480(int* A, int B);
+
+// FUNCTION: 0x10C05480 ?FUN_10c05480@@YAXPAHH@Z
+void FUN_10c05480(int* A, int B)
+{
+    int Value = *A;
+    if (Value > B && Value < 0xffff - B)
+    {
+        if (Value < 0x7fff)
+            *A = B;
+        else
+            *A = 0xffff - B;
+    }
+}
+
 // FUNCTION: 0x10C054B0 ?FUN_10c054b0@@YAMMMMMM@Z
 float FUN_10c054b0(float A, float B, float C, float D, float E)
 {

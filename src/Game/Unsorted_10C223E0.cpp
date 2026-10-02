@@ -1,0 +1,51 @@
+// Game/Unsorted_10C223E0.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
+// Declarations above the functions belong in include/ once they settle.
+
+class Class_10905A90_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(void* Block);
+};
+
+Class_10905A90_Member* FUN_10905aa0();
+
+class Class_10BAEC80
+{
+public:
+    void FUN_10a211e0(int Count);
+
+    void Empty()
+    {
+        FUN_10a211e0(0);
+        if (Unknown04)
+        {
+            FUN_10905aa0()->Virtual5(Unknown08);
+            Unknown08 = 0;
+            Unknown04 = 0;
+        }
+    }
+
+    int Unknown00;
+    int Unknown04;
+    void* Unknown08;
+};
+
+class Class_10C22D60
+{
+public:
+    void FUN_10c22d60();
+
+    char Unknown00[0x14];
+    Class_10BAEC80 Unknown14;
+};
+
+// FUNCTION: 0x10C22D60 ?FUN_10c22d60@Class_10C22D60@@QAEXXZ
+void Class_10C22D60::FUN_10c22d60()
+{
+    Unknown14.Empty();
+}

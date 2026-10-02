@@ -32,6 +32,25 @@ public:
     virtual float FUN_10ace340(int a, int b, int c);
 };
 
+class Class_10E700D4
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual float FUN_10ace1d0(Class_1098E330* A, int B, Class_1098E330* C);
+};
+
+// FUNCTION: 0x10ACE1D0 ?FUN_10ace1d0@Class_10E700D4@@UAEMPAVClass_1098E330@@H0@Z
+float Class_10E700D4::FUN_10ace1d0(Class_1098E330* A, int B, Class_1098E330* C)
+{
+    float First = 0.0f;
+    A->FUN_1098e330(0x10058b, (int*)&First);
+    float Second = 0.0f;
+    if (C)
+        C->FUN_1098e330(0x100589, (int*)&Second);
+    return Second + First;
+}
+
 // FUNCTION: 0x10ACE280 ?FUN_10ace280@Class_10E70150@@UAEMHHPAVClass_1098E330@@@Z
 float Class_10E70150::FUN_10ace280(int A, int B, Class_1098E330* Obj)
 {

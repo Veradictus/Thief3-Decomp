@@ -39,6 +39,32 @@ public:
     Class_109418E0* Unknown1C;
 };
 
+class Class_10941480
+{
+public:
+    void FUN_10941480();
+
+    char Unknown00[0x44];
+};
+
+class Class_10941570
+{
+public:
+    void FUN_10941570();
+
+    char Unknown00[4];
+    int Unknown04;
+    char Unknown08[4];
+    Class_10941480* Unknown0C;
+};
+
+// FUNCTION: 0x10941570 ?FUN_10941570@Class_10941570@@QAEXXZ
+void Class_10941570::FUN_10941570()
+{
+    for (int i = 0; i < Unknown04; i++)
+        Unknown0C[i].FUN_10941480();
+}
+
 // FUNCTION: 0x10941980 ?FUN_10941980@Class_10941C40@@QAEXFFF@Z
 void Class_10941C40::FUN_10941980(short A, short B, short C)
 {
