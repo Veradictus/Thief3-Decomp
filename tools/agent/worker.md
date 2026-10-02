@@ -120,6 +120,12 @@ inlines any body in the file, even one defined after the caller). Use
   `void*` is undefined C++, though MSVC compiles it the same).
 - COM interfaces (Direct3D): declare slots `virtual int __stdcall
   VirtualN(...)`: `this` is pushed last, no ecx.
+- `mov eax, [G]; test eax, eax; jne; push "<Package>"; call
+  GetPrivateStaticClass<C>; add esp, 4; mov [G], eax; call
+  InitializePrivateStaticClass<C>` is `C::StaticClass()` inlined: `#include
+  "Core/Core.h"`, declare `class Super;` and `class C { DECLARE_CLASS(C, Super,
+  <flags>, <Package>) };` (classes.txt gives super, flags and package), and
+  call `C::StaticClass()`.
 - `mov ecx, [esp+4]; test ecx, ecx; je; jmp <ctor>` (14 bytes) is a native
   class's InternalConstructor: config/PC_20040610/classes.txt names the class
   whose `constructor:` is this address. Write it as Unreal does: declare

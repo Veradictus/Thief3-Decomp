@@ -353,6 +353,18 @@ patterns that need no judgement:
   copies; here the gate keeps them honest. sweep.py stamps after each batch,
   and the swarm workflow between workers.
 
+- **Class registrations** ([classreg.py](../tools/agent/classreg.py)): every
+  native class's `GetPrivateStaticClass<Class>` and
+  `InitializePrivateStaticClass<Class>` are Unreal's `IMPLEMENT_CLASS`
+  ([engine.md](engine.md), "Native class registration"). `classreg.py check`
+  writes both for each of Ion Storm's classes from `classes.txt` and the
+  generated headers, runs the gate on all of them in parallel, and prints
+  the names its callers' guesses gave their callees as a `fixnames.py spec`;
+  `classreg.py accept` accepts what matches. The first run matched 271 of
+  272, 250 of them integrated (the others' addresses are not game code in
+  `categories.txt` yet). Their units are per package
+  (`Game/<Package>Registration.cpp`): a class's own unit usually declares the
+  class itself, which the generated header would redefine.
 - `fixnames.py constants` finds every queued function whose whole code is
   `mov eax, imm; ret` (or `xor eax, eax; ret`), writes `int FUN_x() { return
   imm; }` for it, and excludes it from the queue until `fixnames.py accept`
