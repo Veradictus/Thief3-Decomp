@@ -350,6 +350,16 @@ patterns that need no judgement:
   to the workers, whose packet then shows the family and why the stamp
   failed. Families whose references carry real names, literals, or bare
   jumps to a callee (whose signature is still a guess) are not stamped.
+  Each member tries the accepted members nearest to it first (fewest
+  references to rewrite). A member's own EH handler and tables are not
+  rewritten: the stamped source emits its own, which the gate binds by place.
+  A callee the template names through its class (`~Class_10E4A538`, bound
+  to `FUN_10941030`) takes the other member's class from that member's
+  callee: its name when it is the same name around other addresses, else
+  the callee's references when both callees have one shape. Native classes
+  (`classes.txt`) are swapped by name: one class's vtable for another's
+  renames the class (`AAIModel` to `AAddAIPoint`), and a base destructor
+  then becomes the new class's super's (`AAIPathPoint`), as C++ calls it.
   meteor-decomp took most of its matches from such clusters, though as byte
   copies; here the gate keeps them honest. sweep.py stamps after each batch,
   and the swarm workflow between workers.

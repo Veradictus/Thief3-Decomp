@@ -208,6 +208,115 @@ def placeholder_like(name: str) -> bool:
 
 
 LITERAL = ("__real@", "??_C@", "s_", "u_")
+# What a decorated name puts before its first class name: a vtable, a deleting destructor, a constructor,
+# a destructor, or a method's own name (the class follows its `@`).
+NAME_PREFIXES = ("??_7", "??_G", "??_E", "??0", "??1", "?")
+
+
+def classes_in(name: str, known: set) -> List[str]:
+    """The native classes a decorated name spells (`??_7AAIModel@@6B@`, `?F@AAIModel@@QAEXXZ`)."""
+    out = []
+    for fragment in name.split("@"):
+        prefix = next((x for x in NAME_PREFIXES if fragment.startswith(x)), "")
+        if fragment[len(prefix):] in known:
+            out.append(fragment[len(prefix):])
+    return out
+
+
+def rename(names: Dict[str, str], old: str, new: str) -> str:
+    """Records class `old` -> `new` in `names`; "" unless it contradicts what is there."""
+    if names.get(old, new) != new or (old != new and new in names.values() and names.get(old) != new):
+        return f"{old} would be renamed twice"
+    if old != new:
+        names[old] = new
+    return ""
+
+
+def rename_classes(tname: str, oname: str, source: str, known: set, names: Dict[str, str]) -> str:
+    """Maps the native classes in which two decorated names differ when they are otherwise the same name
+    (`??_7AAIBehaviorModel@@6B@` / `??_7AAICombatModel@@6B@`): each differing `@` fragment must be a class
+    classes.txt knows, behind the same prefix, and a word of the template's source. "" when all map."""
+    tf, of = tname.split("@"), oname.split("@")
+    if len(tf) != len(of):
+        return f"names of other shapes ({tname} / {oname})"
+    for a, b in zip(tf, of):
+        if a == b:
+            continue
+        pa = next((x for x in NAME_PREFIXES if a.startswith(x)), "")
+        pb = next((x for x in NAME_PREFIXES if b.startswith(x)), "")
+        ca, cb = a[len(pa):], b[len(pb):]
+        if pa != pb or ca not in known or cb not in known:
+            return f"names differ in more than a native class ({tname} / {oname})"
+        if not re.search(rf"\b{re.escape(ca)}\b", source):
+            return f"{ca} is not a name in the template"
+        why = rename(names, ca, cb)
+        if why:
+            return why
+    return ""
+
+
+def derive(idx: Dict[str, dict], ta: int, oa: int, name: str, oname: str, mapping: Dict[int, int],
+           source: str = "", known: Optional[set] = None, names: Optional[Dict[str, str]] = None,
+           vtable_class: Optional[Dict[int, str]] = None) -> str:
+    """Maps the addresses in `name`, the template's name for its callee `ta` (`??1Class_10E4A538@@QAE@XZ`),
+    to the other function's: from its callee's name when that is the same name around other addresses,
+    else from the two callees' references at equal offsets when they have one shape (the destructor of
+    Class_10E4A538 stores vtable 0x10E4A538 where the other one stores its class's). A name that carries
+    a native class instead (`??1AAIModel@@UAE@XZ`) maps that class into `names` the same two ways (the
+    callee's vtable gives the class). "" when all map."""
+    known, names, vtable_class = known or set(), names if names is not None else {}, vtable_class or {}
+    parts = HEX.split(name)  # text, address, text, ...
+    classes = classes_in(name, known)
+    if len(parts) < 3 and not classes:
+        return f"{name} carries no address"
+    pairs = []
+    if not placeholder_like(oname):
+        if len(parts) < 3:
+            return rename_classes(name, oname, source, known, names)
+        m = re.fullmatch("".join(re.escape(t) if i % 2 == 0 else "([0-9A-Fa-f]{8})" for i, t in enumerate(parts)),
+                         oname)
+        if not m:
+            return f"the callee is named ({name} / {oname})"
+        pairs = [(int(x, 16), int(y, 16)) for x, y in zip(parts[1::2], m.groups())]
+    else:
+        te, oe = idx.get(addr_key(ta)), idx.get(addr_key(oa))
+        if not te or not oe or te["key"] != oe["key"]:
+            return f"{name} ({fmt_addr(ta)}) and {fmt_addr(oa)} differ in shape"
+        trefs, orefs = {r[0]: (r[1], r[2]) for r in te["refs"]}, {r[0]: (r[1], r[2]) for r in oe["refs"]}
+        if len(parts) < 3:  # the callee's own references give the classes (its vtable)
+            for c in classes:
+                offs = sorted(off for off, (a, n) in trefs.items()
+                              if vtable_class.get(a) == c or c in classes_in(n, known))
+                if not offs or offs[0] not in orefs:
+                    return f"{fmt_addr(ta)} does not reference {c}"
+                oa2, on = orefs[offs[0]]
+                new = vtable_class.get(oa2) or next(iter(classes_in(on, known)), "")
+                if not new:
+                    return f"{fmt_addr(oa)} references no native class where {fmt_addr(ta)} references {c}"
+                if not re.search(rf"\b{re.escape(c)}\b", source):
+                    return f"{c} is not a name in the template"
+                why = rename(names, c, new)
+                if why:
+                    return why
+            return ""
+        for x in (int(h, 16) for h in parts[1::2]):
+            offs = sorted(off for off, (a, _) in trefs.items() if a == x)
+            if not offs or orefs.get(offs[0], (None,))[0] is None:
+                return f"{fmt_addr(ta)} does not reference {fmt_addr(x)}"
+            pairs.append((x, orefs[offs[0]][0]))
+    for x, y in pairs:
+        if mapping.get(x, y) != y:
+            return f"{fmt_addr(x)} would map to two addresses"
+        mapping[x] = y
+    return ""
+
+
+def rename_words(source: str, names: Dict[str, str]) -> str:
+    """`source` with each class `names` maps renamed, as a whole word, all at once."""
+    if not names:
+        return source
+    return re.sub(r"\b(" + "|".join(map(re.escape, sorted(names, key=len, reverse=True))) + r")\b",
+                  lambda m: names[m.group(1)], source)
 
 
 def plan(p: Project, template: int, target: int, idx: Dict[str, dict]) -> Tuple[Optional[str], str]:
@@ -217,16 +326,67 @@ def plan(p: Project, template: int, target: int, idx: Dict[str, dict]) -> Tuple[
         return None, "the template's source is gone"
     source = src.read_text(encoding="utf-8", errors="replace")
     tref, oref = idx[addr_key(template)]["refs"], idx[addr_key(target)]["refs"]
-    mapping = {template: target}
+    bindings = (p.accepted().get(template) or {}).get("bindings", ())
+    # The template's own EH handler and tables: a candidate emits its own, which the gate binds by place.
+    own = {int(b["addr"], 16) for b in bindings if b.get("kind") in ("ehhandler", "funclet", "ehdata")}
+    bound = {int(b["addr"], 16): b["name"] for b in bindings if b.get("kind") in ("function", "data")}
+    native = p.classes()  # classes.txt: the names a stamp may swap for one another
+    known = set(native)
+    owners: Dict[int, List[str]] = {}
+    for n, c in native.items():
+        owners.setdefault(c.vtable, []).append(n)
+    vtable_class = {v: ns[0] for v, ns in owners.items() if v and len(ns) == 1}  # not folded tables
+    mapping, names = {template: target}, {}
+
+    def by_super(name: str) -> str:
+        """Renames each native class in `name` to the super of the class that replaces its subclass."""
+        for c in classes_in(name, known):
+            subs = [t for t in names if native[t].super == c]
+            if not subs:
+                return f"no renamed class derives from {c}"
+            new = native[names[subs[0]]].super
+            if not new or new not in known or not re.search(rf"\b{re.escape(c)}\b", source):
+                return f"{names[subs[0]]} has no super to replace {c} with"
+            why = rename(names, c, new)
+            if why:
+                return why
+        return ""
     for (off, ta, tname), (_, oa, oname) in zip(tref, oref):
-        if ta == oa:
+        if ta == oa or ta in own:
             continue
         if ta is None or oa is None:
             return None, f"reference at +{off:#x} unresolved"
         if tname.startswith(LITERAL) or oname.startswith(LITERAL):
             return None, f"literal at +{off:#x} differs"
-        if not (placeholder_like(tname) and placeholder_like(oname)):
-            return None, f"reference at +{off:#x} is named ({tname} / {oname})"
+        tc, oc = vtable_class.get(ta), vtable_class.get(oa)
+        if tc and oc and re.search(rf"\b{tc}\b", source):
+            # One native class's vtable for another's (classes.txt), whatever symbols.txt calls them yet.
+            why = rename(names, tc, oc)
+            if why:
+                return None, f"reference at +{off:#x}: {why}"
+            continue
+        if ta in bound and f"{ta:08x}" not in source.lower() and (
+                HEX.search(bound[ta]) or classes_in(bound[ta], known)):
+            # A callee the source names through its class (`~Class_10E4A538` or `~AAIModel`, bound to a FUN_).
+            before = dict(names)
+            why = derive(idx, ta, oa, bound[ta], oname, mapping, source, known, names, vtable_class)
+            if why and not HEX.search(bound[ta]):
+                # Else the class's super (classes.txt): the template's class derives from the callee's,
+                # so the other function's class derives from the other callee's.
+                names.clear()
+                names.update(before)
+                why = by_super(bound[ta]) or ""
+            if why:
+                return None, f"reference at +{off:#x}: {why}"
+            continue
+        # Names made from the reference's own address (`??_7Class_10E55F00@@6B@`) are placeholders too.
+        if not ((placeholder_like(tname) or f"{ta:08x}" in tname.lower())
+                and (placeholder_like(oname) or f"{oa:08x}" in oname.lower())):
+            # The same name around another native class (the vtable of AAIBehaviorModel / AAICombatModel).
+            why = rename_classes(tname, oname, source, known, names)
+            if why:
+                return None, f"reference at +{off:#x} is named ({tname} / {oname})"
+            continue
         if mapping.get(ta, oa) != oa:
             return None, f"{fmt_addr(ta)} would map to two addresses"
         if f"{ta:08x}" not in source.lower():
@@ -255,9 +415,17 @@ def plan(p: Project, template: int, target: int, idx: Dict[str, dict]) -> Tuple[
     # A method of a class the mapping does not rename (not virtual, and not named after an address that
     # maps): nothing says the other function belongs to that class.
     cls = (p.accepted().get(template) or {}).get("class") or ""
-    if cls and not tslots and not any(f"{a:08x}" in cls.lower() for a in mapping):
+    if cls and not tslots and cls not in names and not any(f"{a:08x}" in cls.lower() for a in mapping):
         return None, f"a method of {cls}: nothing gives the other function's class"
-    return rewrite(source, mapping), ""
+    out = rename_words(source, names)
+    if names:  # a renamed class registers with its own flags and package
+        def declare(m: re.Match) -> str:
+            c = native.get(m.group(1))
+            if m.group(1) not in names.values() or c is None:
+                return m.group(0)
+            return f"DECLARE_CLASS({m.group(1)}, {m.group(2)}, {c.flags:#x}, {c.package})"
+        out = re.sub(r"DECLARE_CLASS\((\w+),\s*(\w+),\s*[^,()]+,\s*(\w+)\)", declare, out)
+    return rewrite(out, mapping), ""
 
 
 def stamp(p: Project, targets: Optional[List[int]] = None, dry_run: bool = False, jobs: int = 4) -> dict:
@@ -280,7 +448,11 @@ def stamp(p: Project, targets: Optional[List[int]] = None, dry_run: bool = False
                 continue
             if targets and m not in targets:
                 continue
-            work.append((templates[:TEMPLATES], m))
+            # The accepted members nearest to this one first: fewest references to rewrite (a sibling with
+            # the same base destructor shares its class chain).
+            mrefs = idx[addr_key(m)]["refs"]
+            near = sorted(templates, key=lambda t: (sum(x[1] != y[1] for x, y in zip(idx[addr_key(t)]["refs"], mrefs)), t))
+            work.append((near[:TEMPLATES], m))
     stamp_dir = p.state_dir("stamps")
 
     def one(item) -> Tuple[str, dict]:

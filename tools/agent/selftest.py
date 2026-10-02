@@ -66,16 +66,19 @@ FUNCTIONS = {
 REFERENCE = DECLS + "\n".join(("__declspec(noinline) " if s == "?Callee@@YAHH@Z" else "") + body
                                for s, body in FUNCTIONS.items()) + "\n"
 CALLEE_DECL = "int Callee(int);\n"
+# A family whose members each have their own EH handler (test_families).
+EH_TWINS = ("int EhTwinA(int a) { Res r; return Helper(a + r.n); }\n"
+            "int EhTwinB(int a) { Res r; return Other(a + r.n); }\n")
 
 
 class Env:
     """A fixture project and a way to run the tools in it."""
 
-    def __init__(self, base: Path, name: str, named=frozenset(), extra=None, aliases=None):
+    def __init__(self, base: Path, name: str, named=frozenset(), extra=None, aliases=None, reference=REFERENCE):
         self.root = base / name
         self.root.mkdir(parents=True)
         project = Project()
-        ref = fixture.compile_reference(project, REFERENCE, self.root / "reference")
+        ref = fixture.compile_reference(project, reference, self.root / "reference")
         self.target = fixture.build(ref, self.root, named=set(named), extra_symbols=extra, aliases=aliases)
         self.env = fixture.environment(self.root)
         self.scratch = self.root / "scratch"
@@ -571,6 +574,60 @@ def test_families(base: Path) -> None:
     out = json.loads(e.run("clusters.py", "stamp", agent="").stdout)
     check(not out["stamped"] and "Holder" in out["failed"][0]["why"], f"its class is not guessed: {out}")
 
+    eha, ehb = "?EhTwinA@@YAHH@Z", "?EhTwinB@@YAHH@Z"
+    e = Env(base, "families-eh", reference=REFERENCE + EH_TWINS)  # each member pushes its own EH handler
+    h, own = e.target.addr(helper), e.target.addr(eha)
+    path = e.scratch / "eh-twin-a.cpp"
+    path.write_text(f"struct Res {{ Res(); ~Res(); int n; }};\nint FUN_{h:08x}(int);\n// FUNCTION: {e.addr(eha)}\n"
+                    f"int FUN_{own:08x}(int a) {{ Res r; return FUN_{h:08x}(a + r.n); }}\n", encoding="utf-8")
+    proc = e.run("accept.py", e.addr(eha), path)
+    check(proc.returncode == 0 and "ACCEPTED" in proc.stdout, "a template with an EH handler is accepted", proc)
+    out = json.loads(e.run("clusters.py", "stamp", agent="").stdout)
+    check([s["addr"] for s in out["stamped"]] == [e.addr(ehb)],
+          f"the other member is stamped: its handler is its own, not a reference to rewrite: {out}")
+
+
+def test_stamp_derive(base: Path) -> None:
+    """clusters.derive: a callee the template's source names through its class (`~Class_10E4A538`, bound to a
+    FUN_) maps that class to the other function's, from its callee's name or a same-shape callee's references."""
+    import clusters
+    dtor = "??1Class_10E4A538@@QAE@XZ"
+    m: dict = {}
+    check(clusters.derive({}, 1, 2, dtor, "??1Class_10E55E78@@QAE@XZ", m) == "" and m == {0x10E4A538: 0x10E55E78},
+          f"from the other callee's name: {m}")
+    m = {}
+    check(clusters.derive({}, 1, 2, dtor, "?Get@Class_10E55E78@@QAEHXZ", m) != "" and not m,
+          f"not from a name of another shape: {m}")
+    idx = {"00000001": {"key": "k", "refs": [[8, 0x10E4A538, "DAT_10e4a538"]]},
+           "00000002": {"key": "k", "refs": [[8, 0x10E55E78, "DAT_10e55e78"]]},
+           "00000003": {"key": "j", "refs": [[8, 0x10E66000, "DAT_10e66000"]]}}
+    m = {}
+    check(clusters.derive(idx, 1, 2, dtor, "FUN_00000002", m) == "" and m == {0x10E4A538: 0x10E55E78},
+          f"from the references of a callee of the same shape: {m}")
+    m = {}
+    check("shape" in clusters.derive(idx, 1, 3, dtor, "FUN_00000003", m) and not m,
+          "not from a callee of another shape")
+    m = {0x10E4A538: 0x10E77000}
+    check("two" in clusters.derive({}, 1, 2, dtor, "??1Class_10E55E78@@QAE@XZ", m),
+          "nor onto an address already mapped elsewhere")
+
+    known = {"AAIModel", "AInfo", "UObject", "UClass", "UStruct"}
+    check(clusters.classes_in("??_7AAIModel@@6B@", known) == ["AAIModel"]
+          and clusters.classes_in("?F@AAIModel@@QAEXXZ", known) == ["AAIModel"], "a vtable's and a method's class")
+    names: dict = {}
+    check(clusters.rename_classes("??_7AAIModel@@6B@", "??_7AInfo@@6B@", "class AAIModel {};", known, names) == ""
+          and names == {"AAIModel": "AInfo"}, f"one native class's name for another's: {names}")
+    names = {}
+    check(clusters.rename_classes("?IsA@UObject@@QBEHPAVUClass@@@Z", "?IsA@UObject@@QBEHPAVUStruct@@@Z",
+                                  "UClass* Class;", known, names) != "" and not names,
+          "not a class glued to a parameter's type code")
+    names = {}
+    check(clusters.rename_classes("??_7AAIModel@@6B@", "??_7AInfo@@6B@", "class Other {};", known, names) != "",
+          "nor a class the template does not spell")
+    names = {"AAIModel": "AInfo"}
+    check(clusters.rename_words("class AAIModel : public AAIModelBase { ~AAIModel(); };", names)
+          == "class AInfo : public AAIModelBase { ~AInfo(); };", "renamed as whole words only")
+
 
 def test_sweep(base: Path) -> None:
     """sweep.py with a glob: accepts a forgotten MATCH, parks out-of-scope deferrals, logs the batch."""
@@ -739,7 +796,8 @@ TESTS = [
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_keeps_distinct_includes,
     test_integrate_drops_what_breaks,
-    test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_sweep, test_guard,
+    test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_stamp_derive, test_sweep,
+    test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
 
