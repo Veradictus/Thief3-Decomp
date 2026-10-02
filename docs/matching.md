@@ -423,8 +423,8 @@ the split objects are made rather than in the gate:
 - A static local: its guard (`?$S1@...`) and the `$E` function that
   registers its destructor are named only in their own object file.
 - A reference into a named array at an offset, where the model gives the
-  address a label of its own, or delink turns an unnamed one into `<section>
-  + offset`, the case `tools/split.py` does not fold (below).
+  address a label of its own, or delink turns an unnamed one into
+  `<section> + offset`, the case `tools/split.py` does not fold (below).
 
 A switch no longer does: MSVC labels its cases and tables with static `$L`
 symbols, which objdiff takes for the end of the function, and delink names

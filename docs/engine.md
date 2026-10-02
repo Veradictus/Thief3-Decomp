@@ -415,8 +415,8 @@ ACTIVE), `+0xCC` PauseGame (byte), `+0xCD` BlackScreen, `+0xCE` Selectable,
 `+0x88` writes a size into an out parameter (used on the parent).
 
 `PlacedPosition` in top-left mode, with `avail` the parent's size clamped to the
-layout size (the layout size for top-level windows): CENTER `x = (avail - w)/2
-+ Pos_X`, LEFT and absolute `x = Pos_X`, RIGHT `x = avail - w + Pos_X`; y is the
+layout size (the layout size for top-level windows): CENTER
+`x = (avail - w)/2 + Pos_X`, LEFT and absolute `x = Pos_X`, RIGHT `x = avail - w + Pos_X`; y is the
 same with TOP/BOTTOM. The result is relative to the parent. `Width=FULLSCREEN`
 makes `w` the layout width, so a full-width window at `Pos_X=325` (the main
 menu buttons) sits 325 units from the left edge at any width. Callers use the
