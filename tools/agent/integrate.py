@@ -54,8 +54,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import lint as linter
-from common import (FUNCTION_MARKER, Lock, Project, addr_key, atomic_write, fmt_addr, is_placeholder, splitslib,
-                    symbolslib)
+from common import (FUNCTION_MARKER, Lock, Project, addr_key, atomic_write, fmt_addr, is_placeholder, read_json,
+                    splitslib, symbolslib)
 from verify import Verifier
 
 CATEGORY_DIRS = {"game": "Game", "engine": "Engine", "libs": "Libs"}  # configure.py's unit categories
@@ -289,11 +289,12 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
     """({address: (old, new)} renames, new symbols.txt lines, warnings) for integrated records."""
     renames: Dict[int, Tuple[str, str]] = {}
     added: Dict[int, str] = {}
+    aliases: List[Tuple[int, str]] = []
     warnings: List[str] = []
     taken = {s.name: s.address for s in p.symbols}
 
     def want(address: int, name: str, kind: str, size: int = 0, compatible_with: str = "") -> None:
-        if not name or name.startswith("$"):
+        if not name or name.startswith("$") or taken.get(name) == address:
             return
         if taken.get(name, address) != address:
             warnings.append(f"{name} is already at {fmt_addr(taken[name])} in symbols.txt; "
@@ -303,6 +304,12 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
         current = current if current is not None and current.address == address else None
         if current is not None:
             if current.name == name:
+                return
+            if name.startswith("__ehhandler$") and (address in renames or not is_placeholder(current.name)):
+                # A handler ICF folded for several functions: one name, the others aliases of it.
+                aliases.append((address, symbolslib.format_symbol(
+                    symbolslib.Symbol(name, current.section, address, "alias", 0))))
+                taken[name] = address
                 return
             if not is_placeholder(current.name) and current.name != compatible_with:
                 warnings.append(f"{fmt_addr(address)} is named {current.name} in symbols.txt; not renamed to {name}")
@@ -328,7 +335,7 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
             elif b["kind"] == "data" and b["name"].startswith("??_7"):
                 # A vtable the function stores, compared by value: named, the report pairs the store.
                 want(a, b["name"], "literal", b.get("size", 0))
-    return renames, sorted(added.items()), warnings
+    return renames, sorted(list(added.items()) + aliases), warnings
 
 
 def section_of(p: Project, address: int, kind: str) -> str:
@@ -434,10 +441,13 @@ def integrate(p: Project, args) -> dict:
     groups: Dict[str, List[int]] = {}
     categories: Dict[str, str] = {}
     summary: dict = {"units": [], "dropped": [], "warnings": [], "renamed": [], "added_symbols": []}
+    excluded = read_json(p.state / "excluded.json", {}) or {}  # the lead's: library code a worker accepted
     for a in wanted:
         if a in integrated:
             continue
         skip = skipped(p, accepted[a], args)
+        if not skip and fmt_addr(a) in excluded:
+            skip = f"is excluded (build/agent/excluded.json: {excluded[fmt_addr(a)]}); skipped"
         if not skip and accepted[a].get("generated") and int(accepted[a]["with"], 16) not in integrated:
             skip = (f"is compiler-generated with {accepted[a]['with']}, which is not in src/ yet; skipped until "
                     f"it is")
@@ -498,6 +508,10 @@ def integrate(p: Project, args) -> dict:
 
     with ThreadPoolExecutor(max_workers=getattr(args, "jobs", 0) or os.cpu_count() or 1) as pool:
         results = list(pool.map(lambda item: prepare(*item), sorted(groups.items())))
+    # A .text$x range belongs to one unit. ICF folded the EH handler and unwind funclets of functions
+    # whose tables are the same (the destructors of one class's subclasses unwind into its destructor):
+    # the first unit to declare them keeps them, the others reach the handler by an alias of its name.
+    claimed = [(a, b, u.source) for u in declared for a, b in u.text if text_x[0] <= a < text_x[1]]
     for r in results:
         summary["dropped"] += r["dropped"]
         summary["warnings"] += r["warnings"]
@@ -507,6 +521,8 @@ def integrate(p: Project, args) -> dict:
         writes[unit_path] = r["text"]
         old = next((u for u in declared if u.source == source), None)
         eh = [(int(x, 16), int(y, 16)) for a in added for x, y in accepted[a].get("text_x", [])]
+        eh = [(x, y) for x, y in eh if not any(x < b and a < y and s != source for a, b, s in claimed)]
+        claimed += [(x, y, source) for x, y in eh]
         ranges = merge(p, (old.text if old else []) + [(a, p.code_extent(a)[1]) for a in blocks] + eh)
         note = ".text$x: EH handlers and unwind funclets"
         lines = [(a, b, note if text_x[0] <= a < text_x[1] else "") for a, b in ranges]

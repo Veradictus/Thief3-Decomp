@@ -312,7 +312,8 @@ close a failure seen in the pilot:
      check` fails on a function in `src/` outside it. What the evidence
      misses still reaches the queue: the first session matched MFC's inline
      `CRect` constructor. List such functions, and inline-asm originals, in
-     `build/agent/excluded.json` (address to reason), which the queue skips;
+     `build/agent/excluded.json` (address to reason), which the queue,
+     the stamp and integrate.py skip (a worker may have accepted one first);
    - settle the parked name conflicts (see [Name conflicts](#name-conflicts)):
      `fixnames.py prepare` with the addresses excluded as name conflicts,
      `python configure.py && ninja`, `fixnames.py accept`; the rest with a

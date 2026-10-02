@@ -394,6 +394,19 @@ def test_integrate(base: Path) -> None:
     check(status["integrated"] == 5, f"src/ markers count as integrated: {status}")
 
 
+def test_integrate_skips_excluded(base: Path) -> None:
+    """A function the lead excluded after a worker accepted it (library code, say) is not integrated."""
+    e = Env(base, "integrate-excluded")
+    for sym in ("?Seven@@YAHH@Z", "?Twice@@YAHH@Z"):
+        proc = e.run("accept.py", e.addr(sym), e.candidate(sym))
+        check(proc.returncode == 0, f"accept {sym}", proc)
+    (e.root / "build/agent/excluded.json").write_text(json.dumps({e.addr("?Twice@@YAHH@Z"): "library: an STL member"}))
+    proc = e.run("integrate.py")
+    check(proc.returncode == 0 and "is excluded" in proc.stdout, "integrate says why it skips it", proc)
+    status = json.loads(e.run("next.py", "status").stdout)
+    check(status["integrated"] == 1, f"only the other function is integrated: {status}")
+
+
 def test_integrate_keeps_distinct_includes(base: Path) -> None:
     """Declarations that differ only inside a string literal, such as two #include lines, are both kept."""
     import integrate
@@ -724,7 +737,8 @@ TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
     test_wrong_callee_rejected, test_self_call,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
-    test_claims_concurrency, test_integrate, test_integrate_keeps_distinct_includes, test_integrate_drops_what_breaks,
+    test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_keeps_distinct_includes,
+    test_integrate_drops_what_breaks,
     test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_sweep, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
