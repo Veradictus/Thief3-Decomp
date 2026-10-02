@@ -45,10 +45,11 @@ import symbols as symbolslib  # noqa: E402
 LIBRARY_START = 0x10CFBFB0
 ATTEMPT_CAP = 12
 # try.py stops a claim after this many counted attempts in a row with no new best (score, then fewer
-# differing rows): later attempts rarely match (byte-tactics measured 80% of matches on the first
-# attempt, 44% on the second, 16% on the third and under 9% after), and the best one is kept for the
-# next pass. See docs/agent-workflow.md.
-PATIENCE = 3
+# differing rows), and the best one is kept for the next pass. Our swarms of 2026-10-01 matched 77% of
+# the functions they tried on the first attempt, 65% of those that reached a second, 37% a third, 39% a
+# fourth and 23% a fifth: replayed over their ledgers, 3 would have refused 10 of 1,219 matches to save
+# 36 attempts, 4 refuses 2 to save 18. See docs/agent-workflow.md.
+PATIENCE = 4
 CLAIM_TTL = 2 * 3600
 PLACEHOLDER = re.compile(r"^(?:[A-Za-z]+_)*(?:FUN|DAT|LAB|PTR|BYTE|WORD|DWORD|QWORD|switchdataD|caseD|s|u|thunk)_"
                          r"(?:[0-9A-Za-z_]*_)?(?P<addr>[0-9A-Fa-f]{8})$|^Unwind@(?P<unwind>[0-9A-Fa-f]{8})$")

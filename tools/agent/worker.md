@@ -40,7 +40,7 @@ do not stop before N functions are handled unless the claim prints
    - a helper inlined on one side only: defer `inline`;
    - an offset, size or slot you cannot know: defer `layout` or `vtable`;
    - only a name or signature differs (score 99.9+): defer `name-conflict`.
-4. Defer after CAP attempts, when try.py refuses (3 attempts in a row with no
+4. Defer after CAP attempts, when try.py refuses (4 attempts in a row with no
    new best), or at once on a systemic blocker:
    `accept.py defer <ADDR> "<slug>: <one-line blocker>" --needs "<what would unblock it>"`.
    Slugs: tiebreak, inline, layout, vtable, signature, name-conflict, eh,

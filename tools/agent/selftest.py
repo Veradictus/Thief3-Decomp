@@ -27,7 +27,7 @@ sys.path.insert(0, str(HERE))
 
 import coff  # noqa: E402
 import fixture  # noqa: E402
-from common import ROOT, Project, splitslib, symbolslib  # noqa: E402
+from common import PATIENCE, ROOT, Project, splitslib, symbolslib  # noqa: E402
 
 DECLS = """struct Foo { int a; int b; float c; int Get() const; };
 extern int g_counter;
@@ -312,13 +312,13 @@ def test_duplicates_and_cap(base: Path) -> None:
     again = e.run("try.py", e.addr(sym), path)
     check(first.returncode == 1 and again.returncode == 3 and "byte-identical" in again.stdout,
           "an identical resubmission is refused", again)
-    for i in range(2, 5):
+    for i in range(2, PATIENCE + 2):
         proc = e.run("try.py", e.addr(sym), e.candidate(sym, f"int Seven(int x) {{ return x * 7 + {99 - i}; }}"))
         check(f"ATTEMPT {i}/12" in proc.stdout, f"attempt {i} is counted", proc)
     proc = e.run("try.py", e.addr(sym), e.candidate(sym, "int Seven(int x) { return x * 7 + 50; }"))
-    check(proc.returncode == 3 and "no new best in the last 3 attempts" in proc.stdout,
-          "three attempts in a row with no new best stop the claim", proc)
-    for i in range(5, 13):  # the lead may lift the patience; the cap still holds
+    check(proc.returncode == 3 and f"no new best in the last {PATIENCE} attempts" in proc.stdout,
+          f"{PATIENCE} attempts in a row with no new best stop the claim", proc)
+    for i in range(PATIENCE + 2, 13):  # the lead may lift the patience; the cap still holds
         proc = e.run("try.py", e.addr(sym), e.candidate(sym, f"int Seven(int x) {{ return x * 7 + {99 - i}; }}"),
                      "--patience", "0")
         check(f"ATTEMPT {i}/12" in proc.stdout, f"attempt {i} is counted", proc)

@@ -14,7 +14,7 @@ will pass unless the lint objects.
 
 Every scored attempt is recorded in build/agent/attempts/<ADDR>/. A file
 byte-identical to an earlier attempt is refused, and past the cap (12 per
-claim) or after 3 attempts in a row with no new best (--patience; the score,
+claim) or after 4 attempts in a row with no new best (--patience; the score,
 then fewer differing rows) the tool refuses too: defer instead, and the best
 attempt goes to the next pass. Build failures are shown but not counted.
 Exit status: 0 match, 1 no match, 2 build failed, 3 refused.

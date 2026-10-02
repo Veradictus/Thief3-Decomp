@@ -29,7 +29,7 @@ the split target objects.
 | `next.py claim\|release\|status\|list\|requeue` | worker, lead | The queue, easy first, with claims |
 | `context.py <addr>` | worker | The context packet for one function |
 | `context.py fill-ghidra --next N` | lead | Caches Ghidra decompiles for the queue head |
-| `try.py <addr> <file>` | worker | Compile, diff, verdict, `ATTEMPT k/12`; stops a claim after 3 attempts with no new best |
+| `try.py <addr> <file>` | worker | Compile, diff, verdict, `ATTEMPT k/12`; stops a claim after 4 attempts with no new best |
 | `sidebyside.py <addr> <file>` | worker | Every instruction of a candidate next to the target's, references by name; no attempt spent, no verdict |
 | `accept.py <addr> <file>` | worker | The gate; records the function |
 | `accept.py defer <addr> "<blocker>"` | worker | Records the best attempt and the blocker |

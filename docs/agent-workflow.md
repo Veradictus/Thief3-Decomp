@@ -233,9 +233,13 @@ close a failure seen in the pilot:
 - **Handled means accepted or deferred; claim again until N.** A Haiku
   worker stopped after its first claim without that sentence.
 - **Caps:** 5 attempts in the head band, 8 in the main band, 10 in the big
-  band, and try.py ends a claim after 3 attempts in a row with no new best
+  band, and try.py ends a claim after 4 attempts in a row with no new best
   (`--patience`, the lead's): the best attempt goes to the next pass, whose
-  packet shows it as a starting point.
+  packet shows it as a starting point. Our own curve is flatter than
+  byte-tactics': of the functions our swarms tried, 77% matched on the first
+  attempt, then 65%, 37%, 39% and 23% of those reaching the second to fifth.
+  Replayed over those ledgers, a patience of 3 would have refused 10 of 1,219
+  matches to save 36 attempts on deferrals; 4 refuses 2 and saves 18.
 - **Classify, then defer with a slug:** before each new attempt the worker
   names the kind of difference (source, register or order tie-break, an
   inlined helper, an unknown layout or slot, a name), and a deferral's blocker
