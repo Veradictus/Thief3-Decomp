@@ -95,6 +95,41 @@ def add_except_list(path: Path) -> int:
     return count
 
 
+def interior_resolver(symbols_txt: Path):
+    """name -> (containing data object's name, offset) for delink's `DAT_<address>` labels that fall inside
+    a data object symbols.txt names and sizes; None for any other name."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import bisect
+    import symbols as symbolslib
+    objects = sorted((s.address, s.end, s.name) for s in symbolslib.load(symbols_txt)
+                     if not s.is_function and s.type != "alias" and s.size > 1)
+    starts = [o[0] for o in objects]
+    named = {s.address for s in symbolslib.load(symbols_txt)}
+
+    def resolve(name: str):
+        m = re.fullmatch(r"DAT_([0-9a-fA-F]{8})", name)
+        if not m:
+            return None
+        address = int(m.group(1), 16)
+        if address in named:
+            return None  # an address symbols.txt names keeps its own name
+        i = bisect.bisect_right(starts, address) - 1
+        if i >= 0 and objects[i][0] < address < objects[i][1]:
+            return objects[i][2], address - objects[i][0]
+        return None
+    return resolve
+
+
+def fold_interior(path: Path, resolve) -> bool:
+    """Make references to delink's labels inside named data objects the object plus an offset."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "agent"))
+    import coff
+    data = coff.Coff.load(path).fold_into(resolve)
+    if data is not None:
+        path.write_bytes(data)
+    return data is not None
+
+
 def fold_labels(path: Path) -> bool:
     """Make delink's labels inside a function (a switch's `jpt_` table and `$L_` cases) the function plus an
     offset, as tools/cc.py does for the compiler's: True when the object changed."""
@@ -114,6 +149,7 @@ def main() -> None:
     parser.add_argument("--groups", type=Path, required=True)
     parser.add_argument("--outdir", type=Path, required=True)
     parser.add_argument("--stamp", type=Path, required=True)
+    parser.add_argument("--symbols", type=Path, help="symbols.txt: fold labels inside named data objects")
     args = parser.parse_args()
 
     shutil.rmtree(args.outdir, ignore_errors=True)
@@ -131,8 +167,13 @@ def main() -> None:
         sys.exit(f"delink failed (exit {proc.returncode}); full log: {log}")
     relocated = sum(add_except_list(obj) for obj in sorted(args.outdir.rglob("*.obj")))
     folded = sum(fold_labels(obj) for obj in sorted(args.outdir.rglob("*.obj")))
+    if args.symbols:
+        resolve = interior_resolver(args.symbols)
+        interior = sum(fold_interior(obj, resolve) for obj in sorted(args.outdir.rglob("*.obj")))
+    else:
+        interior = 0
     print(f"{summary.group(0)}; {relocated} fs:[0] operands relocated against __except_list; "
-          f"switch labels folded in {folded} objects")
+          f"switch labels folded in {folded} objects, interior labels in {interior}")
     args.stamp.write_text(summary.group(0) + "\n", encoding="utf-8")
 
 

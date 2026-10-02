@@ -218,6 +218,36 @@ class Coff:
             return None
         return self.rewrite(undefine=labels, retarget=retarget, patch=patch)
 
+    def fold_into(self, resolve: Callable[[str], Optional[Tuple[str, int]]]) -> Optional[bytes]:
+        """A copy whose absolute references to an undefined symbol `resolve` places inside another, as
+        (its name, offset), refer to that one plus the offset; None when nothing changes.
+
+        The split names an address the code uses inside a data object (a string from its second
+        character, an array element) with a label of its own, `DAT_<address>`, where the compiler
+        writes the object plus an offset (`&TEXT("AGarrett")[1]`): as the object plus the offset,
+        both read the same to objdiff."""
+        index_of = {s.name: s.index for s in self.symbols if not s.is_section}
+        add, retarget, patch = [], {}, {}
+        for sec in self.sections:
+            if not sec.raw:
+                continue
+            for i, r in enumerate(sec.relocations):
+                sym = self.slots[r.symbol]
+                if sym is None or sym.defined or r.type != IMAGE_REL_I386_DIR32:
+                    continue
+                hit = resolve(sym.name)
+                if not hit:
+                    continue
+                name, offset = hit
+                if name not in index_of:
+                    index_of[name] = len(self.slots) + len(add)
+                    add.append((name, 0, 0, 0, IMAGE_SYM_CLASS_EXTERNAL))
+                retarget[(sec.index, i)] = index_of[name]
+                patch[(sec.index, r.offset)] = struct.pack("<i", self.addend(sec.index, r) + offset)
+        if not retarget:
+            return None
+        return self.rewrite(retarget=retarget, patch=patch, add=add)
+
     def rewrite(
         self,
         rename: Optional[Dict[str, str]] = None,

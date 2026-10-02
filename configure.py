@@ -255,17 +255,17 @@ def main() -> None:
     n.rule(
         "split",
         "$python tools/split.py --delink $delink --model $model --exe $exe --groups $groups "
-        "--outdir $outdir --stamp $out",
+        "--outdir $outdir --symbols $symbols --stamp $out",
         description="SPLIT $exe",
     )
     target_objs = [str(obj_dir / u.object) for u in units] + [str(obj_dir / "__shared_data.obj")]
     n.build(
         str(split_stamp), "split",
         inputs=[str(model), str(groups)],
-        implicit=[str(delink), "tools/split.py", "tools/agent/coff.py"],
+        implicit=[str(delink), "tools/split.py", "tools/agent/coff.py", "tools/symbols.py", str(symbols_txt)],
         implicit_outputs=target_objs,
         variables={"delink": str(delink), "model": str(model), "exe": str(exe),
-                   "groups": str(groups), "outdir": str(obj_dir)},
+                   "groups": str(groups), "outdir": str(obj_dir), "symbols": str(symbols_txt)},
     )
     n.newline()
 

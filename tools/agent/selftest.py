@@ -799,6 +799,27 @@ def test_fold_labels(base: Path) -> None:
 TESTS.append(test_fold_labels)
 
 
+def test_fold_into(base: Path) -> None:
+    """A reference to a label inside a named data object (`&TEXT("AGarrett")[1]` as the split names it)
+    becomes the object plus the offset, as the compiler writes it."""
+    import coff
+    p = Project()
+    path = fixture.compile_reference(p, 'extern "C" const char DAT_10e78901[];\n'
+                                        'const char* Name() { return DAT_10e78901; }\n', base / "interior")
+    obj = coff.Coff.load(path)
+    container = "??_C@_08PCNBEJK@AGarrett?$AA@"
+    folded = obj.fold_into(lambda name: (container, 1) if name == "_DAT_10e78901" else None)
+    check(folded is not None, "the label's reference is folded")
+    c = coff.Coff(folded)
+    refs = [(c.slots[r.symbol].name, c.addend(sec.index, r)) for sec in c.sections for r in sec.relocations]
+    check((container, 1) in refs and not any(n == "_DAT_10e78901" for n, _ in refs),
+          f"the reference is the object plus the offset: {refs}")
+    check(obj.fold_into(lambda name: None) is None, "nothing to fold leaves the object alone")
+
+
+TESTS.append(test_fold_into)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-k", help="run only tests whose name contains this")
