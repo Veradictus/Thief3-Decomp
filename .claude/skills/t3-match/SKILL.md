@@ -69,8 +69,10 @@ Your worker id comes from `$T3_AGENT_ID` (wave.py sets it).
    `python tools/agent/accept.py <addr> build/scratch/<ADDR>/vN.cpp`. It runs
    the lint and the strict comparison again and records the function for the
    lead. If it rejects, read why; the lint rules are below.
-7. **Defer** after 12 attempts, or earlier on a systemic blocker:
-   `python tools/agent/accept.py defer <addr> "<one line: what differs and why>" --needs "<what would unblock it>"`.
+7. **Defer** after 12 attempts, when try.py stops the claim (3 attempts in a
+   row with no new best), or earlier on a systemic blocker:
+   `python tools/agent/accept.py defer <addr> "<slug>: <one line: what differs and why>" --needs "<what would unblock it>"`
+   (the slugs are in tools/agent/worker.md, step 4).
    The best attempt is kept. **Deferring is a successful outcome**: an honest
    blocker is worth more than a forced match.
 

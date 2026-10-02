@@ -183,6 +183,15 @@ class TargetImage:
         obj, sec, offset = found
         return object_view(self.p, obj, sec, offset, size, address)
 
+    def relocated_view(self, address: int, size: int) -> Optional["View"]:
+        """The target's bytes with their relocations, from the split objects even when the exe is present:
+        the exe has no relocations, the split's delink recovered them."""
+        found = self._locate(address, size)
+        if not found:
+            return None
+        obj, sec, offset = found
+        return object_view(self.p, obj, sec, offset, size, address)
+
     def in_image(self, value: int) -> bool:
         return self.pe is not None and self.pe.image_base <= value < self.pe.image_base + self.pe.image_size
 

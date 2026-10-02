@@ -14,8 +14,10 @@ will pass unless the lint objects.
 
 Every scored attempt is recorded in build/agent/attempts/<ADDR>/. A file
 byte-identical to an earlier attempt is refused, and past the cap (12 per
-claim) the tool refuses too: defer instead. Build failures are shown but not
-counted. Exit status: 0 match, 1 no match, 2 build failed, 3 refused.
+claim) or after 3 attempts in a row with no new best (--patience; the score,
+then fewer differing rows) the tool refuses too: defer instead, and the best
+attempt goes to the next pass. Build failures are shown but not counted.
+Exit status: 0 match, 1 no match, 2 build failed, 3 refused.
 """
 
 import argparse
@@ -24,8 +26,18 @@ import sys
 import time
 from pathlib import Path
 
-from common import ATTEMPT_CAP, Claims, Ledger, Project, addr_key, agent_id, emit, fmt_addr
+from common import ATTEMPT_CAP, PATIENCE, Claims, Ledger, Project, addr_key, agent_id, emit, fmt_addr
 from verify import Verifier, render
+
+
+def stalled(entries, patience: int) -> bool:
+    """True when the last `patience` of a claim's counted attempts set no new best (score, then fewer
+    differing rows) over the attempts before them."""
+    if patience <= 0 or len(entries) <= patience:
+        return False
+    marks = [(e.get("score", 0), -e.get("mismatch_rows", 0)) for e in entries]
+    before = max(marks[:-patience])
+    return all(m <= before for m in marks[-patience:])
 
 
 def main() -> None:
@@ -35,6 +47,8 @@ def main() -> None:
     parser.add_argument("--symbol", help="the candidate's decorated name, when the file defines several functions")
     parser.add_argument("--agent", help="worker id (default: $T3_AGENT_ID)")
     parser.add_argument("--cap", type=int, default=ATTEMPT_CAP, help=f"attempts per claim (default {ATTEMPT_CAP})")
+    parser.add_argument("--patience", type=int, default=PATIENCE,
+                        help=f"attempts in a row with no new best before the claim stops (default {PATIENCE})")
     parser.add_argument("--context", type=int, default=1, help="rows of context around differences")
     parser.add_argument("--json", action="store_true", help="print the full result as JSON")
     args = parser.parse_args()
@@ -64,10 +78,14 @@ def main() -> None:
     if claim:
         claims.renew(address, agent)
     claim_id = claim["id"] if claim else "manual"
-    attempt = 1 + sum(1 for e in entries if e.get("claim") == claim_id and e.get("counted"))
+    mine = [e for e in entries if e.get("claim") == claim_id and e.get("counted")]
+    attempt = 1 + len(mine)
     if attempt > args.cap:
         refuse(f"attempt cap reached ({args.cap}/{args.cap}). Defer: python tools/agent/accept.py defer "
                f"{fmt_addr(address)} \"<one-line blocker>\"")
+    if stalled(mine, args.patience):
+        refuse(f"no new best in the last {args.patience} attempts. Defer with the difference you could not "
+               f"close: python tools/agent/accept.py defer {fmt_addr(address)} \"<slug>: <one-line blocker>\"")
 
     workdir = p.state / "tmp" / f"{agent}-{addr_key(address)}"
     res = Verifier(p).run(address, args.file, workdir, symbol=args.symbol)
