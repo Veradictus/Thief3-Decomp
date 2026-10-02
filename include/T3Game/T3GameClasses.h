@@ -78,6 +78,8 @@ T3_CHECK_SIZE(FLoadoutItem, 0x10);
 
 class ADifficultyInfo : public AInfo
 {
+    DECLARE_CLASS(ADifficultyInfo, AInfo, 0x0, T3Game)
+
 public:
     FName LevelName;                        // 0xC0
     FDifficultyLevel EasyDiffSettings;      // 0xC4
@@ -91,6 +93,8 @@ T3_CHECK_SIZE(ADifficultyInfo, 0x1A4);
 
 class AEnterMissionInfo : public AInfo
 {
+    DECLARE_CLASS(AEnterMissionInfo, AInfo, 0x0, T3Game)
+
 public:
     BITFIELD EntryMapObjectFlag:1;          // 0xC0
     FString VisibleObjectivesFileName;      // 0xC4
@@ -109,6 +113,8 @@ T3_CHECK_SIZE(AEnterMissionInfo, 0x118);
 
 class AExitMissionInfo : public AInfo
 {
+    DECLARE_CLASS(AExitMissionInfo, AInfo, 0x0, T3Game)
+
 public:
     BITFIELD EntryMapObjectFlag:1;          // 0xC0
     FString DestMapName;                    // 0xC4
@@ -121,6 +127,8 @@ T3_CHECK_SIZE(AExitMissionInfo, 0x100);
 
 class ASpellProjectile : public AActor
 {
+    DECLARE_CLASS(ASpellProjectile, AActor, 0x800, T3Game)
+
 public:
     FRotator localRotationRate;             // 0xC0
     INT CollisionFilterInfo;                // 0xCC
@@ -130,6 +138,8 @@ T3_CHECK_SIZE(ASpellProjectile, 0xD4);
 
 class AWakeupCameraPoint : public AKeypoint
 {
+    DECLARE_CLASS(AWakeupCameraPoint, AKeypoint, 0x0, T3Game)
+
 public:
     BITFIELD Start:1;                       // 0xC0
     FLOAT Seconds;                          // 0xC4
@@ -139,18 +149,24 @@ T3_CHECK_SIZE(AWakeupCameraPoint, 0xCC);
 
 class UInventorySwitchLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UInventorySwitchLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
 public:
 };
 T3_CHECK_SIZE(UInventorySwitchLinkDataObject, 0x50);
 
 class ULockLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(ULockLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
 public:
 };
 T3_CHECK_SIZE(ULockLinkDataObject, 0x50);
 
 class ULockTickLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(ULockTickLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
 public:
     FLOAT MidpointRotation;                 // 0x50
     FLOAT RotationFromCenter;               // 0x54
@@ -159,6 +175,8 @@ T3_CHECK_SIZE(ULockTickLinkDataObject, 0x58);
 
 class URopeArrowSpawnLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(URopeArrowSpawnLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
 public:
     FLOAT RopeLength;                       // 0x50
     FString UnfurlAnimName;                 // 0x54
@@ -167,8 +185,18 @@ T3_CHECK_SIZE(URopeArrowSpawnLinkDataObject, 0x60);
 
 class USpawnPoolLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(USpawnPoolLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
 public:
 };
 T3_CHECK_SIZE(USpawnPoolLinkDataObject, 0x50);
+
+class UT3GameRegistrar : public UTriggerRegistrar
+{
+    DECLARE_CLASS(UT3GameRegistrar, UTriggerRegistrar, 0x4, T3Game)
+
+public:
+};
+T3_CHECK_SIZE(UT3GameRegistrar, 0x2C);
 
 #endif

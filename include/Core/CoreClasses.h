@@ -73,8 +73,19 @@ struct FPlane : public FVector
 };
 T3_CHECK_SIZE(FPlane, 0x10);
 
+class USubsystem : public UObject
+{
+    DECLARE_CLASS(USubsystem, UObject, 0x9, Core)
+
+public:
+    INT ExecVtbl;                           // 0x2C
+};
+T3_CHECK_SIZE(USubsystem, 0x30);
+
 class ULinkDataObject : public UObject
 {
+    DECLARE_CLASS(ULinkDataObject, UObject, 0x1, Core)
+
 public:
     INT m_LinkFlavor;                       // 0x2C
     INT m_pAssociatedLink;                  // 0x30
@@ -84,8 +95,55 @@ public:
 };
 T3_CHECK_SIZE(ULinkDataObject, 0x50);
 
+class UEnum : public UField
+{
+    DECLARE_CLASS(UEnum, UField, 0x0, Core)
+    DECLARE_WITHIN(UStruct)
+
+public:
+    BYTE Pad34[0xC];
+};
+T3_CHECK_SIZE(UEnum, 0x40);
+
+class UBitfieldEnum : public UEnum
+{
+    DECLARE_CLASS(UBitfieldEnum, UEnum, 0x0, Core)
+
+public:
+};
+T3_CHECK_SIZE(UBitfieldEnum, 0x40);
+
+class UProperty : public UField
+{
+    DECLARE_CLASS(UProperty, UField, 0x1, Core)
+    DECLARE_WITHIN(UField)
+
+public:
+    BYTE Pad34[0x2C];
+};
+T3_CHECK_SIZE(UProperty, 0x60);
+
+class UIntProperty : public UProperty
+{
+    DECLARE_CLASS(UIntProperty, UProperty, 0x0, Core)
+
+public:
+};
+T3_CHECK_SIZE(UIntProperty, 0x60);
+
+class UBitfieldProperty : public UIntProperty
+{
+    DECLARE_CLASS(UBitfieldProperty, UIntProperty, 0x0, Core)
+
+public:
+    BYTE Pad60[0x4];
+};
+T3_CHECK_SIZE(UBitfieldProperty, 0x64);
+
 class UCommandlet : public UObject
 {
+    DECLARE_CLASS(UCommandlet, UObject, 0x29, Core)
+
 public:
     FString HelpCmd;                        // 0x2C
     FString HelpOneLiner;                   // 0x38
@@ -102,12 +160,5 @@ public:
     BITFIELD ShowBanner:1;
 };
 T3_CHECK_SIZE(UCommandlet, 0x1E0);
-
-class USubsystem : public UObject
-{
-public:
-    INT ExecVtbl;                           // 0x2C
-};
-T3_CHECK_SIZE(USubsystem, 0x30);
 
 #endif

@@ -458,6 +458,8 @@ T3_CHECK_SIZE(FMatObjectOrientation, 0x34);
 
 class AActor : public UObject
 {
+    DECLARE_CLASS(AActor, UObject, 0x800, Engine)
+
 public:
     FVector Location;                       // 0x2C
     FRotator Rotation;                      // 0x38
@@ -550,12 +552,16 @@ T3_CHECK_SIZE(AActor, 0xC0);
 
 class AMetaProperty : public AActor
 {
+    DECLARE_CLASS(AMetaProperty, AActor, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AMetaProperty, 0xC0);
 
 class ABrush : public AActor
 {
+    DECLARE_CLASS(ABrush, AActor, 0x0, Engine)
+
 public:
     BYTE CsgOper;                           // 0xC0  ECsgOper
     UObject* UnusedLightMesh;               // 0xC4
@@ -572,6 +578,8 @@ T3_CHECK_SIZE(ABrush, 0x120);
 
 class AVolume : public ABrush
 {
+    DECLARE_CLASS(AVolume, ABrush, 0x0, Engine)
+
 public:
     FString LocationName;                   // 0x120
     FBox CachedWorldBBox;                   // 0x12C
@@ -580,6 +588,8 @@ T3_CHECK_SIZE(AVolume, 0x148);
 
 class AController : public AActor
 {
+    DECLARE_CLASS(AController, AActor, 0x800, Engine)
+
 public:
     APawn* Pawn;                            // 0xC0
     FLOAT FovAngle;                         // 0xC4
@@ -597,18 +607,24 @@ T3_CHECK_SIZE(AController, 0x114);
 
 class AAIController : public AController
 {
+    DECLARE_CLASS(AAIController, AController, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AAIController, 0x114);
 
 class AMarker : public AActor
 {
+    DECLARE_CLASS(AMarker, AActor, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AMarker, 0xC0);
 
 class APawn : public AActor
 {
+    DECLARE_CLASS(APawn, AActor, 0x800, Engine)
+
 public:
     AController* Controller;                // 0xC0
     BITFIELD bJustLanded:1;                 // 0xC4
@@ -712,12 +728,16 @@ T3_CHECK_SIZE(APawn, 0x208);
 
 class AAmbientLightVolume : public AVolume
 {
+    DECLARE_CLASS(AAmbientLightVolume, AVolume, 0x800, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AAmbientLightVolume, 0x148);
 
 class APlayerController : public AController
 {
+    DECLARE_CLASS(APlayerController, AController, 0x804, Engine)
+
 public:
     UPlayer* Player;                        // 0x114
     BITFIELD bLookUpStairs:1;               // 0x118
@@ -817,48 +837,64 @@ T3_CHECK_SIZE(APlayerController, 0x2C0);
 
 class ACamera : public APlayerController
 {
+    DECLARE_CLASS(ACamera, APlayerController, 0x4, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ACamera, 0x2C0);
 
 class AKeypoint : public AMarker
 {
+    DECLARE_CLASS(AKeypoint, AMarker, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AKeypoint, 0xC0);
 
 class ACameraPoint : public AKeypoint
 {
+    DECLARE_CLASS(ACameraPoint, AKeypoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ACameraPoint, 0xC0);
 
 class AMetaData : public AActor
 {
+    DECLARE_CLASS(AMetaData, AActor, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AMetaData, 0xC0);
 
 class AInfo : public AMetaData
 {
+    DECLARE_CLASS(AInfo, AMetaData, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AInfo, 0xC0);
 
 class AClipMarker : public AKeypoint
 {
+    DECLARE_CLASS(AClipMarker, AKeypoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AClipMarker, 0xC0);
 
 class ADeathWaterVolume : public AVolume
 {
+    DECLARE_CLASS(ADeathWaterVolume, AVolume, 0x800, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ADeathWaterVolume, 0x148);
 
 class APhysicsVolume : public AVolume
 {
+    DECLARE_CLASS(APhysicsVolume, AVolume, 0x800, Engine)
+
 public:
     FVector ViewFlash;                      // 0x148
     FVector ViewFog;                        // 0x154
@@ -872,24 +908,32 @@ T3_CHECK_SIZE(APhysicsVolume, 0x17C);
 
 class ADefaultPhysicsVolume : public APhysicsVolume
 {
+    DECLARE_CLASS(ADefaultPhysicsVolume, APhysicsVolume, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ADefaultPhysicsVolume, 0x17C);
 
 class AElevatorFloors : public AMetaData
 {
+    DECLARE_CLASS(AElevatorFloors, AMetaData, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AElevatorFloors, 0xC0);
 
 class AFX : public AActor
 {
+    DECLARE_CLASS(AFX, AActor, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AFX, 0xC0);
 
 class AEmitter : public AFX
 {
+    DECLARE_CLASS(AEmitter, AFX, 0x0, Engine)
+
 public:
     FLOAT TimeSinceRendered;                // 0xC0
     FRotator PreviousRotation;              // 0xC4
@@ -915,6 +959,8 @@ T3_CHECK_SIZE(AEmitter, 0x144);
 
 class APlayerPawn : public APawn
 {
+    DECLARE_CLASS(APlayerPawn, APawn, 0x0, Engine)
+
 public:
     TArray<FsGoal> Goals;                   // 0x208
     TArray<FsCitySectionGoal> CitySectionGoals; // 0x214
@@ -933,12 +979,16 @@ T3_CHECK_SIZE(APlayerPawn, 0x278);
 
 class AInterpolationPoint : public AKeypoint
 {
+    DECLARE_CLASS(AInterpolationPoint, AKeypoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AInterpolationPoint, 0xC0);
 
 class AZoneInfo : public AInfo
 {
+    DECLARE_CLASS(AZoneInfo, AInfo, 0x800, Engine)
+
 public:
     ASkyZoneInfo* SkyZone;                  // 0xC0
     FName ZoneTag;                          // 0xC4
@@ -976,6 +1026,8 @@ T3_CHECK_SIZE(AZoneInfo, 0x1B0);
 
 class ALevelInfo : public AZoneInfo
 {
+    DECLARE_CLASS(ALevelInfo, AZoneInfo, 0x800, Engine)
+
 public:
     FLOAT TimeSeconds;                      // 0x1B0
     INT Year;                               // 0x1B4
@@ -1056,6 +1108,8 @@ T3_CHECK_SIZE(ALevelInfo, 0x340);
 
 class ALight : public AActor
 {
+    DECLARE_CLASS(ALight, AActor, 0x0, Engine)
+
 public:
     FVector CoronaSize;                     // 0xC0
 };
@@ -1063,18 +1117,24 @@ T3_CHECK_SIZE(ALight, 0xCC);
 
 class ALookTarget : public AKeypoint
 {
+    DECLARE_CLASS(ALookTarget, AKeypoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ALookTarget, 0xC0);
 
 class AMissingArch : public AActor
 {
+    DECLARE_CLASS(AMissingArch, AActor, 0x8, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AMissingArch, 0xC0);
 
 class ANavigationPoint : public AKeypoint
 {
+    DECLARE_CLASS(ANavigationPoint, AKeypoint, 0x0, Engine)
+
 public:
     INT upstreamPaths[16];                  // 0xC0
     INT Paths[16];                          // 0x100
@@ -1108,30 +1168,40 @@ T3_CHECK_SIZE(ANavigationPoint, 0x1C8);
 
 class ANorthMarker : public ANavigationPoint
 {
+    DECLARE_CLASS(ANorthMarker, ANavigationPoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ANorthMarker, 0x1C8);
 
 class AObjSysTest : public AActor
 {
+    DECLARE_CLASS(AObjSysTest, AActor, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AObjSysTest, 0xC0);
 
 class AObjSysTestChild : public AObjSysTest
 {
+    DECLARE_CLASS(AObjSysTestChild, AObjSysTest, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AObjSysTestChild, 0xC0);
 
 class APathNode : public ANavigationPoint
 {
+    DECLARE_CLASS(APathNode, ANavigationPoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(APathNode, 0x1C8);
 
 class APlayerStart : public ANavigationPoint
 {
+    DECLARE_CLASS(APlayerStart, ANavigationPoint, 0x0, Engine)
+
 public:
     BYTE TeamNumber;                        // 0x1C8
     BITFIELD bSinglePlayerStart:1;          // 0x1CC
@@ -1142,12 +1212,16 @@ T3_CHECK_SIZE(APlayerStart, 0x1D0);
 
 class APolyMarker : public AKeypoint
 {
+    DECLARE_CLASS(APolyMarker, AKeypoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(APolyMarker, 0xC0);
 
 class ASceneManager : public AInfo
 {
+    DECLARE_CLASS(ASceneManager, AInfo, 0x4, Engine)
+
 public:
     TArray<UMatAction*> Actions;            // 0xC0
     BYTE Affect;                            // 0xCC  EAffect
@@ -1173,42 +1247,56 @@ T3_CHECK_SIZE(ASceneManager, 0x17C);
 
 class AShallowWaterVolume : public AVolume
 {
+    DECLARE_CLASS(AShallowWaterVolume, AVolume, 0x800, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AShallowWaterVolume, 0x148);
 
 class ASkyZoneInfo : public AZoneInfo
 {
+    DECLARE_CLASS(ASkyZoneInfo, AZoneInfo, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ASkyZoneInfo, 0x1B0);
 
 class ASpecialOptions : public AMetaData
 {
+    DECLARE_CLASS(ASpecialOptions, AMetaData, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ASpecialOptions, 0xC0);
 
 class AStaticMeshActor : public AActor
 {
+    DECLARE_CLASS(AStaticMeshActor, AActor, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AStaticMeshActor, 0xC0);
 
 class AStimulusModifierObject : public AMetaProperty
 {
+    DECLARE_CLASS(AStimulusModifierObject, AMetaProperty, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AStimulusModifierObject, 0xC0);
 
 class ASwooshEffectObject : public AMetaProperty
 {
+    DECLARE_CLASS(ASwooshEffectObject, AMetaProperty, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ASwooshEffectObject, 0xC0);
 
 class ATerrainInfo : public AInfo
 {
+    DECLARE_CLASS(ATerrainInfo, AInfo, 0x0, Engine)
+
 public:
     UTexture* TerrainMap;                   // 0xC0
     FVector TerrainScale;                   // 0xC4
@@ -1236,12 +1324,16 @@ T3_CHECK_SIZE(ATerrainInfo, 0x73C);
 
 class AVulnerabilityObject : public AMetaProperty
 {
+    DECLARE_CLASS(AVulnerabilityObject, AMetaProperty, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AVulnerabilityObject, 0xC0);
 
 class AWaypoint : public AKeypoint
 {
+    DECLARE_CLASS(AWaypoint, AKeypoint, 0x0, Engine)
+
 public:
     FLOAT PauseTime;                        // 0xC0
 };
@@ -1249,25 +1341,42 @@ T3_CHECK_SIZE(AWaypoint, 0xC4);
 
 class AWaypointMarker : public AKeypoint
 {
+    DECLARE_CLASS(AWaypointMarker, AKeypoint, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(AWaypointMarker, 0xC0);
 
 class AZoneProperties : public AInfo
 {
+    DECLARE_CLASS(AZoneProperties, AInfo, 0x0, Engine)
+
 public:
     BITFIELD bZoneVisited:1;                // 0xC0
 };
 T3_CHECK_SIZE(AZoneProperties, 0xC4);
 
+class UAISubsystem : public USubsystem
+{
+    DECLARE_CLASS(UAISubsystem, USubsystem, 0xD, Engine)
+
+public:
+    BYTE Pad30[0x4];
+};
+T3_CHECK_SIZE(UAISubsystem, 0x34);
+
 class UMatObject : public UObject
 {
+    DECLARE_CLASS(UMatObject, UObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UMatObject, 0x2C);
 
 class UMatAction : public UMatObject
 {
+    DECLARE_CLASS(UMatAction, UMatObject, 0x0, Engine)
+
 public:
     AInterpolationPoint* IntPoint;          // 0x2C
     FString Comment;                        // 0x30
@@ -1285,6 +1394,8 @@ T3_CHECK_SIZE(UMatAction, 0x80);
 
 class UActionMoveCamera : public UMatAction
 {
+    DECLARE_CLASS(UActionMoveCamera, UMatAction, 0x4, Engine)
+
 public:
     BYTE PathStyle;                         // 0x80  EPathStyle
 };
@@ -1292,18 +1403,24 @@ T3_CHECK_SIZE(UActionMoveCamera, 0x84);
 
 class UActionPause : public UMatAction
 {
+    DECLARE_CLASS(UActionPause, UMatAction, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UActionPause, 0x80);
 
 class UAlarmLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UAlarmLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UAlarmLinkDataObject, 0x50);
 
 class UAmmoLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UAmmoLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FLOAT m_amount;                         // 0x50
 };
@@ -1311,12 +1428,16 @@ T3_CHECK_SIZE(UAmmoLinkDataObject, 0x54);
 
 class UAssociationLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UAssociationLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UAssociationLinkDataObject, 0x50);
 
 class UAttachmentLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UAttachmentLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FString m_attachmentBone;               // 0x50
     FString m_parentBone;                   // 0x5C
@@ -1328,6 +1449,8 @@ T3_CHECK_SIZE(UAttachmentLinkDataObject, 0x74);
 
 class UParticleEmitter : public UObject
 {
+    DECLARE_CLASS(UParticleEmitter, UObject, 0x0, Engine)
+
 public:
     FVector Acceleration;                   // 0x2C
     BITFIELD UseCollision:1;                // 0x38
@@ -1439,6 +1562,8 @@ T3_CHECK_SIZE(UParticleEmitter, 0x32C);
 
 class UBeamEmitter : public UParticleEmitter
 {
+    DECLARE_CLASS(UBeamEmitter, UParticleEmitter, 0x0, Engine)
+
 public:
     FRange BeamDistanceRange;               // 0x32C
     TArray<FParticleBeamEndPoint> BeamEndPoints; // 0x334
@@ -1483,6 +1608,8 @@ T3_CHECK_SIZE(UBeamEmitter, 0x414);
 
 class UBitmap : public UObject
 {
+    DECLARE_CLASS(UBitmap, UObject, 0x1, Engine)
+
 public:
     BYTE Format;                            // 0x2C  ETextureFormat
     UPalette* Palette;                      // 0x30
@@ -1500,18 +1627,33 @@ T3_CHECK_SIZE(UBitmap, 0x58);
 
 class UBotDominationLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UBotDominationLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UBotDominationLinkDataObject, 0x50);
 
 class UBreakingBeamLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UBreakingBeamLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UBreakingBeamLinkDataObject, 0x50);
 
+class UCARDEntry : public UObject
+{
+    DECLARE_CLASS(UCARDEntry, UObject, 0x40, Engine)
+
+public:
+    BYTE Pad2C[0x34];
+};
+T3_CHECK_SIZE(UCARDEntry, 0x60);
+
 class UCanvas : public UObject
 {
+    DECLARE_CLASS(UCanvas, UObject, 0x8, Engine)
+
 public:
     UFont* Font;                            // 0x2C
     FLOAT SpaceX;                           // 0x30
@@ -1539,12 +1681,16 @@ T3_CHECK_SIZE(UCanvas, 0x7C);
 
 class UCinematicLightLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UCinematicLightLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UCinematicLightLinkDataObject, 0x50);
 
 class UHardpointLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UHardpointLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FString m_parentBone;                   // 0x50
 };
@@ -1552,6 +1698,8 @@ T3_CHECK_SIZE(UHardpointLinkDataObject, 0x5C);
 
 class USpawnableHardpointLinkDataObject : public UHardpointLinkDataObject
 {
+    DECLARE_CLASS(USpawnableHardpointLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
+
 public:
     INT NumberToSpawn;                      // 0x5C
     BITFIELD bTakeParentRotation:1;         // 0x60
@@ -1563,6 +1711,8 @@ T3_CHECK_SIZE(USpawnableHardpointLinkDataObject, 0x70);
 
 class UCollisionSpawnLinkDataObject : public USpawnableHardpointLinkDataObject
 {
+    DECLARE_CLASS(UCollisionSpawnLinkDataObject, USpawnableHardpointLinkDataObject, 0x0, Engine)
+
 public:
     BITFIELD Active:1;                      // 0x70
     FString Tag;                            // 0x74
@@ -1571,6 +1721,8 @@ T3_CHECK_SIZE(UCollisionSpawnLinkDataObject, 0x80);
 
 class UCreationSpawnLinkDataObject : public UHardpointLinkDataObject
 {
+    DECLARE_CLASS(UCreationSpawnLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
+
 public:
     INT m_numberToSpawn;                    // 0x5C
 };
@@ -1578,6 +1730,8 @@ T3_CHECK_SIZE(UCreationSpawnLinkDataObject, 0x60);
 
 class UTexture : public UBitmap
 {
+    DECLARE_CLASS(UTexture, UBitmap, 0x40, Engine)
+
 public:
     UTexture* BumpMap;                      // 0x58
     UTexture* DetailTexture;                // 0x5C
@@ -1649,6 +1803,8 @@ T3_CHECK_SIZE(UTexture, 0xDC);
 
 class UCubemap : public UTexture
 {
+    DECLARE_CLASS(UCubemap, UTexture, 0x40, Engine)
+
 public:
     UTexture* Faces[6];                     // 0xDC
     INT CubemapRenderInterface[5];          // 0xF4
@@ -1657,6 +1813,8 @@ T3_CHECK_SIZE(UCubemap, 0x108);
 
 class UDeathSpawnLinkDataObject : public UHardpointLinkDataObject
 {
+    DECLARE_CLASS(UDeathSpawnLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
+
 public:
     INT m_numberToSpawn;                    // 0x5C
     INT m_stimulusTrigger;                  // 0x60
@@ -1666,24 +1824,32 @@ T3_CHECK_SIZE(UDeathSpawnLinkDataObject, 0x68);
 
 class UDelaySpawnLinkDataObject : public USpawnableHardpointLinkDataObject
 {
+    DECLARE_CLASS(UDelaySpawnLinkDataObject, USpawnableHardpointLinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UDelaySpawnLinkDataObject, 0x70);
 
 class UDestroyOnDeathLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UDestroyOnDeathLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UDestroyOnDeathLinkDataObject, 0x50);
 
 class UDoorLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UDoorLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UDoorLinkDataObject, 0x50);
 
 class UDynamicBeamEmitter : public UBeamEmitter
 {
+    DECLARE_CLASS(UDynamicBeamEmitter, UBeamEmitter, 0x0, Engine)
+
 public:
     TArray<FVector> DynamicPointList;       // 0x414
     BITFIELD UseDynamicPoints:1;            // 0x420
@@ -1692,18 +1858,25 @@ T3_CHECK_SIZE(UDynamicBeamEmitter, 0x424);
 
 class UElevatorFloorMarkerLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UElevatorFloorMarkerLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UElevatorFloorMarkerLinkDataObject, 0x50);
 
 class UElevatorLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UElevatorLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UElevatorLinkDataObject, 0x50);
 
 class UEngine : public USubsystem
 {
+    DECLARE_CLASS(UEngine, USubsystem, 0xD, Engine)
+    void StaticConstructor();       // 0x10977B10
+
 public:
     UClass* Language;                       // 0x30
     UPrimitive* Cylinder;                   // 0x34
@@ -1761,18 +1934,24 @@ T3_CHECK_SIZE(UEngine, 0x10C);
 
 class UFillLightLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UFillLightLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UFillLightLinkDataObject, 0x50);
 
 class UFireEffectLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UFireEffectLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UFireEffectLinkDataObject, 0x50);
 
 class UFlinderizeLinkDataObject : public UHardpointLinkDataObject
 {
+    DECLARE_CLASS(UFlinderizeLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
+
 public:
     INT m_numberToSpawn;                    // 0x5C
     FLOAT m_ConeTheta;                      // 0x60
@@ -1782,24 +1961,33 @@ T3_CHECK_SIZE(UFlinderizeLinkDataObject, 0x68);
 
 class UFragRoundLinkDataObject : public UFlinderizeLinkDataObject
 {
+    DECLARE_CLASS(UFragRoundLinkDataObject, UFlinderizeLinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UFragRoundLinkDataObject, 0x68);
 
 class UFrobEventLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UFrobEventLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UFrobEventLinkDataObject, 0x50);
 
 class UFrobLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UFrobLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UFrobLinkDataObject, 0x50);
 
 class UGameEngine : public UEngine
 {
+    DECLARE_CLASS(UGameEngine, UEngine, 0xC, Engine)
+    void StaticConstructor();       // 0x10983590
+
 public:
     ULevel* GLevel;                         // 0x10C
     ULevel* GEntry;                         // 0x110
@@ -1810,14 +1998,36 @@ public:
 };
 T3_CHECK_SIZE(UGameEngine, 0x17C);
 
+class UPhysicsSubsystem : public USubsystem
+{
+    DECLARE_CLASS(UPhysicsSubsystem, USubsystem, 0xD, Engine)
+
+public:
+    BYTE Pad30[0x8];
+};
+T3_CHECK_SIZE(UPhysicsSubsystem, 0x38);
+
+class UGameSubsystem : public USubsystem
+{
+    DECLARE_CLASS(UGameSubsystem, USubsystem, 0xD, Engine)
+
+public:
+    BYTE Pad30[0x4];
+};
+T3_CHECK_SIZE(UGameSubsystem, 0x34);
+
 class UHighlightEventLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UHighlightEventLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UHighlightEventLinkDataObject, 0x50);
 
 class UHingedAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
+    DECLARE_CLASS(UHingedAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
 public:
     FVector m_hingeLocation;                // 0x74
     FVector m_hingeAxis;                    // 0x80
@@ -1841,24 +2051,32 @@ T3_CHECK_SIZE(UHingedAttachmentLinkDataObject, 0xFC);
 
 class UHitSpangLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UHitSpangLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UHitSpangLinkDataObject, 0x50);
 
 class UInterestLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UInterestLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UInterestLinkDataObject, 0x50);
 
 class ULightLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(ULightLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ULightLinkDataObject, 0x50);
 
 class ULoadoutLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(ULoadoutLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FString m_parentBone;                   // 0x50
     FString m_childBone;                    // 0x5C
@@ -1868,12 +2086,16 @@ T3_CHECK_SIZE(ULoadoutLinkDataObject, 0x6C);
 
 class ULockAssociationLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(ULockAssociationLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(ULockAssociationLinkDataObject, 0x50);
 
 class UMatSubAction : public UMatObject
 {
+    DECLARE_CLASS(UMatSubAction, UMatObject, 0x0, Engine)
+
 public:
     FLOAT Delay;                            // 0x2C
     FLOAT Duration;                         // 0x30
@@ -1888,6 +2110,8 @@ T3_CHECK_SIZE(UMatSubAction, 0x54);
 
 class UMeshEmitter : public UParticleEmitter
 {
+    DECLARE_CLASS(UMeshEmitter, UParticleEmitter, 0x0, Engine)
+
 public:
     UStaticMesh* StaticMesh;                // 0x32C
     BITFIELD UseMeshBlendMode:1;            // 0x330
@@ -1898,18 +2122,24 @@ T3_CHECK_SIZE(UMeshEmitter, 0x340);
 
 class UMovementModeLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UMovementModeLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UMovementModeLinkDataObject, 0x50);
 
 class UOwnershipLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UOwnershipLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UOwnershipLinkDataObject, 0x50);
 
 class UPalette : public UObject
 {
+    DECLARE_CLASS(UPalette, UObject, 0x40, Engine)
+
 public:
     TArray<FColor> Colors;                  // 0x2C
 };
@@ -1917,6 +2147,8 @@ T3_CHECK_SIZE(UPalette, 0x38);
 
 class UPlayer : public UObject
 {
+    DECLARE_CLASS(UPlayer, UObject, 0xD, Engine)
+
 public:
     INT vfOut;                              // 0x2C
     INT vfExec;                             // 0x30
@@ -1935,12 +2167,16 @@ T3_CHECK_SIZE(UPlayer, 0x54);
 
 class UPlayerSetupInfoLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UPlayerSetupInfoLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UPlayerSetupInfoLinkDataObject, 0x50);
 
 class UPointAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
+    DECLARE_CLASS(UPointAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
 public:
     FVector m_pointOffset;                  // 0x74
     FLOAT m_pointLimitMin;                  // 0x80
@@ -1950,12 +2186,16 @@ T3_CHECK_SIZE(UPointAttachmentLinkDataObject, 0x88);
 
 class UPowerLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UPowerLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UPowerLinkDataObject, 0x50);
 
 class UProjectileLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UProjectileLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     BITFIELD IsAltFire:1;                   // 0x50
 };
@@ -1963,24 +2203,32 @@ T3_CHECK_SIZE(UProjectileLinkDataObject, 0x54);
 
 class UPuddleConnectorLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UPuddleConnectorLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UPuddleConnectorLinkDataObject, 0x50);
 
 class UPuddleMarkLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UPuddleMarkLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UPuddleMarkLinkDataObject, 0x50);
 
 class UReferenceLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UReferenceLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UReferenceLinkDataObject, 0x50);
 
 class URigidAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
+    DECLARE_CLASS(URigidAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
 public:
     BITFIELD bDontSpawn:1;                  // 0x74
     BITFIELD bDeleteChildOnDeath:1;
@@ -1995,6 +2243,8 @@ T3_CHECK_SIZE(URigidAttachmentLinkDataObject, 0x94);
 
 class URuntimeAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
+    DECLARE_CLASS(URuntimeAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
 public:
     BITFIELD bDeleteChildOnDeath:1;         // 0x74
 };
@@ -2002,18 +2252,24 @@ T3_CHECK_SIZE(URuntimeAttachmentLinkDataObject, 0x78);
 
 class URuntimeFireEffectLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(URuntimeFireEffectLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(URuntimeFireEffectLinkDataObject, 0x50);
 
 class USittingLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(USittingLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(USittingLinkDataObject, 0x50);
 
 class USkeletalFireEffectLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(USkeletalFireEffectLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FString m_parentBone;                   // 0x50
 };
@@ -2021,12 +2277,16 @@ T3_CHECK_SIZE(USkeletalFireEffectLinkDataObject, 0x5C);
 
 class USleepingLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(USleepingLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(USleepingLinkDataObject, 0x50);
 
 class USlidingAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
+    DECLARE_CLASS(USlidingAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
 public:
     FVector m_slideAxis;                    // 0x74
     FLOAT m_slideFriction;                  // 0x80
@@ -2047,6 +2307,8 @@ T3_CHECK_SIZE(USlidingAttachmentLinkDataObject, 0xEC);
 
 class USparkEmitter : public UParticleEmitter
 {
+    DECLARE_CLASS(USparkEmitter, UParticleEmitter, 0x0, Engine)
+
 public:
     FRange LineSegmentsRange;               // 0x32C
     FRange TimeBeforeVisibleRange;          // 0x334
@@ -2063,12 +2325,16 @@ T3_CHECK_SIZE(USparkEmitter, 0x368);
 
 class USpawnLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(USpawnLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(USpawnLinkDataObject, 0x50);
 
 class USpriteEmitter : public UParticleEmitter
 {
+    DECLARE_CLASS(USpriteEmitter, UParticleEmitter, 0x0, Engine)
+
 public:
     BYTE UseDirectionAs;                    // 0x32C  EParticleDirectionUsage
     FVector ProjectionNormal;               // 0x330
@@ -2084,12 +2350,16 @@ T3_CHECK_SIZE(USpriteEmitter, 0x360);
 
 class UStimulusModifierLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UStimulusModifierLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UStimulusModifierLinkDataObject, 0x50);
 
 class USubActionFOV : public UMatSubAction
 {
+    DECLARE_CLASS(USubActionFOV, UMatSubAction, 0x0, Engine)
+
 public:
     FRange FOV;                             // 0x54
 };
@@ -2097,6 +2367,8 @@ T3_CHECK_SIZE(USubActionFOV, 0x5C);
 
 class USubActionFade : public UMatSubAction
 {
+    DECLARE_CLASS(USubActionFade, UMatSubAction, 0x0, Engine)
+
 public:
     FColor FadeColor;                       // 0x54
     BITFIELD bFadeOut:1;                    // 0x58
@@ -2105,6 +2377,8 @@ T3_CHECK_SIZE(USubActionFade, 0x5C);
 
 class USubActionGameSpeed : public UMatSubAction
 {
+    DECLARE_CLASS(USubActionGameSpeed, UMatSubAction, 0x0, Engine)
+
 public:
     FRange GameSpeed;                       // 0x54
 };
@@ -2112,6 +2386,8 @@ T3_CHECK_SIZE(USubActionGameSpeed, 0x5C);
 
 class USubActionOrientation : public UMatSubAction
 {
+    DECLARE_CLASS(USubActionOrientation, UMatSubAction, 0x0, Engine)
+
 public:
     FMatObjectOrientation CamOrientation;   // 0x54
 };
@@ -2119,6 +2395,8 @@ T3_CHECK_SIZE(USubActionOrientation, 0x88);
 
 class USubActionSceneSpeed : public UMatSubAction
 {
+    DECLARE_CLASS(USubActionSceneSpeed, UMatSubAction, 0x0, Engine)
+
 public:
     FRange SceneSpeed;                      // 0x54
 };
@@ -2126,6 +2404,8 @@ T3_CHECK_SIZE(USubActionSceneSpeed, 0x5C);
 
 class USubActionTrigger : public UMatSubAction
 {
+    DECLARE_CLASS(USubActionTrigger, UMatSubAction, 0x0, Engine)
+
 public:
     FName EventName;                        // 0x54
 };
@@ -2133,12 +2413,24 @@ T3_CHECK_SIZE(USubActionTrigger, 0x58);
 
 class USwooshLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(USwooshLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(USwooshLinkDataObject, 0x50);
 
+class UTriggerRegistrar : public UObject
+{
+    DECLARE_CLASS(UTriggerRegistrar, UObject, 0xD, Engine)
+
+public:
+};
+T3_CHECK_SIZE(UTriggerRegistrar, 0x2C);
+
 class UTargetLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UTargetLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FVector TargetLocationOffset;           // 0x50
 };
@@ -2146,6 +2438,8 @@ T3_CHECK_SIZE(UTargetLinkDataObject, 0x5C);
 
 class UTriggerScriptLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UTriggerScriptLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FString LinkName;                       // 0x50
 };
@@ -2153,24 +2447,32 @@ T3_CHECK_SIZE(UTriggerScriptLinkDataObject, 0x5C);
 
 class UUserArmImplementationLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UUserArmImplementationLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UUserArmImplementationLinkDataObject, 0x50);
 
 class UUserLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UUserLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UUserLinkDataObject, 0x50);
 
 class UVulnerabilityLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UVulnerabilityLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UVulnerabilityLinkDataObject, 0x50);
 
 class UWaypointInterpolationLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UWaypointInterpolationLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
     FLOAT Speed;                            // 0x50
 };
@@ -2178,6 +2480,8 @@ T3_CHECK_SIZE(UWaypointInterpolationLinkDataObject, 0x54);
 
 class UWeaponModLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UWeaponModLinkDataObject, ULinkDataObject, 0x0, Engine)
+
 public:
 };
 T3_CHECK_SIZE(UWeaponModLinkDataObject, 0x50);

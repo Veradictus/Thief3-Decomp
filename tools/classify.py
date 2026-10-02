@@ -239,22 +239,34 @@ def classes(img: Image, tables: Dict[int, List[int]]) -> List[dict]:
                 # After the name: the class flags and the object size (esi holds 0).
                 pushes.append(i.immediate32 if i.op0_kind in (OpKind.IMMEDIATE32, OpKind.IMMEDIATE8TO32) else 0)
         name = strings[-1] if strings else "?"
+        # Before the name: the config name (StaticConfigName).
+        config = strings[-2] if len(strings) >= 2 else ""
         flags, size = (pushes[1], pushes[2]) if len(pushes) >= 3 else (0, 0)
         # The UClass constructor takes the static constructor, then the internal one.
         constructor = pointers[-1] if pointers else None
+        static_constructor = pointers[-2] if len(pointers) >= 2 else 0
         vtable = class_vtable(img, constructor, tables) if constructor else None
         ion = (package in ION_PACKAGES or name in ION_CLASSES.get(package, ())
                or (package == "Engine" and name.endswith("LinkDataObject")))
         category = GAME if ion else ENGINE if package in EPIC_PACKAGES else UNKNOWN
-        # The initializer registers the super class first (SuperField, +0x2C); Object itself.
+        # The initializer registers the super class first (SuperField, +0x2C), then the within class
+        # (ClassWithin, +0xA4, unless it is the super), then UClass (the object's class); Object itself.
         first = registrations(img, init, init + img.at[init].size) if init in img.at else {}
+        order = list(first)
         out.append({"name": name, "package": package, "category": category, "getter": getter,
                     "constructor": constructor, "vtable": vtable, "size": size, "flags": flags, "init": init,
-                    "super_getter": next(iter(first), None)})
+                    "super_getter": order[0] if order else None, "within_getter": order[1:2],
+                    "config": config, "static_constructor": static_constructor})
+    regs = registrations(img)
     by_getter = {c["getter"]: c for c in out}
     for c in out:
         sup = by_getter.get(c["super_getter"])
         c["super"] = sup["name"] if sup and sup is not c else None
+        c["static_class"] = regs[c["getter"]][1]
+        within = by_getter.get(c["within_getter"][0]) if c["within_getter"] else None
+        # The second class an initializer registers is its within class, unless it is UClass itself (the
+        # within class was the super, registered already).
+        c["within"] = within["name"] if within and within["name"] != "Class" else (sup["name"] if sup and sup is not c else "")
     return out
 
 
@@ -401,7 +413,7 @@ def ranges(img: Image, labels: Dict[int, str]) -> List[Tuple[int, int, str]]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", choices=["write", "explain", "stats"])
+    parser.add_argument("command", choices=["write", "classes", "explain", "stats"])
     parser.add_argument("addrs", nargs="*")
     parser.add_argument("--version", default=configure.DEFAULT_VERSION, choices=sorted(configure.VERSIONS))
     args = parser.parse_args()
@@ -426,11 +438,13 @@ def main() -> None:
         path = ROOT / "config" / args.version / "categories.txt"
         categorieslib.save(path, ranges(img, labels))
         print(f"wrote {path.relative_to(ROOT)}")
+    if args.command in ("write", "classes"):
         found = classes(img, vtables(img))
         cpp = cpp_names(found)
         table = [categorieslib.NativeClass(cpp[c["name"]], c["package"], c["category"], cpp.get(c["super"] or "", ""),
                                            c["size"], c["flags"], c["vtable"] or 0, c["getter"], c["init"],
-                                           c["constructor"] or 0) for c in found]
+                                           c["constructor"] or 0, cpp.get(c["within"], ""), c["config"],
+                                           c["static_constructor"] or 0, c["static_class"]) for c in found]
         path = ROOT / "config" / args.version / "classes.txt"
         categorieslib.save_classes(path, sorted(table, key=lambda c: c.name))
         print(f"wrote {path.relative_to(ROOT)}: {len(table)} classes")

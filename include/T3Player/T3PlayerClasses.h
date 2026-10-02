@@ -88,6 +88,8 @@ T3_CHECK_SIZE(FAnimCall, 0xC);
 
 class AGarrett : public APlayerPawn
 {
+    DECLARE_CLASS(AGarrett, APlayerPawn, 0x800, T3Player)
+
 public:
     TArray<FRemovedInventoryInfo> RemovedInventory; // 0x278
     FLOAT standingSpeedDef[19];             // 0x284
@@ -198,6 +200,8 @@ T3_CHECK_SIZE(AGarrett, 0x560);
 
 class AT3PlayerController : public APlayerController
 {
+    DECLARE_CLASS(AT3PlayerController, APlayerController, 0x4, T3Player)
+
 public:
     BITFIELD bIsActive:1;                   // 0x2C0
     INT pad0;                               // 0x2C4
@@ -206,6 +210,8 @@ T3_CHECK_SIZE(AT3PlayerController, 0x2C8);
 
 class UAttachment_LinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UAttachment_LinkDataObject, ULinkDataObject, 0x0, T3Player)
+
 public:
     BYTE AttachPos;                         // 0x50  EAttachPos
 };
@@ -213,6 +219,8 @@ T3_CHECK_SIZE(UAttachment_LinkDataObject, 0x54);
 
 class UGarrettEquipLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UGarrettEquipLinkDataObject, ULinkDataObject, 0x0, T3Player)
+
 public:
     FString GarEquipName;                   // 0x50
 };
@@ -220,18 +228,33 @@ T3_CHECK_SIZE(UGarrettEquipLinkDataObject, 0x5C);
 
 class UHUDRenderLinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UHUDRenderLinkDataObject, ULinkDataObject, 0x0, T3Player)
+
 public:
 };
 T3_CHECK_SIZE(UHUDRenderLinkDataObject, 0x50);
 
 class UInvenBook_LinkDataObject : public ULinkDataObject
 {
+    DECLARE_CLASS(UInvenBook_LinkDataObject, ULinkDataObject, 0x0, T3Player)
+
 public:
 };
 T3_CHECK_SIZE(UInvenBook_LinkDataObject, 0x50);
 
+class UT3Game : public UGameSubsystem
+{
+    DECLARE_CLASS(UT3Game, UGameSubsystem, 0x4, T3Player)
+
+public:
+    BYTE Pad34[0x188];
+};
+T3_CHECK_SIZE(UT3Game, 0x1BC);
+
 class UT3GameEngine : public UGameEngine
 {
+    DECLARE_CLASS(UT3GameEngine, UGameEngine, 0xC, T3Player)
+
 public:
     BYTE thief3specificstuff[4];            // 0x17C
 };

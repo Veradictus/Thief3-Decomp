@@ -128,36 +128,48 @@ enum EStateType
 
 class AAIModel : public AMetaProperty
 {
+    DECLARE_CLASS(AAIModel, AMetaProperty, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAIModel, 0xC0);
 
 class AAIBehaviorModel : public AAIModel
 {
+    DECLARE_CLASS(AAIBehaviorModel, AAIModel, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAIBehaviorModel, 0xC0);
 
 class AAICombatModel : public AAIModel
 {
+    DECLARE_CLASS(AAICombatModel, AAIModel, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAICombatModel, 0xC0);
 
 class AAIContextVolume : public AVolume
 {
+    DECLARE_CLASS(AAIContextVolume, AVolume, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAIContextVolume, 0x148);
 
 class AAIFactionModel : public AAIModel
 {
+    DECLARE_CLASS(AAIFactionModel, AAIModel, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAIFactionModel, 0xC0);
 
 class AAIMovementModel : public AAIModel
 {
+    DECLARE_CLASS(AAIMovementModel, AAIModel, 0x0, AICore)
+
 public:
     FLOAT CombatTurnSpeedMultiplier;        // 0xC0
     FLOAT TurnSpeed;                        // 0xC4
@@ -172,6 +184,8 @@ T3_CHECK_SIZE(AAIMovementModel, 0xE0);
 
 class AAIPathPoint : public AMarker
 {
+    DECLARE_CLASS(AAIPathPoint, AMarker, 0x0, AICore)
+
 public:
     INT pad;                                // 0xC0
 };
@@ -179,6 +193,8 @@ T3_CHECK_SIZE(AAIPathPoint, 0xC4);
 
 class AAIPawn : public APawn
 {
+    DECLARE_CLASS(AAIPawn, APawn, 0x0, AICore)
+
 public:
     BITFIELD DiagnosticsOn:1;               // 0x208
     UClass* OldSensoryModelClass_MaintainedForCompatibility; // 0x20C
@@ -197,6 +213,8 @@ T3_CHECK_SIZE(AAIPawn, 0x238);
 
 class AAIPawnController : public AAIController
 {
+    DECLARE_CLASS(AAIPawnController, AAIController, 0x0, AICore)
+
 public:
     BITFIELD initialized:1;                 // 0x114
     INT pad0;                               // 0x118
@@ -205,48 +223,64 @@ T3_CHECK_SIZE(AAIPawnController, 0x11C);
 
 class AAISensoryModel : public AAIModel
 {
+    DECLARE_CLASS(AAISensoryModel, AAIModel, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAISensoryModel, 0xC0);
 
 class AAITaggedVolume : public AVolume
 {
+    DECLARE_CLASS(AAITaggedVolume, AVolume, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAITaggedVolume, 0x148);
 
 class AAddAIPoint : public AAIPathPoint
 {
+    DECLARE_CLASS(AAddAIPoint, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AAddAIPoint, 0xC4);
 
 class AChangeDirectionPoint : public AAIPathPoint
 {
+    DECLARE_CLASS(AChangeDirectionPoint, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AChangeDirectionPoint, 0xC4);
 
 class APatrolPoint : public AAIPathPoint
 {
+    DECLARE_CLASS(APatrolPoint, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(APatrolPoint, 0xC4);
 
 class ACityPopPoint : public APatrolPoint
 {
+    DECLARE_CLASS(ACityPopPoint, APatrolPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(ACityPopPoint, 0xC4);
 
 class ACitySectionPopulationInfo : public AInfo
 {
+    DECLARE_CLASS(ACitySectionPopulationInfo, AInfo, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(ACitySectionPopulationInfo, 0xC0);
 
 class AEnumEvidenceType : public AActor
 {
+    DECLARE_CLASS(AEnumEvidenceType, AActor, 0x0, AICore)
+
 public:
     BYTE DummyVariable;                     // 0xC0  EEvidenceType
 };
@@ -254,6 +288,8 @@ T3_CHECK_SIZE(AEnumEvidenceType, 0xC4);
 
 class AEnumInferenceType : public AActor
 {
+    DECLARE_CLASS(AEnumInferenceType, AActor, 0x0, AICore)
+
 public:
     BYTE DummyVariable;                     // 0xC0  EInferenceType
 };
@@ -261,6 +297,8 @@ T3_CHECK_SIZE(AEnumInferenceType, 0xC4);
 
 class AEnumStateType : public AActor
 {
+    DECLARE_CLASS(AEnumStateType, AActor, 0x0, AICore)
+
 public:
     BYTE DummyVariable;                     // 0xC0  EStateType
 };
@@ -268,62 +306,90 @@ T3_CHECK_SIZE(AEnumStateType, 0xC4);
 
 class AFocusPoint : public AMarker
 {
+    DECLARE_CLASS(AFocusPoint, AMarker, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AFocusPoint, 0xC0);
 
 class AFormationPoint : public AAIPathPoint
 {
+    DECLARE_CLASS(AFormationPoint, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AFormationPoint, 0xC4);
 
 class AFormationPointAbsolute : public AAIPathPoint
 {
+    DECLARE_CLASS(AFormationPointAbsolute, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AFormationPointAbsolute, 0xC4);
 
 class AHeadTurnPoint : public AAIPathPoint
 {
+    DECLARE_CLASS(AHeadTurnPoint, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AHeadTurnPoint, 0xC4);
 
 class ALookPoint : public AAIPathPoint
 {
+    DECLARE_CLASS(ALookPoint, AAIPathPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(ALookPoint, 0xC4);
 
 class ANavMeshInsertionPoint : public AMarker
 {
+    DECLARE_CLASS(ANavMeshInsertionPoint, AMarker, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(ANavMeshInsertionPoint, 0xC0);
 
 class ANavMeshSubtractionVolume : public AVolume
 {
+    DECLARE_CLASS(ANavMeshSubtractionVolume, AVolume, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(ANavMeshSubtractionVolume, 0x148);
 
 class APlayAnimPoint : public ALookPoint
 {
+    DECLARE_CLASS(APlayAnimPoint, ALookPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(APlayAnimPoint, 0xC4);
 
 class APlayBarkPoint : public ALookPoint
 {
+    DECLARE_CLASS(APlayBarkPoint, ALookPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(APlayBarkPoint, 0xC4);
 
 class AWanderPoint : public APatrolPoint
 {
+    DECLARE_CLASS(AWanderPoint, APatrolPoint, 0x0, AICore)
+
 public:
 };
 T3_CHECK_SIZE(AWanderPoint, 0xC4);
+
+class UAI : public UAISubsystem
+{
+    DECLARE_CLASS(UAI, UAISubsystem, 0x4, AICore)
+
+public:
+};
+T3_CHECK_SIZE(UAI, 0x34);
 
 #endif

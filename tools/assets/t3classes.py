@@ -64,7 +64,7 @@ CPP_TYPE = {"byte": "BYTE", "button": "BYTE", "int": "INT", "float": "FLOAT", "n
             "string": "FString", "pointer": "void*", "object": "UObject*"}
 # Declared by hand in include/Core/Core.h: not generated. Their C++ sizes where the generated
 # classes derive from them.
-CORE_H_CLASSES = {"UObject": 0x2C, "UField": 0x34}
+CORE_H_CLASSES = {"UObject": 0x2C, "UField": 0x34, "UStruct": 0x74, "UState": 0x8C, "UClass": 0x114}
 CORE_H_STRUCTS = {"vector": "FVector", "rotator": "FRotator"}
 CPP_KEYWORDS = {
     "asm", "auto", "bool", "break", "case", "catch", "char", "class", "const", "continue", "default", "delete",
@@ -546,14 +546,37 @@ class Emitter:
                     self.used_structs.append(s)  # after what it uses
 
 
+def inherited(classes, cpp: str, field: str, default):
+    """The value of a registration field the class inherits: its nearest super's that classes.txt has
+    (some are not found in the exe), else `default`."""
+    sup = classes[cpp].super
+    while sup in classes:
+        if getattr(classes[sup], field):
+            return getattr(classes[sup], field)
+        sup = classes[sup].super
+    return default
+
+
+def registration(classes, cpp: str) -> List[str]:
+    """The class's DECLARE_CLASS line (Core.h), and what it does not inherit: its within class and its
+    static constructor (classes.txt, from its registration in T3Main.exe)."""
+    n = classes[cpp]
+    lines = [f"    DECLARE_CLASS({cpp}, {n.super}, 0x{n.flags:X}, {n.package})"]
+    if n.within and n.within != inherited(classes, cpp, "within", "UObject"):
+        lines.append(f"    DECLARE_WITHIN({n.within})")
+    if n.static_constructor and n.static_constructor != inherited(classes, cpp, "static_constructor", 0):
+        lines.append(f"    void StaticConstructor();       // 0x{n.static_constructor:08X}")
+    return lines
+
+
 def generate(model: Model) -> Dict[str, str]:
     """Package -> header text."""
     em = Emitter(model)
     classes = model.classes
-    # The native classes with a script, and their supers.
+    # The native classes with a script, Ion Storm's without one (opaque), and their supers.
     wanted: List[str] = []
     for cpp, n in sorted(classes.items()):
-        if cpp[1:].lower() not in model.scripts:
+        if cpp[1:].lower() not in model.scripts and n.category != "game":
             continue
         chain, c = [], cpp
         while c and c not in CORE_H_CLASSES and c not in wanted and c not in chain:
@@ -575,7 +598,7 @@ def generate(model: Model) -> Dict[str, str]:
         if align(end, 4) != n.size and fields_:
             raise ValueError(f"{cpp}: the script lays out 0x{align(end, 4):X} bytes, the game registers 0x{n.size:X}")
         em.collect(fields_)
-        lines = [f"class {cpp} : public {n.super}", "{", "public:"]
+        lines = [f"class {cpp} : public {n.super}", "{"] + registration(classes, cpp) + ["", "public:"]
         lines += em.members(fields_, start, n.size if not fields_ else end) if fields_ or n.size > start else []
         lines += ["};", f"T3_CHECK_SIZE({cpp}, 0x{n.size:X});", ""]
         bodies[n.package] += lines
@@ -625,6 +648,7 @@ def generate(model: Model) -> Dict[str, str]:
         body[-1] = body[-1].rstrip(",")
         enum_lines[scope.package] += [f"enum {name}", "{"] + body + ["};", ""]
     packages = [p for p in t3props.DECL_PACKAGES if bodies.get(p) or struct_lines.get(p) or enum_lines.get(p)]
+    packages += sorted(p for p in bodies if p not in packages)  # Ion Storm's classes of packages without scripts
     order = topological(packages, depends)
     out = {}
     for pkg in order:

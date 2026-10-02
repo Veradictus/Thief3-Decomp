@@ -16,10 +16,12 @@ typedef INT UBOOL;
 typedef float FLOAT;
 typedef double DOUBLE;
 typedef char ANSICHAR;
+typedef ANSICHAR TCHAR;                 // an ANSI build
 typedef DWORD BITFIELD;                 // a script bool: one bit of a 32-bit word
 
 #ifndef NULL
 #define NULL 0
+#define TEXT(s) s
 #endif
 
 // A compile-time check of a class's size against the size the game registers
@@ -148,8 +150,43 @@ public:
 // and Outer at runtime); the game registers UObject with 0x2C. Of the virtual
 // functions, only CallFunction's slot is known; the others are named by their
 // vtable offset.
+// A globally unique id (stock Unreal Engine 2): native classes register with a zero one.
+class FGuid
+{
+public:
+    DWORD A, B, C, D;
+    FGuid() {}
+    FGuid(DWORD InA, DWORD InB, DWORD InC, DWORD InD) : A(InA), B(InB), C(InC), D(InD) {}
+};
+
+// Selects UClass's constructor for a native class (UClass::UClass below).
+enum EStaticConstructor { EC_StaticConstructor };
+
+// Object flags a native class's UClass object is created with (stock values).
+enum EObjectFlags
+{
+    RF_Public     = 0x00000004,
+    RF_Transient  = 0x00004000,
+    RF_Standalone = 0x00080000,
+    RF_Native     = 0x04000000,
+};
+
+// A native class's static members, as Unreal Engine 2 declares them in a
+// statically linked build (docs/engine.md, "Native class registration").
+// StaticClass() is the lazy registration every caller inlines: the first call
+// creates the UClass object through GetPrivateStaticClass<Class> and links it
+// to its super and within classes through InitializePrivateStaticClass<Class>.
+// Each class's InternalConstructor builds a default object in place.
+#define DECLARE_CLASS(TClass, TSuperClass, TStaticFlags, TPackage) private:     static UClass* PrivateStaticClass; public:     enum { StaticClassFlags = TStaticFlags };     typedef TSuperClass Super;     typedef TClass ThisClass;     static UClass* GetPrivateStaticClass##TClass(const TCHAR* Package);     static void InitializePrivateStaticClass##TClass();     static UClass* StaticClass()     {         if (!PrivateStaticClass)         {             PrivateStaticClass = GetPrivateStaticClass##TClass(TEXT(#TPackage));             InitializePrivateStaticClass##TClass();         }         return PrivateStaticClass;     }     static void InternalConstructor(void* X);
+
+// A class whose objects live inside objects of another class (UObject by default).
+#define DECLARE_WITHIN(TWithinClass)     typedef TWithinClass WithinClass;
+
 class UObject
 {
+    DECLARE_CLASS(UObject, UObject, 0x1, Core)
+    typedef UObject WithinClass;
+
 public:
     virtual ~UObject();
     virtual void Unknown04();
@@ -171,8 +208,20 @@ public:
 
     // Runs a script function (execFinalFunction and the other calls).
     virtual void CallFunction(FFrame& Stack, RESULT_DECL, UFunction* Function);
+    virtual void Unknown48();
+    // Registers a native class's natives once the object system is up
+    // (InitializePrivateStaticClass's last call, slot 19).
+    virtual void Register();
 
     UClass* GetClass() const { return Class; }
+    void SetClass(UClass* NewClass) { Class = NewClass; }
+
+    // Whether the object system is up (0x10AD1D60).
+    static UBOOL GetInitialized();
+    // The class's static constructor (none for most: UObject's is empty).
+    void StaticConstructor();
+    // The .ini section of the class's config properties.
+    static const TCHAR* StaticConfigName() { return TEXT("System"); }
     const FName GetFName() const { return Name; }
 
     // Writes the object's config properties (execSaveConfig); resets a
@@ -435,6 +484,8 @@ T3_CHECK_SIZE(UObject, 0x2C);
 // is one field longer.
 class UField : public UObject
 {
+    DECLARE_CLASS(UField, UObject, 0x1, Core)
+
 public:
     UField* SuperField;             // 0x2C: all 287 classes chain up to Object
     UField* Next;                   // 0x30 (stock order, not yet seen)
@@ -443,10 +494,14 @@ T3_CHECK_SIZE(UField, 0x34);
 
 class UStruct : public UField
 {
+    DECLARE_CLASS(UStruct, UField, 0x0, Core)
+
 public:
     BYTE Unknown34[0x14];           // 0x34
     TArray<BYTE> Script;            // 0x48: the bytecode (FFrame's constructor, 0x10B0FCA0)
+    BYTE Unknown54[0x20];           // 0x54
 };
+T3_CHECK_SIZE(UStruct, 0x74);
 
 class UFunction : public UStruct
 {
@@ -454,16 +509,31 @@ class UFunction : public UStruct
 
 class UState : public UStruct
 {
-};
+    DECLARE_CLASS(UState, UStruct, 0x0, Core)
 
-// UStruct's fields end at 0x54 and UState has none known yet, so UClass's
-// padding covers the rest: shrink it when they get more.
+public:
+    BYTE Unknown74[0x18];           // 0x74
+};
+T3_CHECK_SIZE(UState, 0x8C);
+
+// The sizes are the ones the native class registrations allocate.
 class UClass : public UState
 {
+    DECLARE_CLASS(UClass, UState, 0x0, Core)
+
 public:
-    BYTE Unknown54[0x94];
+    // A native class's UClass object (GetPrivateStaticClass<Class>, 0x10AE7E30).
+    UClass(EStaticConstructor, DWORD InSize, DWORD InClassFlags, FGuid InGuid, const TCHAR* InNameString,
+           const TCHAR* InPackageName, const TCHAR* InClassConfigName, DWORD InFlags,
+           void (*InClassConstructor)(void*), void (UObject::*InClassStaticConstructor)());
+
+    BYTE Unknown8C[0x18];           // 0x8C
+    UClass* ClassWithin;            // 0xA4: InitializePrivateStaticClass<Class>
+    BYTE UnknownA8[0x40];           // 0xA8
     UObject* ClassDefaultObject;    // 0xE8 (docs/engine.md: static, probable)
+    BYTE UnknownEC[0x28];           // 0xEC
 };
+T3_CHECK_SIZE(UClass, 0x114);
 
 // --- Script execution ---------------------------------------------------------------
 
