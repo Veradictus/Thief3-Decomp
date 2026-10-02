@@ -1,4 +1,4 @@
-# Handoff: T3SDK status (2026-09-30)
+# Handoff: T3SDK status (2026-10-02)
 
 ## Goal
 
@@ -90,6 +90,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
 | Mod manager: `.t3mod` install/upgrade/remove, load order, profiles, checks, `files/` overlay, texture-pack tasks, mod index browser | `launcher/src-tauri/src/mods.rs`, `launcher/src/pages/Mods.svelte`, [mods.md](mods.md) | Rust tests on temporary game folders and UI tests pass; not run on Windows or a real install |
 | Release bundle (tools, prebuilt SDK, embeddable Python) | `tools/stage_launcher.py` | builds in CI |
 | Matching harness: queue, context, try, strict gate, integrate, waves | `tools/agent/`, `.claude/agents/t3-matcher.md`, `.claude/skills/t3-match/`, [matching.md](matching.md) | synthetic tests pass; runs on the real split (hand-matched functions, a smoke wave and a natives wave) |
+| Swarm workflow, families stamped without a model, worker guard | `.claude/workflows/t3-swarm.js`, `tools/agent/clusters.py`, `.claude/settings.json`, [agent-workflow.md](agent-workflow.md) | synthetic tests pass and the guard was checked with a live sub-agent (2026-10-02); not yet run on the real split |
 | CI: launcher and SDK builds (artifacts), releases on `v*` tags, decomp.dev report | `.github/workflows/` | launcher/SDK green; the progress job checks and publishes the committed report ([decomp-dev.md](decomp-dev.md)) |
 
 Commands are in [sdk.md](sdk.md) (SDK) and [../CLAUDE.md](../CLAUDE.md).
@@ -202,13 +203,31 @@ Later the same day, played by the user:
    After each integration: write it and commit it with the source. On
    decomp.dev, set the project's default category to **main** (owner).
 3. **Matching** (game code only):
-   - Matching runs as a swarm ([agent-workflow.md](agent-workflow.md),
-     "Swarms"): 8 to 16 workers at once, Opus on functions of 80 bytes and
-     more, each freed slot refilled; drain it for a checkpoint (sweep,
-     review, naming pass, `integrate.py`, `dtors.py`, `progress_report.py
-     write`, commit). Integration and `retry.py` check in parallel now, so
-     a checkpoint takes minutes. 8,000 game functions are still queued,
-     most of them 80 bytes and more.
+   - Matching runs as a swarm ([agent-workflow.md](agent-workflow.md)), now
+     best as the `t3-swarm` workflow: bands mixed, slots refilled by the
+     script, families stamped between workers. Drain it for a checkpoint
+     (sweep, review, naming pass, `integrate.py`, `dtors.py`,
+     `progress_report.py write`, commit). Integration and `retry.py` check
+     in parallel, so a checkpoint takes minutes. 8,000 game functions are
+     still queued, most of them 80 bytes and more.
+   - First run on the real split after the 2026-10-02 changes
+     ([research/ue2-decomps.md](research/ue2-decomps.md), section 3): build
+     the family index (`clusters.py list`, which also shows how many open
+     functions are in families), `clusters.py stamp --dry-run` then `stamp`
+     on the families that already have an accepted member, then a smoke run
+     (`t3-swarm` with `smoke: true`) and the guard check. Then compare the
+     first batch's `sweep.py` numbers (matches by attempt number, priced
+     tokens per match) with the swarms above, and tune `--patience` and the
+     bands from them.
+   - Unreal-specific naming that unblocks many functions at once
+     ([research/ue2-decomps.md](research/ue2-decomps.md), sections 1 and 4):
+     the class registration functions are Epic's static-link macros
+     (`GetPrivateStaticClass<C>`, `InitializePrivateStaticClass<C>`,
+     `InternalConstructor`): check one getter's decorated name against the
+     exe, then name all of `classes.txt`'s and add `DECLARE_CLASS` and
+     `IMPLEMENT_CLASS` to `Core.h`; confirm `UObject`'s 16 unknown virtuals
+     against Republic Commando's and UT2004's order; dump the script natives
+     from the running game with the SDK.
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -236,7 +255,12 @@ Later the same day, played by the user:
    - Use the generated class headers in matching: units still declare their
      own classes (`Virtual0()`... placeholders, `Unknown34` fields); a
      shared header per class needs the virtual functions too, which the
-     scripts do not give (only their names, for script events).
+     scripts do not give (only their names, for script events). gruntz paid
+     over a thousand cleanup commits and a crash for placeholder classes: move
+     to one header per class with virtuals from the slot map (inherited,
+     override, new; the packet's base-slot line shows which), a count of
+     placeholders that may only fall, and a whole-project regression check
+     on every header edit.
    - symbols.txt: retype the remaining globals recorded as `int` or
      `void*` that hold objects (`DAT_10f31b88`, `DAT_10ff66ac`,
      `DAT_10ff708c`, `DAT_10ff7098`). Headers for `TimeManager` and `Window`

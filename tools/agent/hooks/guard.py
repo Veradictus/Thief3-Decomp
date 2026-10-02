@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""PreToolUse guard for headless matching workers (tools/agent/guard-settings.json).
+"""PreToolUse guard for matching workers.
+
+Two ways in:
+  - .claude/settings.json runs it on every tool call of the session, the
+    lead's included, with `--agent-types t3-matcher`: it then checks only
+    calls whose hook input names one of those sub-agent types (`agent_type`,
+    present when a sub-agent makes the call) and lets the lead's through.
+    A hook in the agent definition's own frontmatter does not run for
+    sub-agents started with the Agent tool (Claude Code 2.1.287); the
+    project settings' hook does, with `agent_type` set.
+  - tools/agent/guard-settings.json runs it for the headless workers of
+    wave.py, each a session of its own: without the option every call is
+    checked.
 
 Workers write only their scratch files, build/scratch/ in their own checkout.
 The rest is the lead's: config/, configure.py, objdiff.json, orig/, src/,
@@ -45,10 +57,13 @@ DENY_BASH = [
     (r"\brm\s+(-\w*[rR]\w*|--recursive)\b", "recursive rm"),
     (r"\b(python[\d.]*|py|perl|ruby|node|bash|sh|pwsh|powershell)(\.exe)?\s+(-\w*[ce]\w*\b|-\s|-$|<<|<)",
      "inline scripts (run the tools in tools/agent/ instead)"),
-    (r"\bintegrate\.py\b|\bwave\.py\b", "integrate.py and wave.py are the lead's"),
+    (r"\b(integrate|wave|sweep|fixnames|retry|dtors|rename)\.py\b",
+     "integrate.py, wave.py, sweep.py, fixnames.py, retry.py, dtors.py and rename.py are the lead's"),
     (r"\bnext\.py\s+(requeue|release\s+.*--all)", "requeue and release --all are the lead's"),
+    (r"\bclusters\.py\s+stamp\b", "stamping families is the lead's"),
     (r"\bcontext\.py\s+fill-ghidra\b", "filling the Ghidra cache is the lead's"),
-    (r"\s--(cap|replace)\b", "--cap and --replace are the lead's"),
+    (r"\s--(cap|replace|patience|include-siblings)\b",
+     "--cap, --patience, --replace and --include-siblings are the lead's"),
     (r"\bT3_AGENT_(MAIN|CONFIG|OBJ|STATE|EXE|SRC)\s*=", "the T3_AGENT_* paths are fixed for workers"),
 ]
 WRITERS = {"tee", "touch", "truncate", "rm", "rmdir", "cp", "mv", "ln", "install", "mkdir", "chmod", "chown",
@@ -136,6 +151,11 @@ def _segment_targets(seg: List[str]) -> List[str]:
 
 def main() -> None:
     event = json.load(sys.stdin)
+    if "--agent-types" in sys.argv[1:]:
+        i = sys.argv.index("--agent-types")
+        types = {t for t in (sys.argv[i + 1] if i + 1 < len(sys.argv) else "").split(",") if t}
+        if event.get("agent_type") not in types:
+            sys.exit(0)  # the lead, or another kind of sub-agent
     tool = event.get("tool_name", "")
     data = event.get("tool_input", {}) or {}
     cwd = Path(event.get("cwd") or os.getcwd()).resolve()

@@ -14,7 +14,13 @@ Sections, each left out when its input is missing:
   ghidra      the cached Ghidra decompile (build/agent/cache/ghidra/<ADDR>.c)
   headers     include/ headers declaring the classes involved
   similar     accepted functions most like this one, with their source
-  history     earlier attempts and a deferral, if any
+  bound       the names accepted callers already gave this function: its
+              definition must use the same decorated name, or it is a name
+              conflict for the lead
+  family      other functions with the same code but for their references
+              (clusters.py): accepted ones, and why a stamp failed
+  history     earlier attempts and a deferral, if any, with the best earlier
+              attempt's source: a starting point for a second pass
   cheatsheet  CHEATSHEET.md entries whose tags match the function's features
 """
 
@@ -248,8 +254,37 @@ def vtable_slots(p: Project, address: int) -> List[dict]:
     out = []
     for t, s in cache["functions"].get(f"{address:08X}", [])[:4]:
         names = owners.get(t, [])
-        out.append({"table": fmt_addr(t), "slot": s, **({"class": names[0]} if len(names) == 1 else {})})
+        entry = {"table": fmt_addr(t), "slot": s, **({"class": names[0]} if len(names) == 1 else {})}
+        if len(names) == 1:
+            entry.update(base_slot(p, names[0], s, cache["functions"]))
+        out.append(entry)
     return out
+
+
+def base_slot(p: Project, cls: str, slot: int, functions: Dict[str, list]) -> dict:
+    """What the nearest registered super class whose vtable is indexed holds at `slot`: an override's
+    base method (its name gives the override's name and signature), or nothing past the end of the
+    super's table (a virtual the class adds)."""
+    classes = p.classes()
+    if not hasattr(p, "_slot_index"):
+        index: Dict[int, Dict[int, int]] = {}
+        for fn, places in functions.items():
+            for t, k in places:
+                index.setdefault(t, {})[k] = int(fn, 16)
+        p._slot_index = index
+    sup = classes.get(classes[cls].super) if cls in classes else None
+    while sup is not None and sup.vtable not in p._slot_index:
+        sup = classes.get(sup.super)
+    if sup is None:
+        return {}
+    table = p._slot_index[sup.vtable]
+    fn = table.get(slot)
+    if fn is None:
+        return {"base": {"class": sup.name, "new": slot > max(table)}} if slot > max(table) else {}
+    rec = p.accepted().get(fn)
+    sym = p.by_addr.get(fn)
+    name = rec["symbol"] if rec else sym.name if sym else f"FUN_{fn:08x}"
+    return {"base": {"class": sup.name, "addr": fmt_addr(fn), "name": name}}
 
 
 def packet(p: Project, address: int, n_similar: int) -> dict:
@@ -293,12 +328,42 @@ def packet(p: Project, address: int, n_similar: int) -> dict:
     sims = similar(p, address, mnemonics, refs, n_similar)
     if sims:
         out["similar"] = sims
+    bound = []
+    for a, rec in sorted(p.accepted().items()):
+        for b in rec.get("bindings", []):
+            if b.get("kind") == "function" and int(b["addr"], 16) == address:
+                bound.append({"by": rec["addr"], "name": b["name"], "status": b.get("status")})
+                break
+    if bound:
+        names = sorted({b["name"] for b in bound})
+        dem = demangle(p, names)
+        out["bound"] = [dict(b, **({"demangled": dem[b["name"]]} if dem.get(b["name"]) else {})) for b in bound[:4]]
+    try:
+        import clusters as clusterlib
+        idx = clusterlib.index(p)
+    except Exception:
+        idx = {}
+    mine = idx.get(addr_key(address))
+    if mine:
+        members = clusterlib.families(p, idx).get(mine["key"], [])
+        if len(members) > 1:
+            accepted = p.accepted()
+            stamp = clusterlib.stamps(p).get(addr_key(address))
+            out["family"] = {"members": len(members),
+                             "accepted": [fmt_addr(m) for m in members if m in accepted][:3],
+                             **({"stamp_failed": stamp.get("why")} if stamp and not stamp.get("ok") else {})}
     history = {}
-    entries = [e for e in Ledger(p, address).entries() if e.get("counted")]
+    ledger = Ledger(p, address)
+    entries = [e for e in ledger.entries() if e.get("counted")]
     if entries:
-        best = max(entries, key=lambda e: e.get("score", 0))
+        best = ledger.best()
         history["attempts"] = len(entries)
-        history["best"] = {"score": best.get("score"), "file": best.get("file")}
+        history["best"] = {"score": best.get("score"), "mismatch_rows": best.get("mismatch_rows"),
+                           "agent": best.get("agent"), "file": best.get("file")}
+        source = ledger.source(best["sha"]) if best.get("sha") else None
+        if source and (not claim or best.get("claim") != claim.get("id")):
+            lines = source.decode("utf-8", "replace").splitlines()
+            history["best_source"] = "\n".join(lines[:150]) + ("\n// ... (cut)" if len(lines) > 150 else "")
     deferred = p.deferred().get(address)
     if deferred:
         history["deferred"] = {"blocker": deferred.get("blocker"), "needs": deferred.get("needs")}
@@ -348,16 +413,38 @@ def print_packet(pk: dict) -> None:
         for v in pk["vtables"]:
             owner = f"{v['class']}'s vtable" if v.get("class") else "the table"
             print(f"slot {v['slot']} (+{4 * v['slot']:#x}) of {owner} at {v['table']}")
+            base = v.get("base")
+            if base and base.get("new"):
+                print(f"   a virtual {v.get('class')} adds: {base['class']}'s vtable ends before this slot")
+            elif base:
+                print(f"   overrides {base['class']}'s slot {v['slot']}: {base['name']} at {base['addr']} "
+                      "(a real name there gives this override's name and signature)")
     for h in pk.get("headers", []):
         print(f"\n== header {h['path']} ({h['class']})")
         print(h["excerpt"])
     for s in pk.get("similar", []):
         print(f"\n== similar {s['addr']} {s['symbol']} (similarity {s['similarity']})")
         print(s["source"].rstrip())
+    if "bound" in pk:
+        print("\n== bound (accepted callers already named this function: define it under this name, or defer "
+              "\"name-conflict: ...\")")
+        for b in pk["bound"]:
+            print(f"{b['name']}  ({b['status']}, by {b['by']})"
+                  + (f"\n    {b['demangled']}" if b.get("demangled") else ""))
+    if "family" in pk:
+        fam = pk["family"]
+        print(f"\n== family: {fam['members']} functions with this code but for their references (clusters.py)"
+              + (f"; accepted: {', '.join(fam['accepted'])} (see similar)" if fam["accepted"] else "")
+              + (f"; the lead's stamp failed: {fam['stamp_failed']}" if fam.get("stamp_failed") else ""))
     if "history" in pk:
         print("\n== history")
         for k, v in pk["history"].items():
-            print(f"{k}: {v}")
+            if k != "best_source":
+                print(f"{k}: {v}")
+        if pk["history"].get("best_source"):
+            print("\n== best earlier attempt (a starting point, not correct: change what its diff showed, do not "
+                  "repeat it)")
+            print(pk["history"]["best_source"].rstrip())
     if "cheatsheet" in pk:
         print("\n== cheatsheet")
         print("\n\n".join(pk["cheatsheet"]))

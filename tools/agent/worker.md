@@ -2,13 +2,14 @@
 
 Match T3Main.exe functions byte for byte with MSVC 7.1 (/O2 /GX /GR-). This
 file replaces SKILL.md and CHEATSHEET.md: do not read those, docs, or other
-workers' files. Your prompt gives ID, FILTERS, N, COUNT and CAP.
+workers' files. Your prompt gives ID, FILTERS, N, COUNT, CAP and PY (the
+Python to run the tools with; `.venv/Scripts/python` when it gives none).
 
 ## Tools
 
 Run every tool from the repo root exactly as
 
-    T3_AGENT_ID=<ID> .venv/Scripts/python tools/agent/<tool>.py ...
+    T3_AGENT_ID=<ID> <PY> tools/agent/<tool>.py ...
 
 with the prefix on every call (env vars do not persist between calls).
 
@@ -24,21 +25,37 @@ do not stop before N functions are handled unless the claim prints
    source. `"empty": true`: stop.
 2. An attempt is ONE message with two tool calls, in this order:
    - Write `build/scratch/<ADDR>/vK.cpp` (K = 1, 2, ...; a new file each time);
-   - Bash `T3_AGENT_ID=<ID> .venv/Scripts/python tools/agent/try.py <ADDR> build/scratch/<ADDR>/vK.cpp && T3_AGENT_ID=<ID> .venv/Scripts/python tools/agent/accept.py <ADDR> build/scratch/<ADDR>/vK.cpp`
+   - Bash `T3_AGENT_ID=<ID> <PY> tools/agent/try.py <ADDR> build/scratch/<ADDR>/vK.cpp && T3_AGENT_ID=<ID> <PY> tools/agent/accept.py <ADDR> build/scratch/<ADDR>/vK.cpp`
 
    ALWAYS chain accept.py with `&&` as shown: a MATCH is recorded only when
    accept.py prints `ACCEPTED`. With several claimed functions, put their
    attempts in the same message. BUILD FAILED is not counted: fix it.
-3. NO MATCH: one line naming the asm difference you target, then the next
-   version, changing one thing. "same compiled code as attempt N" means that
-   change did nothing.
-4. Defer after CAP attempts, or at once on a systemic blocker (a layout,
-   vtable slot, callee signature or name you cannot know; one register or
-   order difference surviving 3 unrelated rewrites; an inlined body you would
-   have to invent):
-   `accept.py defer <ADDR> "<one-line blocker>" --needs "<what would unblock it>"`.
-   Deferring is a normal outcome. `CANNOT CHECK`: `next.py release <ADDR>`
-   and note it in needs.
+3. NO MATCH: first classify the difference in one line, then change one
+   thing aimed at it. "same compiled code as attempt N" means that change did
+   nothing.
+   - different instructions, operands, offsets or calls: the source differs:
+     fix the expression, types, field or callee;
+   - the same instructions with registers or order swapped: try at most two
+     unrelated rewrites (statement order, a temporary), then defer `tiebreak`;
+   - a helper inlined on one side only: defer `inline`;
+   - an offset, size or slot you cannot know: defer `layout` or `vtable`;
+   - only a name or signature differs (score 99.9+): defer `name-conflict`.
+4. Defer after CAP attempts, when try.py refuses (3 attempts in a row with no
+   new best), or at once on a systemic blocker:
+   `accept.py defer <ADDR> "<slug>: <one-line blocker>" --needs "<what would unblock it>"`.
+   Slugs: tiebreak, inline, layout, vtable, signature, name-conflict, eh,
+   switch, codegen, library, engine, compiler-generated, asm, adjustor thunk.
+   Deferring is a normal outcome; your best attempt is kept for the next pass.
+   `CANNOT CHECK`: `next.py release <ADDR>` and note it in needs.
+
+The packet may also show: `bound`: accepted callers already named this
+function; define it under exactly that decorated name, or defer
+`name-conflict`. `family`: functions with the same code but other references;
+keep placeholder names so the lead's tool can reuse your source for them, and
+start from an accepted sibling under `similar`. `best earlier attempt`: a
+second pass; start from it, the blocker is a lead and not a verdict, and do
+not repeat what it tried. Claims of one class (`--by-class`): declare the
+class once, the same way in each file.
 
 ## Scratch file
 
@@ -134,14 +151,15 @@ target calls. Write only under build/scratch/, with relative forward-slash
 paths (a Windows path in Bash loses its backslashes). No git commands.
 Library code is not published: a target that is itself part of the STL,
 CRT, D3DX or Havok (a member of a `std::` template, a CRT routine) is
-deferred at once with the blocker "library". Game code that uses a library
+deferred at once with the blocker "library: <what>". Game code that uses a library
 is game code: include the compiler's header (`#include <vector>`) and use its
 types, as Ion Storm did. Neither is Epic's engine: a method of an Unreal Engine class
 (`UObject`, `UClass`, `FName`, `FString`, `FArchive`, `AActor`, `UEngine`,
 `ULevel`, `UViewport`, the render device, ...) is deferred at once with the
-blocker "engine". Never pass `--replace` or `--cap`, never run integrate.py,
-wave.py, sweep.py or fixnames.py: those are the lead's, and the lead audits
-every change outside build/scratch/.
+blocker "engine: <class>". Never pass `--replace`, `--cap`, `--patience` or `--include-siblings`,
+never run integrate.py, wave.py, sweep.py, fixnames.py, clusters.py stamp,
+retry.py, dtors.py or rename.py: those are the lead's, and a guard refuses
+them and every write outside build/scratch/.
 
 `add ecx, N` (or `sub ecx, N`) then `jmp`: a this-adjustor thunk the compiler
 makes for multiple inheritance, not source anyone wrote. Defer it at once
@@ -149,7 +167,7 @@ with the blocker "adjustor thunk". So is a deleting destructor (a destructor
 call, `test byte ptr [esp+8], 1`, a delete call, `return this`) and a global
 object's initializer (a constructor call, then `atexit`): the compiler emits
 them from a virtual destructor or a global's definition. Defer them at once
-with the blocker "compiler-generated"; never write them as functions.
+with the blocker "compiler-generated: <what>"; never write them as functions.
 
 ## Names need evidence
 
@@ -183,8 +201,9 @@ code shows what it holds, else `Unknown34`.
 
 ## Finish
 
-Your final message is ONLY this JSON line, with no other text. `matched`
-lists only what accept.py ACCEPTED; `needs` and `idioms` have at most 3
-entries of at most 25 words each:
+Your final message is ONLY this JSON line, with no other text (with a
+StructuredOutput tool, return the same object through it). `matched` lists
+only what accept.py ACCEPTED; `needs` and `idioms` have at most 3 entries of
+at most 25 words each; `empty` is true when a claim printed `"empty": true`:
 
-    {"agent":"<ID>","matched":["0x..."],"deferred":[{"addr":"0x...","best":91.2,"why":"..."}],"needs":["..."],"idioms":["..."]}
+    {"agent":"<ID>","matched":["0x..."],"deferred":[{"addr":"0x...","best":91.2,"why":"<slug>: ..."}],"needs":["..."],"idioms":["..."],"empty":false}

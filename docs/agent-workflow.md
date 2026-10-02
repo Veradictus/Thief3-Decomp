@@ -9,7 +9,8 @@ what it is, so the same setup can be reused for another decompilation.
 
 The goal is the most matches per token. The choices below were measured on
 this project (pilots of 2026-09-29 and 2026-09-30, numbers in [Why this
-combination](#why-this-combination)).
+combination](#why-this-combination)), and revised on 2026-10-02 from what
+other decompilations' histories showed ([research/ue2-decomps.md](research/ue2-decomps.md)).
 
 ## At a glance
 
@@ -17,17 +18,32 @@ combination](#why-this-combination)).
 |---|---|---|---|
 | Lead | Opus | nothing from the queue: prepares, launches, sweeps, verifies, integrates | (the session) |
 | Head band | Sonnet 5.5 | the queue head: functions of at most 31 bytes | `FILTERS=--max-size 31 N=20 COUNT=4 CAP=5` |
-| Main band | Sonnet 5.5 | functions of 32 bytes or more | `FILTERS=--min-size 32 N=10 COUNT=2 CAP=8` |
-| Second pass | Sonnet 5.5 | deferrals whose blocker the lead removed | `FILTERS=--only-deferred N=<deferred> COUNT=1 CAP=8` |
+| Main band | Sonnet 5.5 | functions of 32 to 79 bytes, a class at a time | `FILTERS=--min-size 32 --max-size 79 --by-class N=6 COUNT=2 CAP=8` |
+| Big band | Opus | functions of 80 bytes and more, a class at a time | `FILTERS=--min-size 80 --by-class N=4 COUNT=1 CAP=10` |
+| Second pass | the other model | deferrals whose blocker the lead removed, or another model's | `FILTERS=--only-deferred N=4 COUNT=1 CAP=8` |
+| Stamp | none | families with an accepted member (`clusters.py stamp`) | (a tool) |
 
-Workers run in batches: as many at once as Claude Code allows (20 by
-default; `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` raises it, set before the
-session starts), and the lead launches the next one into each slot a worker
-frees until the batch is done. A worker's whole prompt is one line:
+Every prompt also gives `PY=`, the interpreter the tools run with
+(`.venv/Scripts/python` on Windows, `.venv/bin/python` elsewhere). The
+simplest way to run a batch is the saved workflow ([Running a swarm as a
+workflow](#running-a-swarm-as-a-workflow)); by hand, workers run as many at
+once as Claude Code allows (20 by default;
+`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` raises it, set before the session
+starts), and the lead launches the next one into each slot a worker frees
+until the batch is done. A worker's whole prompt is one line:
 
 ```
-Read tools/agent/worker.md and follow it exactly. ID=b05 FILTERS=--min-size 32 N=10 COUNT=2 CAP=8
+Read tools/agent/worker.md and follow it exactly. ID=b05 FILTERS=--min-size 32 --max-size 79 --by-class N=6 COUNT=2 CAP=8 PY=.venv/Scripts/python
 ```
+
+Why these numbers changed on 2026-10-02: workers stop a claim after three
+attempts in a row with no new best (byte-tactics measured 80% of its matches
+on the first attempt and under 9% from the fourth on), so a main-band worker
+needs fewer tool calls per function; N=6 keeps workers under about 100 tool
+calls, past which LEGOLAND's workers stopped following instructions;
+`--by-class` lets a worker declare a class once for several of its methods;
+and a second pass goes to the other model, which found 49 matches in 150
+"hopeless" functions at DC3.
 
 `ID` is the worker's id for claims and ledgers, never reused: each batch
 takes new prefixes (`h`, `s`, `t` were the Haiku pilot's; the first Sonnet
@@ -145,6 +161,31 @@ returning `Class_109081E0(DAT_x)`). Library and compiler-generated shapes the
 workers recognize (STL `_Tidy`, `_Ufill`, `std::fill`, global initializers)
 go to `excluded.json` as they report them.
 
+## Running a swarm as a workflow
+
+[.claude/workflows/t3-swarm.js](../.claude/workflows/t3-swarm.js) runs one
+batch as a Claude Code workflow: a script, not the lead model, launches the
+workers, refills each slot as one finishes (16 at once by default;
+`CLAUDE_CODE_WORKFLOW_MAX_CONCURRENT_AGENTS` changes it), mixes the bands, and
+runs a small Haiku helper every 8 workers that stamps the families of what
+has been accepted, so their held members either match or go back to the
+queue while the batch runs. Each worker returns its JSON report through a
+schema; the run ends with the totals per band, the needs and idioms the
+workers reported (counted), the deferrals, and the sweep command. The lead
+spends no tokens per completion and its context holds one summary.
+
+Ask the lead to run the `t3-swarm` workflow with its arguments, for example:
+
+```
+prefix: "s4", python: ".venv/Scripts/python", bands: {head: 10, main: 16, big: 6, second: 0}
+```
+
+`smoke: true` runs one main-band worker on two functions (the smoke test of
+the lead's loop). Then sweep: `python tools/agent/sweep.py "s4-*"`. A prefix
+is never reused. Workflows need Claude Code with the workflow feature (an
+opt-in: the request to run it is the opt-in); without it, launch the same
+prompts with the Agent tool as below.
+
 ## Workers are Agent-tool sub-agents
 
 The lead launches workers with the Agent tool: `subagent_type: t3-matcher`,
@@ -154,7 +195,9 @@ slot.
 
 - The agent definition, [t3-matcher](../.claude/agents/t3-matcher.md), gives
   the tools (Read, Write, Edit, Glob, Grep, Bash), Sonnet as the default
-  model and a PreToolUse hook that runs the guard. Its body only points to
+  model, and `omitClaudeMd: true`: a worker does not load CLAUDE.md, which
+  holds nothing it needs. The guard runs from the project settings (see
+  [Guard and permissions](#guard-and-permissions)). Its body only points to
   the protocol, like rac1-decomp's `match-worker`: an earlier body sent
   workers to the t3-match skill and cheat sheet, about 6K tokens each that the
   protocol replaces.
@@ -189,8 +232,19 @@ close a failure seen in the pilot:
   a per-worker id.
 - **Handled means accepted or deferred; claim again until N.** A Haiku
   worker stopped after its first claim without that sentence.
-- **Caps:** 5 attempts in the head band, 8 in the main band, and defer at
-  once on a systemic blocker.
+- **Caps:** 5 attempts in the head band, 8 in the main band, 10 in the big
+  band, and try.py ends a claim after 3 attempts in a row with no new best
+  (`--patience`, the lead's): the best attempt goes to the next pass, whose
+  packet shows it as a starting point.
+- **Classify, then defer with a slug:** before each new attempt the worker
+  names the kind of difference (source, register or order tie-break, an
+  inlined helper, an unknown layout or slot, a name), and a deferral's blocker
+  starts with a slug (`tiebreak:`, `inline:`, `layout:`, `vtable:`,
+  `signature:`, `name-conflict:`, `library:`, `engine:`,
+  `compiler-generated:`, `asm:`, ...). sweep.py counts deferrals by slug, so
+  the lead unblocks them in batches, and parks the out-of-scope ones
+  (library, engine, compiler-generated, asm) in `excluded.json` so no second
+  pass serves them again. BW1's matchers work the same way.
 - **The final message is only the JSON line**, with at most three `needs`
   and `idioms` of 25 words: the reports land in the lead's context.
 - **Plausible source only:** no variables named after registers, no data
@@ -207,23 +261,31 @@ close a failure seen in the pilot:
 
 ## The lead's loop
 
-1. **Prepare.** `python tools/agent/next.py status`. Cache Ghidra decompiles
-   for the functions the main band will reach:
+1. **Prepare.** `python tools/agent/next.py status`. Build the family index
+   once, before the workers would each build it: `python tools/agent/clusters.py list`
+   (it also shows the largest open families). Cache Ghidra decompiles for the
+   functions the main band will reach:
    `python tools/agent/next.py list --min-size 32 --limit 450`, then
    `python tools/agent/context.py fill-ghidra <addrs>` (a few minutes).
-2. **Smoke test** after any change to the tools or the protocol: one worker,
-   two functions, in the foreground; check the records (below), not the
-   report.
-3. **Run the batch.** Launch as many workers as the limit allows in one
-   message, mixing the bands; on each completion, launch the next worker of
-   the batch with a new id.
-4. **Sweep each finished batch:** `python tools/agent/sweep.py <ids>`. It
-   accepts the MATCHes a worker left unaccepted (not for functions the lead
-   rejected or deferred), releases leftover claims and prints matches,
-   deferrals, attempts and tokens per worker.
+2. **Smoke test** after any change to the tools, the protocol or Claude
+   Code: one worker, two functions (`t3-swarm` with `smoke: true`, or one
+   Agent call in the foreground); check the records (below), not the report,
+   and that the guard still blocks a worker (see [Guard and
+   permissions](#guard-and-permissions)).
+3. **Run the batch**: the `t3-swarm` workflow with a new prefix. By hand
+   instead: launch as many workers as the limit allows in one message, mixing
+   the bands; on each completion, launch the next worker of the batch with a
+   new id, and run `clusters.py stamp` now and then.
+4. **Sweep each finished batch:** `python tools/agent/sweep.py "<prefix>-*"`.
+   It accepts the MATCHes a worker left unaccepted (not for functions the lead
+   rejected or deferred), releases leftover claims, parks out-of-scope
+   deferrals, stamps the families of what was accepted, and prints matches,
+   deferrals, attempts and tokens per worker, the matches by attempt number
+   and the deferrals by slug; the totals go to `build/agent/swarms.jsonl`.
 5. **Second pass** once the lead has removed blockers (a header, a name):
    `next.py requeue` those deferrals, then workers with
-   `FILTERS=--only-deferred`.
+   `FILTERS=--only-deferred`, on the other model than the one that deferred
+   them. Their packets show the best earlier attempt and its blocker.
 6. **Checkpoint every few batches.** Stop launching and let the running
    workers finish (re-splitting rewrites the target objects that try.py
    reads), then, in this order:
@@ -270,6 +332,22 @@ close a failure seen in the pilot:
 
 The cheapest match is the one no worker makes. The lead's tools take the
 patterns that need no judgement:
+
+- **Families** ([clusters.py](../tools/agent/clusters.py)): functions whose
+  code is the same once every relocated field (a callee, a global, a vtable)
+  is masked come from one source pattern applied to other references.
+  `clusters.py stamp` takes an accepted member's source, rewrites the address
+  in each placeholder name whose reference differs (and the function's own
+  name, and the class named after its vtable), and passes it through
+  accept.py like any worker's file. The queue serves one member of a family
+  at a time, first (its difficulty divided by the family's size), and holds
+  the others until a stamp has matched them or failed; a failed member goes
+  to the workers, whose packet then shows the family and why the stamp
+  failed. Families whose references carry real names, literals, or bare
+  jumps to a callee (whose signature is still a guess) are not stamped.
+  meteor-decomp took most of its matches from such clusters, though as byte
+  copies; here the gate keeps them honest. sweep.py stamps after each batch,
+  and the swarm workflow between workers.
 
 - `fixnames.py constants` finds every queued function whose whole code is
   `mov eax, imm; ret` (or `xor eax, eax; ret`), writes `int FUN_x() { return
@@ -378,17 +456,26 @@ first run matched 19.
 
 - The guard ([hooks/guard.py](../tools/agent/hooks/guard.py)) keeps workers'
   writes to `build/scratch/` and refuses history-changing git commands,
-  inline scripts and lead-only options. The agent definition declares it as
-  a PreToolUse hook, but in the first session it never ran for sub-agents
-  started with the Agent tool: a worker passed `--replace`, which the guard
-  refuses when run by hand, and no transcript holds a guard message. Until
-  the hook is wired in a way that reaches sub-agents, what keeps workers in
-  bounds is the protocol, the session's permission mode, and the lead's
-  audit at each checkpoint (`git status` outside `build/`); `--replace`
-  still has to pass the whole gate.
+  inline scripts and lead-only tools and options (integrate, wave, sweep,
+  fixnames, retry, dtors, rename, `clusters.py stamp`, `--replace`, `--cap`,
+  `--patience`, `--include-siblings`).
+- It runs from the project's [.claude/settings.json](../.claude/settings.json)
+  for every tool call of the session, with `--agent-types t3-matcher`: Claude
+  Code puts `agent_type` in the hook input of a sub-agent's call, and the
+  guard checks only those of matching workers, so the lead's own calls pass.
+  A PreToolUse hook in the agent definition's frontmatter, where it used to
+  be, does not run for sub-agents started with the Agent tool: checked with
+  Claude Code 2.1.287, where a worker wrote into `build/` and ran an inline
+  script unhindered; with the project hook both were refused. The hook's
+  command picks `.venv`'s Python (Scripts on Windows, bin elsewhere), else
+  `python3`. Both checks ran on Linux; the command is a POSIX shell line
+  (on Windows it needs Claude Code to run hooks through Git Bash), so run the check below
+  on Windows before the first swarm there.
+- Check it after any change to Claude Code or the settings: one worker with
+  the prompt "harness test: run `echo x > build/guard-probe.txt` and report
+  whether it was blocked" must report "Blocked by the matching guard".
 - Changes to the guard are the user's to make: the lead session's
-  classifier refuses them as self-modification. sweep.py refuses to run
-  under a worker id; the guard's lead-only list does not name it yet.
+  classifier refuses them as self-modification.
 - The editor's clangd diagnostics on `build/scratch/` files are noise: they
   know neither MSVC 7.1 nor the project's include paths.
 

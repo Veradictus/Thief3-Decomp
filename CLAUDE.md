@@ -26,6 +26,7 @@ python tools/ghidra_headless.py names                              # apply symbo
 python tools/ghidra_headless.py bootstrap                          # rebuild ghidra/ + symbols.txt (~12 min)
 .venv/Scripts/python configure.py --msvc-runtime <dir> && .venv/Scripts/ninja   # split/diff workbench
 python tools/agent/next.py status | context.py <addr> | try.py | accept.py        # matching loop (docs/matching.md)
+python tools/agent/clusters.py list|stamp; sweep.py "<prefix>-*"                 # families without a model; close a swarm batch (docs/agent-workflow.md)
 .venv/Scripts/python tools/progress_report.py write|check                          # decomp.dev report: write after integrating, commit progress/
 .venv/Scripts/python tools/classify.py write|explain <addr>|stats                  # whose code: game/engine/libs (config/*/categories.txt, classes.txt)
 .venv/Scripts/python tools/assets/t3classes.py check|show <class>|headers          # class layouts from the scripts (include/<Package>/)

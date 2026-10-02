@@ -2,7 +2,7 @@
 """The work queue: which function to match next, with claims so parallel workers never collide.
 
     python tools/agent/next.py claim [--agent ID] [--count N] [--unit U] [--name REGEX] [--min-size N] [--max-size N]
-                                     [--only-deferred] [--context]
+                                     [--only-deferred] [--by-class] [--context]
     python tools/agent/next.py release [--agent ID] [addr ...]
     python tools/agent/next.py status
     python tools/agent/next.py list [--limit N] [--unit U]        # the queue head, unclaimed
@@ -20,9 +20,22 @@ difficulty score from the target's instructions (instructions, branches,
 calls, switches, EH, x87; needs iced-x86 and the exe or split objects), else
 by size.
 
+Families (clusters.py: the same code around other callees, globals or
+classes) are served one member at a time, the first one early (its
+difficulty divided by the family's size): the others wait while it is open,
+claimed, or accepted and not yet stamped (`clusters.py stamp`, the lead's),
+and go to workers only if the stamp fails. --include-siblings serves them
+all.
+
 --only-deferred queues deferred functions only, for a second pass by a
 stronger model. `claim --context` prints each claimed function's context
 packet (context.py) after the JSON, which is then one line.
+
+--by-class takes the queue head, then the queued functions of its class (by
+the class in its name, else the vtable that holds it) before any other, and
+for a function of no known class its nearest neighbours in the same unit:
+one worker declares the class once for several of its methods, and methods
+of one class come out with one declaration.
 
 A claim is a file in build/agent/claims/ created atomically; it expires after
 --ttl seconds (try.py renews it on every attempt) and can then be taken over.
@@ -38,8 +51,9 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import clusters as clusterlib
 import features as featurelib
-from common import CLAIM_TTL, Claims, Project, addr_key, agent_id, emit, fmt_addr
+from common import CLAIM_TTL, Claims, Project, addr_key, agent_id, emit, fmt_addr, read_json
 
 
 def unit_index(p: Project):
@@ -87,7 +101,17 @@ def queue(p: Project, args, claimed: Optional[set] = None) -> List[dict]:
         if feat:
             e["features"] = {k: feat[k] for k in ("insns", "branches", "calls", "switch", "eh", "fp")}
             e["callees"] = [_callee(p, c) for c in feat["callees"]]
-    out.sort(key=lambda e: (e["difficulty"], e["addr"]))
+    family = clusterlib.open_sizes(p, [int(e["addr"], 16) for e in out])
+    for e in out:
+        k = family.get(int(e["addr"], 16))
+        if k:
+            e["family"] = k
+    out.sort(key=lambda e: (e["difficulty"] / e.get("family", 1), e["addr"]))
+    if not getattr(args, "include_siblings", False) and not only_deferred:
+        waiting = clusterlib.held(p, [int(e["addr"], 16) for e in out])
+        if waiting:
+            out = [e for e in out if int(e["addr"], 16) not in waiting]
+        args.held_siblings = len(waiting)
     return out
 
 
@@ -95,6 +119,29 @@ def _callee(p: Project, address: int) -> dict:
     sym = p.by_addr.get(address)
     name = sym.name if sym else f"FUN_{address:08x}"
     return {"addr": fmt_addr(address), "name": name, "named": not name.startswith(("FUN_", "LAB_", "thunk_FUN_"))}
+
+
+def owner(entry: dict, slots: Dict[str, list]) -> str:
+    """The class a queued function belongs to, as far as the records tell: from its name (`C::F`, or a
+    decorated method `?F@C@@...`), else the vtable holding it; "" when neither does."""
+    sym = entry["symbol"]
+    if "::" in sym:
+        return "class:" + sym.rsplit("::", 1)[0]
+    m = re.match(r"\?[^?@][^@]*@([^@]+)@@[ABCEFIJKMNQRSUV]", sym)  # a member, not `@@Y` (namespace)
+    if m:
+        return "class:" + m.group(1)
+    hit = slots.get(entry["addr"][2:].upper())
+    return f"vtable:{hit[0][0]:08X}" if hit else ""
+
+
+def by_class(entries: List[dict], first: dict, slots: Dict[str, list]) -> List[dict]:
+    """`entries` (queue order) with `first`'s class first, else its nearest neighbours in its unit."""
+    mine = owner(first, slots)
+    start = int(first["addr"], 16)
+    if mine:
+        return sorted(entries, key=lambda e: owner(e, slots) != mine)
+    return sorted(entries, key=lambda e: (e["unit"] != first["unit"],
+                                          abs(int(e["addr"], 16) - start) if e["unit"] == first["unit"] else 0))
 
 
 def siblings(p: Project, entry: dict, accepted: Dict[int, dict], limit: int = 5) -> List[dict]:
@@ -123,11 +170,15 @@ def main() -> None:
                        help="include unclassified and library code (categories.txt); never Epic's engine")
         s.add_argument("--include-deferred", action="store_true")
         s.add_argument("--only-deferred", action="store_true", help="only deferred functions (a second pass)")
+        s.add_argument("--include-siblings", action="store_true",
+                       help="also family members waiting for another member or for the lead's stamp")
         if name == "claim":
             s.add_argument("--agent", help="worker id (default: $T3_AGENT_ID)")
             s.add_argument("--count", type=int, default=1)
             s.add_argument("--ttl", type=float, default=CLAIM_TTL, help="claim lifetime in seconds")
             s.add_argument("--context", action="store_true", help="print each claimed function's context packet")
+            s.add_argument("--by-class", action="store_true",
+                           help="after the queue head, its class's functions first (else its neighbours)")
         else:
             s.add_argument("--limit", type=int, default=20)
     rel = sub.add_parser("release")
@@ -145,12 +196,21 @@ def main() -> None:
     if args.cmd == "list":
         emit(queue(p, args)[:args.limit])
     elif args.cmd == "claim":
+        missing = [str(x) for x in (p.obj_dir, p.cl, p.objdiff, p.wibo) if x is not None and not x.exists()]
+        if missing:  # every attempt would end in CANNOT CHECK: hand out nothing
+            emit({"error": "the split or the toolchain is missing: python configure.py && ninja",
+                  "missing": missing, "empty": True})
+            sys.exit(5)
         agent = agent_id(args.agent)
         accepted = p.accepted()
         taken = []
         # A second pass never hands a worker back its own deferral.
         own = {a for a, rec in p.deferred().items() if rec.get("agent") == agent} if args.only_deferred else set()
-        for entry in queue(p, args):
+        pending = queue(p, args)
+        slots = ((read_json(p.state / "cache" / "vtables.json", {}) or {}).get("functions", {})
+                 if args.by_class else {})
+        while pending:
+            entry = pending.pop(0)
             if len(taken) >= args.count:
                 break
             if int(entry["addr"], 16) in own:
@@ -166,6 +226,8 @@ def main() -> None:
                 if not args.context:  # the packet has the references and similar functions
                     entry["siblings"] = siblings(p, entry, accepted)
                 taken.append(entry)
+                if args.by_class and len(taken) == 1:
+                    pending = by_class(pending, entry, slots)
         if not args.context:
             emit({"agent": agent, "claimed": taken, "empty": not taken})
             sys.exit(0 if taken else 4)
@@ -182,8 +244,11 @@ def main() -> None:
     elif args.cmd == "status":
         live = claims.all()
         args.unit, args.name, args.min_size, args.max_size, args.all_regions = None, None, None, None, False
+        args.include_siblings = False
+        n = len(queue(p, args))
         emit({
-            "queue": len(queue(p, args)),
+            "queue": n,
+            "held_siblings": getattr(args, "held_siblings", 0),
             "claimed": len(live),
             "claims": [{"addr": c["addr"], "agent": c["agent"], "symbol": c.get("symbol")} for c in live],
             "accepted": sum(1 for r in p.accepted().values() if not r.get("integrated")),

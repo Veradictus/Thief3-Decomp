@@ -58,6 +58,9 @@ FUNCTIONS = {
     "?Callee@@YAHH@Z": "int Callee(int x) { return x * 5 + 3; }",
     "?Caller@@YAHH@Z": "int Caller(int x) { return Callee(x) + 1; }",
     "?Fib@@YAHH@Z": "int Fib(int n) { return n < 2 ? n : Fib(n - 1) + Fib(n - 2); }",
+    # A family: the same code around another callee.
+    "?TwinA@@YAHH@Z": "int TwinA(int x) { return Helper(x) * 3 + 1; }",
+    "?TwinB@@YAHH@Z": "int TwinB(int x) { return Other(x) * 3 + 1; }",
 }
 # In the reference, Callee stays a call (as if it lived in another file); a unit defining it would inline it.
 REFERENCE = DECLS + "\n".join(("__declspec(noinline) " if s == "?Callee@@YAHH@Z" else "") + body
@@ -309,10 +312,17 @@ def test_duplicates_and_cap(base: Path) -> None:
     again = e.run("try.py", e.addr(sym), path)
     check(first.returncode == 1 and again.returncode == 3 and "byte-identical" in again.stdout,
           "an identical resubmission is refused", again)
-    for i in range(2, 13):
+    for i in range(2, 5):
         proc = e.run("try.py", e.addr(sym), e.candidate(sym, f"int Seven(int x) {{ return x * 7 + {99 - i}; }}"))
         check(f"ATTEMPT {i}/12" in proc.stdout, f"attempt {i} is counted", proc)
-    proc = e.run("try.py", e.addr(sym), e.candidate(sym))
+    proc = e.run("try.py", e.addr(sym), e.candidate(sym, "int Seven(int x) { return x * 7 + 50; }"))
+    check(proc.returncode == 3 and "no new best in the last 3 attempts" in proc.stdout,
+          "three attempts in a row with no new best stop the claim", proc)
+    for i in range(5, 13):  # the lead may lift the patience; the cap still holds
+        proc = e.run("try.py", e.addr(sym), e.candidate(sym, f"int Seven(int x) {{ return x * 7 + {99 - i}; }}"),
+                     "--patience", "0")
+        check(f"ATTEMPT {i}/12" in proc.stdout, f"attempt {i} is counted", proc)
+    proc = e.run("try.py", e.addr(sym), e.candidate(sym), "--patience", "0")
     check(proc.returncode == 3 and "cap reached" in proc.stdout, "the 13th attempt is refused", proc)
     proc = e.run("accept.py", "defer", e.addr(sym), "register allocation differs", "--needs", "nothing")
     record = json.loads(proc.stdout)
@@ -426,8 +436,137 @@ def test_context_and_queue(base: Path) -> None:
     check(any(r.get("proposed", "").startswith("?Helper@@YAHH@Z") for r in pk["references"]),
           "names proposed by accepted functions are shown")
     queue = json.loads(e.run("next.py", "list", "--all-regions", "--limit", "100").stdout)
-    check([q["difficulty"] for q in queue] == sorted(q["difficulty"] for q in queue), "the queue is easy first")
+    order = [q["difficulty"] / q.get("family", 1) for q in queue]
+    check(order == sorted(order), "the queue is easy first, a family's member by its share of the family's work")
     check(e.addr("?Get@Foo@@QBEHXZ") not in [q["addr"] for q in queue], "accepted functions leave the queue")
+    # A caller binds its callee's name; the callee's packet shows it.
+    e.run("accept.py", e.addr("?Caller@@YAHH@Z"), e.candidate("?Caller@@YAHH@Z"))
+    pk = json.loads(e.run("context.py", e.addr("?Callee@@YAHH@Z"), "--json").stdout)
+    check([b["name"] for b in pk.get("bound", [])] == ["?Callee@@YAHH@Z"],
+          f"the callers' name is shown: {pk.get('bound')}")
+    # A second pass sees the best earlier attempt.
+    seven = "?Seven@@YAHH@Z"
+    e.run("try.py", e.addr(seven), e.candidate(seven, "int Seven(int x) { return x * 7 + 99; }"), agent="w1")
+    e.run("accept.py", "defer", e.addr(seven), "tiebreak: constant", agent="w1")
+    pk = json.loads(e.run("context.py", e.addr(seven), "--json").stdout)
+    check("x * 7 + 99" in pk.get("history", {}).get("best_source", ""), "the best earlier attempt is shown")
+    check(pk["history"].get("deferred", {}).get("blocker") == "tiebreak: constant", "with its blocker")
+
+
+def test_base_slot(base: Path) -> None:
+    """A virtual method's packet names what the super class holds at its slot."""
+    import types
+    import context as ctx
+    cls = lambda name, sup, vt: types.SimpleNamespace(name=name, super=sup, vtable=vt)  # noqa: E731
+    classes = {"UObject": cls("UObject", "", 0x10E00000), "AActor": cls("AActor", "UObject", 0x10E10000),
+               "AThing": cls("AThing", "AActor", 0x10E20000)}
+    serialize = types.SimpleNamespace(name="?Serialize@UObject@@UAEXAAVFArchive@@@Z")
+    p = types.SimpleNamespace(classes=lambda: classes, accepted=lambda: {}, by_addr={0x10A00010: serialize})
+    functions = {"10A00010": [[0x10E00000, 2]], "10A00020": [[0x10E00000, 3]],
+                 "10B00010": [[0x10E20000, 2]], "10B00020": [[0x10E20000, 9]]}
+    found = ctx.base_slot(p, "AThing", 2, functions)  # AActor's table is not indexed: UObject's is next
+    check(found["base"]["class"] == "UObject" and found["base"]["name"].startswith("?Serialize@UObject"),
+          f"the override's base method is named: {found}")
+    check(ctx.base_slot(p, "AThing", 9, functions)["base"].get("new"), "a slot past the super's table is new")
+
+
+def test_claim_by_class(base: Path) -> None:
+    """--by-class: after the queue head, its class's functions (by name, else by vtable), else its neighbours."""
+    import next as nextlib
+    head = {"addr": "0x10000010", "symbol": "?A@C1@@QAEXXZ", "unit": "u"}
+    rest = [{"addr": "0x10000100", "symbol": "FUN_10000100", "unit": "u"},
+            {"addr": "0x10000020", "symbol": "?B@C2@@QAEXXZ", "unit": "u"},
+            {"addr": "0x10000300", "symbol": "C1::D", "unit": "v"},
+            {"addr": "0x10000400", "symbol": "FUN_10000400", "unit": "u"},
+            {"addr": "0x10000500", "symbol": "?Free@ns@@YAXXZ", "unit": "u"}]
+    check(nextlib.by_class(rest, head, {})[0]["addr"] == "0x10000300", "the class's other method comes next")
+    check(nextlib.owner(rest[4], {}) == "", "a namespace is not a class")
+    slots = {"10000100": [[0x10E00000, 2]], "10000400": [[0x10E00000, 3]]}
+    ordered = nextlib.by_class(rest[1:], rest[0], slots)
+    check(ordered[0]["addr"] == "0x10000400", f"a function of the same vtable comes next: {ordered}")
+    loose = {"addr": "0x10000110", "symbol": "FUN_10000110", "unit": "u"}
+    check(nextlib.by_class(rest, loose, {})[0]["addr"] == "0x10000100", "else the nearest neighbour in the unit")
+    e = Env(base, "by-class")
+    proc = e.run("next.py", "claim", "--all-regions", "--by-class", "--count", "3")
+    out = json.loads(proc.stdout)
+    addrs = [int(c["addr"], 16) for c in out["claimed"]]
+    check(proc.returncode == 0 and len(addrs) == 3, "claim --by-class takes its count", proc)
+    left = json.loads(e.run("next.py", "list", "--all-regions", "--limit", "100").stdout)
+    check(abs(addrs[1] - addrs[0]) <= max(abs(int(q["addr"], 16) - addrs[0]) for q in left),
+          "the second claim is a neighbour of the first")
+
+
+def test_families(base: Path) -> None:
+    """Two functions equal but for their callee: the queue serves one, and once it is accepted, clusters.py
+    stamp matches the other from its source with no model; a named callee is not rewritten."""
+    a, b, helper, other = "?TwinA@@YAHH@Z", "?TwinB@@YAHH@Z", "?Helper@@YAHH@Z", "?Other@@YAHH@Z"
+
+    def template(e: Env) -> Path:
+        h, own = e.target.addr(helper), e.target.addr(a)
+        callee = "Helper" if helper in e.target.names.values() else f"FUN_{h:08x}"
+        path = e.scratch / "twin-a.cpp"
+        path.write_text(f"int {callee}(int);\n// FUNCTION: {e.addr(a)}\n"
+                        f"int FUN_{own:08x}(int x) {{ return {callee}(x) * 3 + 1; }}\n", encoding="utf-8")
+        return path
+
+    e = Env(base, "families")
+    queue = [q["addr"] for q in json.loads(e.run("next.py", "list", "--all-regions", "--limit", "100").stdout)]
+    check((e.addr(a) in queue) != (e.addr(b) in queue), f"the queue serves one member of the family: {queue}")
+    shown = json.loads(e.run("clusters.py", "show", e.addr(b), agent="").stdout)
+    check({m["addr"] for m in shown["members"]} == {e.addr(a), e.addr(b)}, "clusters.py show lists the family")
+    proc = e.run("accept.py", e.addr(a), template(e))
+    check(proc.returncode == 0 and "ACCEPTED" in proc.stdout, "the template is accepted", proc)
+    queue = [q["addr"] for q in json.loads(e.run("next.py", "list", "--all-regions", "--limit", "100").stdout)]
+    check(e.addr(b) not in queue, "an open member waits for the stamp once another is accepted")
+    proc = e.run("clusters.py", "stamp", agent="worker")
+    check(proc.returncode != 0, "stamp is the lead's", proc)
+    proc = e.run("clusters.py", "stamp", agent="")
+    out = json.loads(proc.stdout)
+    check([s["addr"] for s in out["stamped"]] == [e.addr(b)], "the other member is stamped", proc)
+    record = json.loads((e.root / "build/agent/accepted" / f"{e.addr(b)[2:]}.json").read_text())
+    check(record["agent"] == "stamp" and record["symbol"] == f"?FUN_{e.target.addr(b):08x}@@YAHH@Z"
+          and any(int(x["addr"], 16) == e.target.addr(other) for x in record["bindings"]),
+          f"through the gate, under its own name and with its own callee: {record}")
+
+    e = Env(base, "families-named", named={helper})
+    proc = e.run("accept.py", e.addr(a), template(e))
+    check(proc.returncode == 0, "the template with a named callee is accepted", proc)
+    out = json.loads(e.run("clusters.py", "stamp", agent="").stdout)
+    check(not out["stamped"] and out["failed"] and "named" in out["failed"][0]["why"],
+          f"a named callee is not rewritten: {out}")
+    queue = [q["addr"] for q in json.loads(e.run("next.py", "list", "--all-regions", "--limit", "100").stdout)]
+    check(e.addr(b) in queue, "a member the stamp failed for goes back to the queue")
+
+    e = Env(base, "families-class")  # a member of a class nothing gives the other function
+    h, own = e.target.addr(helper), e.target.addr(a)
+    path = e.scratch / "twin-a-static.cpp"
+    path.write_text(f"int FUN_{h:08x}(int);\nstruct Holder {{ static int FUN_{own:08x}(int x); }};\n"
+                    f"// FUNCTION: {e.addr(a)}\n"
+                    f"int Holder::FUN_{own:08x}(int x) {{ return FUN_{h:08x}(x) * 3 + 1; }}\n", encoding="utf-8")
+    proc = e.run("accept.py", e.addr(a), path)
+    check(proc.returncode == 0, "a static member template is accepted", proc)
+    out = json.loads(e.run("clusters.py", "stamp", agent="").stdout)
+    check(not out["stamped"] and "Holder" in out["failed"][0]["why"], f"its class is not guessed: {out}")
+
+
+def test_sweep(base: Path) -> None:
+    """sweep.py with a glob: accepts a forgotten MATCH, parks out-of-scope deferrals, logs the batch."""
+    e = Env(base, "sweep")
+    seven, twice, fib = "?Seven@@YAHH@Z", "?Twice@@YAHH@Z", "?Fib@@YAHH@Z"
+    proc = e.run("try.py", e.addr(seven), e.candidate(seven), agent="s9-a")
+    check(proc.returncode == 0, "a MATCH left unaccepted", proc)
+    e.run("try.py", e.addr(twice), e.candidate(twice, "int Twice(int x) { return Helper(x) + 1; }"), agent="s9-b")
+    e.run("accept.py", "defer", e.addr(twice), "library: an STL member", agent="s9-b")
+    e.run("accept.py", e.addr(fib), e.candidate(fib), agent="other")
+    proc = e.run("sweep.py", "s9-*", "--transcripts", base / "no-transcripts", agent="")
+    check(proc.returncode == 0 and "accepted for s9-a" in proc.stdout, "the forgotten MATCH is accepted", proc)
+    excluded = json.loads((e.root / "build/agent/excluded.json").read_text())
+    check(e.addr(twice) in excluded and "library" in excluded[e.addr(twice)], "a library deferral is parked", proc)
+    check("matches by attempt: 1: 1" in proc.stdout and "deferrals by slug: library 1" in proc.stdout,
+          "attempts and slugs are counted", proc)
+    line = json.loads((e.root / "build/agent/swarms.jsonl").read_text().splitlines()[-1])
+    check(line["matched"] == 1 and line["deferred"] == 1 and set(line["workers"]) == {"s9-a", "s9-b"},
+          f"the batch is logged, without other workers: {line}")
 
 
 def test_guard(base: Path) -> None:
@@ -447,6 +586,10 @@ def test_guard(base: Path) -> None:
         ("Bash", {"command": "echo x >> include/Foo.h"}, 2),
         ("Bash", {"command": "sed -i s/a/b/ config/PC_20040610/splits.txt"}, 2),
         ("Bash", {"command": "python3 -c 'print(1)'"}, 2),
+        ("Bash", {"command": "python tools/agent/sweep.py w1"}, 2),
+        ("Bash", {"command": "python tools/agent/clusters.py stamp"}, 2),
+        ("Bash", {"command": "python tools/agent/clusters.py show 0x10901000"}, 0),
+        ("Bash", {"command": "python tools/agent/try.py 0x10901000 build/scratch/v1.cpp --patience 9"}, 2),
     ]
     for tool, data, expected in cases:
         event = json.dumps({"tool_name": tool, "tool_input": data, "cwd": str(project)})
@@ -455,6 +598,26 @@ def test_guard(base: Path) -> None:
         check(proc.returncode == expected, f"guard: {tool} {data} -> {proc.returncode}, want {expected}", proc)
     settings = json.loads((HERE / "guard-settings.json").read_text())
     check("guard.py" in settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"], "the settings run the guard")
+
+    # The project settings run it for the whole session: it checks only the workers' calls.
+    for agent_type, expected in ((None, 0), ("general-purpose", 0), ("t3-matcher", 2)):
+        event = {"tool_name": "Write", "tool_input": {"file_path": "src/Game/Foo.cpp"}, "cwd": str(project)}
+        if agent_type:
+            event.update(agent_id="a1", agent_type=agent_type)
+        proc = subprocess.run([sys.executable, str(HERE / "hooks" / "guard.py"), "--agent-types", "t3-matcher"],
+                              input=json.dumps(event), text=True, capture_output=True,
+                              env=dict(os.environ, CLAUDE_PROJECT_DIR=str(project)))
+        check(proc.returncode == expected, f"guard --agent-types: {agent_type} -> {proc.returncode}, want {expected}",
+              proc)
+    project_settings = json.loads((ROOT / ".claude" / "settings.json").read_text())
+    command = project_settings["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+    check("guard.py" in command and "--agent-types t3-matcher" in command, "the project settings run the guard")
+    if os.name != "nt":  # the hook's shell line finds a Python and blocks a worker's write
+        event = json.dumps({"tool_name": "Write", "tool_input": {"file_path": "src/Game/Foo.cpp"},
+                            "cwd": str(project), "agent_id": "a1", "agent_type": "t3-matcher"})
+        proc = subprocess.run(["sh", "-c", command], input=event, text=True, capture_output=True,
+                              env=dict(os.environ, CLAUDE_PROJECT_DIR=str(ROOT)))
+        check(proc.returncode == 2 and "matching guard" in proc.stderr, "the hook command runs the guard", proc)
 
 
 def test_wave_dry_run(base: Path) -> None:
@@ -476,8 +639,10 @@ def test_compile_command_matches_configure(base: Path) -> None:
     tmp = base / "configure-copy"
     (tmp / "tools").mkdir(parents=True)
     shutil.copy(ROOT / "configure.py", tmp)
-    for name in ("categories.py", "splits.py", "symbols.py", "ninja_syntax.py"):
+    for name in ("categories.py", "splits.py", "symbols.py", "ninja_syntax.py", "cc.py"):
         shutil.copy(ROOT / "tools" / name, tmp / "tools")
+    (tmp / "tools" / "agent").mkdir()
+    shutil.copy(HERE / "coff.py", tmp / "tools" / "agent")  # cc.py's
     shutil.copytree(Env(base, "configure-fixture").root / "config", tmp / "config")
     proc = subprocess.run([sys.executable, "configure.py"], cwd=tmp, capture_output=True, text=True)
     check(proc.returncode == 0 and (tmp / "build.ninja").is_file(), "configure.py runs on the fixture", proc)
@@ -491,8 +656,8 @@ def test_compile_command_matches_configure(base: Path) -> None:
     check(isinstance(ninja, str), "build.ninja's rule is run as ninja would, as one command line")
     ninja = shlex.split(ninja, posix=os.name != "nt")
 
-    def flags(argv):
-        return [a for a in argv if a.startswith("/") and not a.startswith(("/I", "/Fo"))]
+    def flags(argv):  # cl.exe options, not POSIX paths (the interpreter running cc.py)
+        return [a for a in argv if a.startswith("/") and "/" not in a[1:] and not a.startswith(("/I", "/Fo"))]
     check(flags(ninja) == flags(fallback), f"flags differ:\n  {ninja}\n  {fallback}")
     check("/showIncludes" not in ninja, "no /showIncludes in the agent's compile")
     if os.name != "nt":  # and compile through the rule, with the toolchain where build.ninja expects it
@@ -550,7 +715,7 @@ TESTS = [
     test_wrong_callee_rejected, test_self_call,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_keeps_distinct_includes, test_integrate_drops_what_breaks,
-    test_context_and_queue, test_guard,
+    test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_sweep, test_guard,
     test_wave_dry_run, test_compile_command_matches_configure, test_categories_and_except_list,
 ]
 
