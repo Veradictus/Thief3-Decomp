@@ -461,6 +461,17 @@ class AActor : public UObject
     DECLARE_CLASS(AActor, UObject, 0x800, Engine)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x10993EC0
+    virtual ~AActor();                      // slot 2: 0x109624C0
+    virtual void Unknown0C();               // slot 3: 0x1098CFC0
+    virtual void Unknown10();               // slot 4: 0x109E97F0
+    virtual void Unknown1C();               // slot 7: 0x10993FC0
+    virtual void Unknown20();               // slot 8: 0x10995410
+    virtual void Unknown24();               // slot 9: 0x109623C0
+    virtual void Unknown30();               // slot 12: 0x109E9650
+    virtual void Unknown3C();               // slot 15: 0x1098E0E0
+
+public:
     FVector Location;                       // 0x2C
     FRotator Rotation;                      // 0x38
     FVector Velocity;                       // 0x44
@@ -555,12 +566,20 @@ class AMetaProperty : public AActor
     DECLARE_CLASS(AMetaProperty, AActor, 0x0, Engine)
 
 public:
+    virtual ~AMetaProperty();               // slot 2: 0x10962700
+
+public:
 };
 T3_CHECK_SIZE(AMetaProperty, 0xC0);
 
 class ABrush : public AActor
 {
     DECLARE_CLASS(ABrush, AActor, 0x0, Engine)
+
+public:
+    virtual ~ABrush();                      // slot 2: 0x1098C850
+    virtual void Unknown1C();               // slot 7: 0x109941C0
+    virtual void Unknown3C();               // slot 15: 0x10993AD0
 
 public:
     BYTE CsgOper;                           // 0xC0  ECsgOper
@@ -581,6 +600,9 @@ class AVolume : public ABrush
     DECLARE_CLASS(AVolume, ABrush, 0x0, Engine)
 
 public:
+    virtual ~AVolume();                     // slot 2: 0x1098D0C0
+
+public:
     FString LocationName;                   // 0x120
     FBox CachedWorldBBox;                   // 0x12C
 };
@@ -589,6 +611,9 @@ T3_CHECK_SIZE(AVolume, 0x148);
 class AController : public AActor
 {
     DECLARE_CLASS(AController, AActor, 0x800, Engine)
+
+public:
+    virtual void Unknown00();               // slot 0: 0x109ECDB0
 
 public:
     APawn* Pawn;                            // 0xC0
@@ -618,12 +643,21 @@ class AMarker : public AActor
     DECLARE_CLASS(AMarker, AActor, 0x0, Engine)
 
 public:
+    virtual ~AMarker();                     // slot 2: 0x1098C8D0
+
+public:
 };
 T3_CHECK_SIZE(AMarker, 0xC0);
 
 class APawn : public AActor
 {
     DECLARE_CLASS(APawn, AActor, 0x800, Engine)
+
+public:
+    virtual void Unknown00();               // slot 0: 0x10A4FD70
+    virtual ~APawn();                       // slot 2: 0x10A46E10
+    virtual void Unknown1C();               // slot 7: 0x109A6250
+    virtual void Unknown20();               // slot 8: 0x10A50120
 
 public:
     AController* Controller;                // 0xC0
@@ -729,6 +763,9 @@ T3_CHECK_SIZE(APawn, 0x208);
 class AAmbientLightVolume : public AVolume
 {
     DECLARE_CLASS(AAmbientLightVolume, AVolume, 0x800, Engine)
+
+public:
+    virtual ~AAmbientLightVolume();         // slot 2: 0x109942F0
 
 public:
 };
@@ -840,12 +877,18 @@ class ACamera : public APlayerController
     DECLARE_CLASS(ACamera, APlayerController, 0x4, Engine)
 
 public:
+    virtual ~ACamera();                     // slot 2: 0x1098D350
+
+public:
 };
 T3_CHECK_SIZE(ACamera, 0x2C0);
 
 class AKeypoint : public AMarker
 {
     DECLARE_CLASS(AKeypoint, AMarker, 0x0, Engine)
+
+public:
+    virtual ~AKeypoint();                   // slot 2: 0x1098C950
 
 public:
 };
@@ -856,12 +899,18 @@ class ACameraPoint : public AKeypoint
     DECLARE_CLASS(ACameraPoint, AKeypoint, 0x0, Engine)
 
 public:
+    virtual ~ACameraPoint();                // slot 2: 0x1098D5C0
+
+public:
 };
 T3_CHECK_SIZE(ACameraPoint, 0xC0);
 
 class AMetaData : public AActor
 {
     DECLARE_CLASS(AMetaData, AActor, 0x0, Engine)
+
+public:
+    virtual ~AMetaData();                   // slot 2: 0x1098CA50
 
 public:
 };
@@ -872,12 +921,18 @@ class AInfo : public AMetaData
     DECLARE_CLASS(AInfo, AMetaData, 0x0, Engine)
 
 public:
+    virtual ~AInfo();                       // slot 2: 0x1098CAD0
+
+public:
 };
 T3_CHECK_SIZE(AInfo, 0xC0);
 
 class AClipMarker : public AKeypoint
 {
     DECLARE_CLASS(AClipMarker, AKeypoint, 0x0, Engine)
+
+public:
+    virtual ~AClipMarker();                 // slot 2: 0x1098D670
 
 public:
 };
@@ -888,12 +943,18 @@ class ADeathWaterVolume : public AVolume
     DECLARE_CLASS(ADeathWaterVolume, AVolume, 0x800, Engine)
 
 public:
+    virtual ~ADeathWaterVolume();           // slot 2: 0x10994390
+
+public:
 };
 T3_CHECK_SIZE(ADeathWaterVolume, 0x148);
 
 class APhysicsVolume : public AVolume
 {
     DECLARE_CLASS(APhysicsVolume, AVolume, 0x800, Engine)
+
+public:
+    virtual ~APhysicsVolume();              // slot 2: 0x1098D140
 
 public:
     FVector ViewFlash;                      // 0x148
@@ -911,12 +972,18 @@ class ADefaultPhysicsVolume : public APhysicsVolume
     DECLARE_CLASS(ADefaultPhysicsVolume, APhysicsVolume, 0x0, Engine)
 
 public:
+    virtual ~ADefaultPhysicsVolume();       // slot 2: 0x10994450
+
+public:
 };
 T3_CHECK_SIZE(ADefaultPhysicsVolume, 0x17C);
 
 class AElevatorFloors : public AMetaData
 {
     DECLARE_CLASS(AElevatorFloors, AMetaData, 0x0, Engine)
+
+public:
+    virtual ~AElevatorFloors();             // slot 2: 0x1098DC50
 
 public:
 };
@@ -927,12 +994,22 @@ class AFX : public AActor
     DECLARE_CLASS(AFX, AActor, 0x0, Engine)
 
 public:
+    virtual ~AFX();                         // slot 2: 0x1098D400
+
+public:
 };
 T3_CHECK_SIZE(AFX, 0xC0);
 
 class AEmitter : public AFX
 {
     DECLARE_CLASS(AEmitter, AFX, 0x0, Engine)
+
+public:
+    virtual void Unknown00();               // slot 0: 0x109966F0
+    virtual ~AEmitter();                    // slot 2: 0x109973B0
+    virtual void Unknown1C();               // slot 7: 0x10996810
+    virtual void Unknown3C();               // slot 15: 0x10996490
+    virtual void Unknown40();               // slot 16: 0x10996600
 
 public:
     FLOAT TimeSinceRendered;                // 0xC0
@@ -962,6 +1039,10 @@ class APlayerPawn : public APawn
     DECLARE_CLASS(APlayerPawn, APawn, 0x0, Engine)
 
 public:
+    virtual ~APlayerPawn();                 // slot 2: 0x10A47700
+    virtual void Unknown20();               // slot 8: 0x10A464D0
+
+public:
     TArray<FsGoal> Goals;                   // 0x208
     TArray<FsCitySectionGoal> CitySectionGoals; // 0x214
     TArray<FsNote> PlayerNotes;             // 0x220
@@ -982,12 +1063,19 @@ class AInterpolationPoint : public AKeypoint
     DECLARE_CLASS(AInterpolationPoint, AKeypoint, 0x0, Engine)
 
 public:
+    virtual ~AInterpolationPoint();         // slot 2: 0x1098D720
+    virtual void Unknown3C();               // slot 15: 0x1099AB10
+
+public:
 };
 T3_CHECK_SIZE(AInterpolationPoint, 0xC0);
 
 class AZoneInfo : public AInfo
 {
     DECLARE_CLASS(AZoneInfo, AInfo, 0x800, Engine)
+
+public:
+    virtual ~AZoneInfo();                   // slot 2: 0x10992D20
 
 public:
     ASkyZoneInfo* SkyZone;                  // 0xC0
@@ -1027,6 +1115,9 @@ T3_CHECK_SIZE(AZoneInfo, 0x1B0);
 class ALevelInfo : public AZoneInfo
 {
     DECLARE_CLASS(ALevelInfo, AZoneInfo, 0x800, Engine)
+
+public:
+    virtual ~ALevelInfo();                  // slot 2: 0x10992E50
 
 public:
     FLOAT TimeSeconds;                      // 0x1B0
@@ -1111,6 +1202,9 @@ class ALight : public AActor
     DECLARE_CLASS(ALight, AActor, 0x0, Engine)
 
 public:
+    virtual ~ALight();                      // slot 2: 0x1098D4B0
+
+public:
     FVector CoronaSize;                     // 0xC0
 };
 T3_CHECK_SIZE(ALight, 0xCC);
@@ -1118,6 +1212,9 @@ T3_CHECK_SIZE(ALight, 0xCC);
 class ALookTarget : public AKeypoint
 {
     DECLARE_CLASS(ALookTarget, AKeypoint, 0x0, Engine)
+
+public:
+    virtual ~ALookTarget();                 // slot 2: 0x109976E0
 
 public:
 };
@@ -1128,12 +1225,19 @@ class AMissingArch : public AActor
     DECLARE_CLASS(AMissingArch, AActor, 0x8, Engine)
 
 public:
+    virtual ~AMissingArch();                // slot 2: 0x1098DE90
+
+public:
 };
 T3_CHECK_SIZE(AMissingArch, 0xC0);
 
 class ANavigationPoint : public AKeypoint
 {
     DECLARE_CLASS(ANavigationPoint, AKeypoint, 0x0, Engine)
+
+public:
+    virtual void Unknown00();               // slot 0: 0x10A3D8B0
+    virtual ~ANavigationPoint();            // slot 2: 0x1098C9D0
 
 public:
     INT upstreamPaths[16];                  // 0xC0
@@ -1171,12 +1275,18 @@ class ANorthMarker : public ANavigationPoint
     DECLARE_CLASS(ANorthMarker, ANavigationPoint, 0x0, Engine)
 
 public:
+    virtual ~ANorthMarker();                // slot 2: 0x1098D800
+
+public:
 };
 T3_CHECK_SIZE(ANorthMarker, 0x1C8);
 
 class AObjSysTest : public AActor
 {
     DECLARE_CLASS(AObjSysTest, AActor, 0x0, Engine)
+
+public:
+    virtual ~AObjSysTest();                 // slot 2: 0x1098CB50
 
 public:
 };
@@ -1187,6 +1297,9 @@ class AObjSysTestChild : public AObjSysTest
     DECLARE_CLASS(AObjSysTestChild, AObjSysTest, 0x0, Engine)
 
 public:
+    virtual ~AObjSysTestChild();            // slot 2: 0x1098DF70
+
+public:
 };
 T3_CHECK_SIZE(AObjSysTestChild, 0xC0);
 
@@ -1195,12 +1308,18 @@ class APathNode : public ANavigationPoint
     DECLARE_CLASS(APathNode, ANavigationPoint, 0x0, Engine)
 
 public:
+    virtual ~APathNode();                   // slot 2: 0x1098D8B0
+
+public:
 };
 T3_CHECK_SIZE(APathNode, 0x1C8);
 
 class APlayerStart : public ANavigationPoint
 {
     DECLARE_CLASS(APlayerStart, ANavigationPoint, 0x0, Engine)
+
+public:
+    virtual ~APlayerStart();                // slot 2: 0x1098D960
 
 public:
     BYTE TeamNumber;                        // 0x1C8
@@ -1215,12 +1334,19 @@ class APolyMarker : public AKeypoint
     DECLARE_CLASS(APolyMarker, AKeypoint, 0x0, Engine)
 
 public:
+    virtual ~APolyMarker();                 // slot 2: 0x1098DA10
+
+public:
 };
 T3_CHECK_SIZE(APolyMarker, 0xC0);
 
 class ASceneManager : public AInfo
 {
     DECLARE_CLASS(ASceneManager, AInfo, 0x4, Engine)
+
+public:
+    virtual ~ASceneManager();               // slot 2: 0x1099ADD0
+    virtual void Unknown3C();               // slot 15: 0x1099AAE0
 
 public:
     TArray<UMatAction*> Actions;            // 0xC0
@@ -1250,12 +1376,18 @@ class AShallowWaterVolume : public AVolume
     DECLARE_CLASS(AShallowWaterVolume, AVolume, 0x800, Engine)
 
 public:
+    virtual ~AShallowWaterVolume();         // slot 2: 0x109944F0
+
+public:
 };
 T3_CHECK_SIZE(AShallowWaterVolume, 0x148);
 
 class ASkyZoneInfo : public AZoneInfo
 {
     DECLARE_CLASS(ASkyZoneInfo, AZoneInfo, 0x0, Engine)
+
+public:
+    virtual ~ASkyZoneInfo();                // slot 2: 0x10992FB0
 
 public:
 };
@@ -1266,12 +1398,18 @@ class ASpecialOptions : public AMetaData
     DECLARE_CLASS(ASpecialOptions, AMetaData, 0x0, Engine)
 
 public:
+    virtual ~ASpecialOptions();             // slot 2: 0x1098DDE0
+
+public:
 };
 T3_CHECK_SIZE(ASpecialOptions, 0xC0);
 
 class AStaticMeshActor : public AActor
 {
     DECLARE_CLASS(AStaticMeshActor, AActor, 0x0, Engine)
+
+public:
+    virtual ~AStaticMeshActor();            // slot 2: 0x10970530
 
 public:
 };
@@ -1282,6 +1420,9 @@ class AStimulusModifierObject : public AMetaProperty
     DECLARE_CLASS(AStimulusModifierObject, AMetaProperty, 0x0, Engine)
 
 public:
+    virtual ~AStimulusModifierObject();     // slot 2: 0x1099BA20
+
+public:
 };
 T3_CHECK_SIZE(AStimulusModifierObject, 0xC0);
 
@@ -1290,12 +1431,18 @@ class ASwooshEffectObject : public AMetaProperty
     DECLARE_CLASS(ASwooshEffectObject, AMetaProperty, 0x0, Engine)
 
 public:
+    virtual ~ASwooshEffectObject();         // slot 2: 0x1099BAC0
+
+public:
 };
 T3_CHECK_SIZE(ASwooshEffectObject, 0xC0);
 
 class ATerrainInfo : public AInfo
 {
     DECLARE_CLASS(ATerrainInfo, AInfo, 0x0, Engine)
+
+public:
+    virtual ~ATerrainInfo();                // slot 2: 0x109D1430
 
 public:
     UTexture* TerrainMap;                   // 0xC0
@@ -1327,12 +1474,18 @@ class AVulnerabilityObject : public AMetaProperty
     DECLARE_CLASS(AVulnerabilityObject, AMetaProperty, 0x0, Engine)
 
 public:
+    virtual ~AVulnerabilityObject();        // slot 2: 0x1099BB60
+
+public:
 };
 T3_CHECK_SIZE(AVulnerabilityObject, 0xC0);
 
 class AWaypoint : public AKeypoint
 {
     DECLARE_CLASS(AWaypoint, AKeypoint, 0x0, Engine)
+
+public:
+    virtual ~AWaypoint();                   // slot 2: 0x1098DAC0
 
 public:
     FLOAT PauseTime;                        // 0xC0
@@ -1344,12 +1497,18 @@ class AWaypointMarker : public AKeypoint
     DECLARE_CLASS(AWaypointMarker, AKeypoint, 0x0, Engine)
 
 public:
+    virtual ~AWaypointMarker();             // slot 2: 0x1098DB70
+
+public:
 };
 T3_CHECK_SIZE(AWaypointMarker, 0xC0);
 
 class AZoneProperties : public AInfo
 {
     DECLARE_CLASS(AZoneProperties, AInfo, 0x0, Engine)
+
+public:
+    virtual ~AZoneProperties();             // slot 2: 0x1098DD30
 
 public:
     BITFIELD bZoneVisited:1;                // 0xC0
@@ -1370,12 +1529,19 @@ class UMatObject : public UObject
     DECLARE_CLASS(UMatObject, UObject, 0x0, Engine)
 
 public:
+    virtual ~UMatObject();                  // slot 2: 0x109977D0
+
+public:
 };
 T3_CHECK_SIZE(UMatObject, 0x2C);
 
 class UMatAction : public UMatObject
 {
     DECLARE_CLASS(UMatAction, UMatObject, 0x0, Engine)
+
+public:
+    virtual ~UMatAction();                  // slot 2: 0x1099A450
+    virtual void Unknown3C();               // slot 15: 0x1099AAF0
 
 public:
     AInterpolationPoint* IntPoint;          // 0x2C
@@ -1397,6 +1563,9 @@ class UActionMoveCamera : public UMatAction
     DECLARE_CLASS(UActionMoveCamera, UMatAction, 0x4, Engine)
 
 public:
+    virtual ~UActionMoveCamera();           // slot 2: 0x1099AF20
+
+public:
     BYTE PathStyle;                         // 0x80  EPathStyle
 };
 T3_CHECK_SIZE(UActionMoveCamera, 0x84);
@@ -1404,6 +1573,9 @@ T3_CHECK_SIZE(UActionMoveCamera, 0x84);
 class UActionPause : public UMatAction
 {
     DECLARE_CLASS(UActionPause, UMatAction, 0x0, Engine)
+
+public:
+    virtual ~UActionPause();                // slot 2: 0x1099AFC0
 
 public:
 };
@@ -1450,6 +1622,13 @@ T3_CHECK_SIZE(UAttachmentLinkDataObject, 0x74);
 class UParticleEmitter : public UObject
 {
     DECLARE_CLASS(UParticleEmitter, UObject, 0x0, Engine)
+
+public:
+    virtual void Unknown00();               // slot 0: 0x109A67D0
+    virtual ~UParticleEmitter();            // slot 2: 0x109A9EE0
+    virtual void Unknown1C();               // slot 7: 0x109A67B0
+    virtual void Unknown3C();               // slot 15: 0x10D660B0
+    virtual void Unknown40();               // slot 16: 0x109A6BB0
 
 public:
     FVector Acceleration;                   // 0x2C
@@ -1565,6 +1744,10 @@ class UBeamEmitter : public UParticleEmitter
     DECLARE_CLASS(UBeamEmitter, UParticleEmitter, 0x0, Engine)
 
 public:
+    virtual ~UBeamEmitter();                // slot 2: 0x109ACB30
+    virtual void Unknown40();               // slot 16: 0x109AA300
+
+public:
     FRange BeamDistanceRange;               // 0x32C
     TArray<FParticleBeamEndPoint> BeamEndPoints; // 0x334
     BYTE DetermineEndPointBy;               // 0x340  EBeamEndPointType
@@ -1611,6 +1794,12 @@ class UBitmap : public UObject
     DECLARE_CLASS(UBitmap, UObject, 0x1, Engine)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x1096D7A0
+    virtual ~UBitmap();                     // slot 2: 0x1096BE40
+    virtual void Unknown1C();               // slot 7: 0x1096BC10
+    virtual void Unknown20();               // slot 8: 0x1096BA90
+
+public:
     BYTE Format;                            // 0x2C  ETextureFormat
     UPalette* Palette;                      // 0x30
     BYTE UBits;                             // 0x34
@@ -1646,6 +1835,10 @@ class UCARDEntry : public UObject
     DECLARE_CLASS(UCARDEntry, UObject, 0x40, Engine)
 
 public:
+    virtual ~UCARDEntry();                  // slot 2: 0x1098AA70
+    virtual void Unknown20();               // slot 8: 0x1098ABF0
+
+public:
     BYTE Pad2C[0x34];
 };
 T3_CHECK_SIZE(UCARDEntry, 0x60);
@@ -1653,6 +1846,9 @@ T3_CHECK_SIZE(UCARDEntry, 0x60);
 class UCanvas : public UObject
 {
     DECLARE_CLASS(UCanvas, UObject, 0x8, Engine)
+
+public:
+    virtual ~UCanvas();                     // slot 2: 0x109D1A10
 
 public:
     UFont* Font;                            // 0x2C
@@ -1701,6 +1897,9 @@ class USpawnableHardpointLinkDataObject : public UHardpointLinkDataObject
     DECLARE_CLASS(USpawnableHardpointLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
 
 public:
+    virtual ~USpawnableHardpointLinkDataObject();// slot 2: 0x109A0370
+
+public:
     INT NumberToSpawn;                      // 0x5C
     BITFIELD bTakeParentRotation:1;         // 0x60
     BITFIELD bAttachObjects:1;
@@ -1714,6 +1913,9 @@ class UCollisionSpawnLinkDataObject : public USpawnableHardpointLinkDataObject
     DECLARE_CLASS(UCollisionSpawnLinkDataObject, USpawnableHardpointLinkDataObject, 0x0, Engine)
 
 public:
+    virtual ~UCollisionSpawnLinkDataObject();// slot 2: 0x109A03E0
+
+public:
     BITFIELD Active:1;                      // 0x70
     FString Tag;                            // 0x74
 };
@@ -1722,6 +1924,9 @@ T3_CHECK_SIZE(UCollisionSpawnLinkDataObject, 0x80);
 class UCreationSpawnLinkDataObject : public UHardpointLinkDataObject
 {
     DECLARE_CLASS(UCreationSpawnLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~UCreationSpawnLinkDataObject();// slot 2: 0x109A0030
 
 public:
     INT m_numberToSpawn;                    // 0x5C
@@ -1806,6 +2011,9 @@ class UCubemap : public UTexture
     DECLARE_CLASS(UCubemap, UTexture, 0x40, Engine)
 
 public:
+    virtual ~UCubemap();                    // slot 2: 0x1096BFA0
+
+public:
     UTexture* Faces[6];                     // 0xDC
     INT CubemapRenderInterface[5];          // 0xF4
 };
@@ -1814,6 +2022,9 @@ T3_CHECK_SIZE(UCubemap, 0x108);
 class UDeathSpawnLinkDataObject : public UHardpointLinkDataObject
 {
     DECLARE_CLASS(UDeathSpawnLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~UDeathSpawnLinkDataObject();   // slot 2: 0x109A00F0
 
 public:
     INT m_numberToSpawn;                    // 0x5C
@@ -1825,6 +2036,9 @@ T3_CHECK_SIZE(UDeathSpawnLinkDataObject, 0x68);
 class UDelaySpawnLinkDataObject : public USpawnableHardpointLinkDataObject
 {
     DECLARE_CLASS(UDelaySpawnLinkDataObject, USpawnableHardpointLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~UDelaySpawnLinkDataObject();   // slot 2: 0x109A0490
 
 public:
 };
@@ -1849,6 +2063,9 @@ T3_CHECK_SIZE(UDoorLinkDataObject, 0x50);
 class UDynamicBeamEmitter : public UBeamEmitter
 {
     DECLARE_CLASS(UDynamicBeamEmitter, UBeamEmitter, 0x0, Engine)
+
+public:
+    virtual ~UDynamicBeamEmitter();         // slot 2: 0x109ADD10
 
 public:
     TArray<FVector> DynamicPointList;       // 0x414
@@ -1953,6 +2170,9 @@ class UFlinderizeLinkDataObject : public UHardpointLinkDataObject
     DECLARE_CLASS(UFlinderizeLinkDataObject, UHardpointLinkDataObject, 0x0, Engine)
 
 public:
+    virtual ~UFlinderizeLinkDataObject();   // slot 2: 0x109A0200
+
+public:
     INT m_numberToSpawn;                    // 0x5C
     FLOAT m_ConeTheta;                      // 0x60
     BYTE m_spreadPattern;                   // 0x64  eSpreadPattern
@@ -1962,6 +2182,9 @@ T3_CHECK_SIZE(UFlinderizeLinkDataObject, 0x68);
 class UFragRoundLinkDataObject : public UFlinderizeLinkDataObject
 {
     DECLARE_CLASS(UFragRoundLinkDataObject, UFlinderizeLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~UFragRoundLinkDataObject();    // slot 2: 0x109A0240
 
 public:
 };
@@ -2027,6 +2250,9 @@ T3_CHECK_SIZE(UHighlightEventLinkDataObject, 0x50);
 class UHingedAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
     DECLARE_CLASS(UHingedAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~UHingedAttachmentLinkDataObject();// slot 2: 0x1099F560
 
 public:
     FVector m_hingeLocation;                // 0x74
@@ -2097,6 +2323,10 @@ class UMatSubAction : public UMatObject
     DECLARE_CLASS(UMatSubAction, UMatObject, 0x0, Engine)
 
 public:
+    virtual ~UMatSubAction();               // slot 2: 0x10997EC0
+    virtual void Unknown3C();               // slot 15: 0x1099AAF0
+
+public:
     FLOAT Delay;                            // 0x2C
     FLOAT Duration;                         // 0x30
     UTexture* Icon;                         // 0x34
@@ -2111,6 +2341,10 @@ T3_CHECK_SIZE(UMatSubAction, 0x54);
 class UMeshEmitter : public UParticleEmitter
 {
     DECLARE_CLASS(UMeshEmitter, UParticleEmitter, 0x0, Engine)
+
+public:
+    virtual ~UMeshEmitter();                // slot 2: 0x109AE530
+    virtual void Unknown3C();               // slot 15: 0x109AF360
 
 public:
     UStaticMesh* StaticMesh;                // 0x32C
@@ -2141,6 +2375,10 @@ class UPalette : public UObject
     DECLARE_CLASS(UPalette, UObject, 0x40, Engine)
 
 public:
+    virtual ~UPalette();                    // slot 2: 0x1096B290
+    virtual void Unknown20();               // slot 8: 0x1096AED0
+
+public:
     TArray<FColor> Colors;                  // 0x2C
 };
 T3_CHECK_SIZE(UPalette, 0x38);
@@ -2148,6 +2386,12 @@ T3_CHECK_SIZE(UPalette, 0x38);
 class UPlayer : public UObject
 {
     DECLARE_CLASS(UPlayer, UObject, 0xD, Engine)
+
+public:
+    virtual void Unknown00();               // slot 0: 0x10C86020
+    virtual ~UPlayer();                     // slot 2: 0x10C8DA60
+    virtual void Unknown20();               // slot 8: 0x109DCFF0
+    virtual void Unknown38();               // slot 14: 0x10C85D10
 
 public:
     INT vfOut;                              // 0x2C
@@ -2176,6 +2420,9 @@ T3_CHECK_SIZE(UPlayerSetupInfoLinkDataObject, 0x50);
 class UPointAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
     DECLARE_CLASS(UPointAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~UPointAttachmentLinkDataObject();// slot 2: 0x1099F600
 
 public:
     FVector m_pointOffset;                  // 0x74
@@ -2230,6 +2477,9 @@ class URigidAttachmentLinkDataObject : public UAttachmentLinkDataObject
     DECLARE_CLASS(URigidAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
 
 public:
+    virtual ~URigidAttachmentLinkDataObject();// slot 2: 0x1099F6A0
+
+public:
     BITFIELD bDontSpawn:1;                  // 0x74
     BITFIELD bDeleteChildOnDeath:1;
     BITFIELD m_bConcretes:1;
@@ -2244,6 +2494,9 @@ T3_CHECK_SIZE(URigidAttachmentLinkDataObject, 0x94);
 class URuntimeAttachmentLinkDataObject : public UAttachmentLinkDataObject
 {
     DECLARE_CLASS(URuntimeAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
+
+public:
+    virtual ~URuntimeAttachmentLinkDataObject();// slot 2: 0x1099F740
 
 public:
     BITFIELD bDeleteChildOnDeath:1;         // 0x74
@@ -2288,6 +2541,9 @@ class USlidingAttachmentLinkDataObject : public UAttachmentLinkDataObject
     DECLARE_CLASS(USlidingAttachmentLinkDataObject, UAttachmentLinkDataObject, 0x0, Engine)
 
 public:
+    virtual ~USlidingAttachmentLinkDataObject();// slot 2: 0x1099F7D0
+
+public:
     FVector m_slideAxis;                    // 0x74
     FLOAT m_slideFriction;                  // 0x80
     FLOAT m_lip;                            // 0x84
@@ -2308,6 +2564,10 @@ T3_CHECK_SIZE(USlidingAttachmentLinkDataObject, 0xEC);
 class USparkEmitter : public UParticleEmitter
 {
     DECLARE_CLASS(USparkEmitter, UParticleEmitter, 0x0, Engine)
+
+public:
+    virtual ~USparkEmitter();               // slot 2: 0x109AEB60
+    virtual void Unknown3C();               // slot 15: 0x109AF360
 
 public:
     FRange LineSegmentsRange;               // 0x32C
@@ -2361,6 +2621,9 @@ class USubActionFOV : public UMatSubAction
     DECLARE_CLASS(USubActionFOV, UMatSubAction, 0x0, Engine)
 
 public:
+    virtual ~USubActionFOV();               // slot 2: 0x10998040
+
+public:
     FRange FOV;                             // 0x54
 };
 T3_CHECK_SIZE(USubActionFOV, 0x5C);
@@ -2368,6 +2631,9 @@ T3_CHECK_SIZE(USubActionFOV, 0x5C);
 class USubActionFade : public UMatSubAction
 {
     DECLARE_CLASS(USubActionFade, UMatSubAction, 0x0, Engine)
+
+public:
+    virtual ~USubActionFade();              // slot 2: 0x10997F80
 
 public:
     FColor FadeColor;                       // 0x54
@@ -2380,6 +2646,9 @@ class USubActionGameSpeed : public UMatSubAction
     DECLARE_CLASS(USubActionGameSpeed, UMatSubAction, 0x0, Engine)
 
 public:
+    virtual ~USubActionGameSpeed();         // slot 2: 0x10998100
+
+public:
     FRange GameSpeed;                       // 0x54
 };
 T3_CHECK_SIZE(USubActionGameSpeed, 0x5C);
@@ -2387,6 +2656,9 @@ T3_CHECK_SIZE(USubActionGameSpeed, 0x5C);
 class USubActionOrientation : public UMatSubAction
 {
     DECLARE_CLASS(USubActionOrientation, UMatSubAction, 0x0, Engine)
+
+public:
+    virtual ~USubActionOrientation();       // slot 2: 0x109981E0
 
 public:
     FMatObjectOrientation CamOrientation;   // 0x54
@@ -2398,6 +2670,9 @@ class USubActionSceneSpeed : public UMatSubAction
     DECLARE_CLASS(USubActionSceneSpeed, UMatSubAction, 0x0, Engine)
 
 public:
+    virtual ~USubActionSceneSpeed();        // slot 2: 0x109982B0
+
+public:
     FRange SceneSpeed;                      // 0x54
 };
 T3_CHECK_SIZE(USubActionSceneSpeed, 0x5C);
@@ -2405,6 +2680,9 @@ T3_CHECK_SIZE(USubActionSceneSpeed, 0x5C);
 class USubActionTrigger : public UMatSubAction
 {
     DECLARE_CLASS(USubActionTrigger, UMatSubAction, 0x0, Engine)
+
+public:
+    virtual ~USubActionTrigger();           // slot 2: 0x10998370
 
 public:
     FName EventName;                        // 0x54
@@ -2422,6 +2700,10 @@ T3_CHECK_SIZE(USwooshLinkDataObject, 0x50);
 class UTriggerRegistrar : public UObject
 {
     DECLARE_CLASS(UTriggerRegistrar, UObject, 0xD, Engine)
+
+public:
+    virtual ~UTriggerRegistrar();           // slot 2: 0x10AB3CE0
+    virtual void Register();                // slot 19: 0x10ABD7D0
 
 public:
 };

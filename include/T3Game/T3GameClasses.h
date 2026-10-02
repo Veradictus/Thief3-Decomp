@@ -81,6 +81,9 @@ class ADifficultyInfo : public AInfo
     DECLARE_CLASS(ADifficultyInfo, AInfo, 0x0, T3Game)
 
 public:
+    virtual ~ADifficultyInfo();             // slot 2: 0x10AB3E20
+
+public:
     FName LevelName;                        // 0xC0
     FDifficultyLevel EasyDiffSettings;      // 0xC4
     FDifficultyLevel NormalDiffSettings;    // 0xF0
@@ -94,6 +97,9 @@ T3_CHECK_SIZE(ADifficultyInfo, 0x1A4);
 class AEnterMissionInfo : public AInfo
 {
     DECLARE_CLASS(AEnterMissionInfo, AInfo, 0x0, T3Game)
+
+public:
+    virtual ~AEnterMissionInfo();           // slot 2: 0x10AB58D0
 
 public:
     BITFIELD EntryMapObjectFlag:1;          // 0xC0
@@ -116,6 +122,9 @@ class AExitMissionInfo : public AInfo
     DECLARE_CLASS(AExitMissionInfo, AInfo, 0x0, T3Game)
 
 public:
+    virtual ~AExitMissionInfo();            // slot 2: 0x10AB3F30
+
+public:
     BITFIELD EntryMapObjectFlag:1;          // 0xC0
     FString DestMapName;                    // 0xC4
     FString DestTeleportName;               // 0xD0
@@ -130,6 +139,10 @@ class ASpellProjectile : public AActor
     DECLARE_CLASS(ASpellProjectile, AActor, 0x800, T3Game)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x10ABD7F0
+    virtual ~ASpellProjectile();            // slot 2: 0x10AB4020
+
+public:
     FRotator localRotationRate;             // 0xC0
     INT CollisionFilterInfo;                // 0xCC
     INT pad;                                // 0xD0
@@ -139,6 +152,9 @@ T3_CHECK_SIZE(ASpellProjectile, 0xD4);
 class AWakeupCameraPoint : public AKeypoint
 {
     DECLARE_CLASS(AWakeupCameraPoint, AKeypoint, 0x0, T3Game)
+
+public:
+    virtual ~AWakeupCameraPoint();          // slot 2: 0x10AB3D80
 
 public:
     BITFIELD Start:1;                       // 0xC0

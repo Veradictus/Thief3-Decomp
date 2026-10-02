@@ -91,6 +91,11 @@ class AGarrett : public APlayerPawn
     DECLARE_CLASS(AGarrett, APlayerPawn, 0x800, T3Player)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x10B21630
+    virtual ~AGarrett();                    // slot 2: 0x10B133A0
+    virtual void Unknown20();               // slot 8: 0x10B21AD0
+
+public:
     TArray<FRemovedInventoryInfo> RemovedInventory; // 0x278
     FLOAT standingSpeedDef[19];             // 0x284
     FLOAT crouchingSpeedDef[19];            // 0x2D0
@@ -203,6 +208,9 @@ class AT3PlayerController : public APlayerController
     DECLARE_CLASS(AT3PlayerController, APlayerController, 0x4, T3Player)
 
 public:
+    virtual ~AT3PlayerController();         // slot 2: 0x10B121C0
+
+public:
     BITFIELD bIsActive:1;                   // 0x2C0
     INT pad0;                               // 0x2C4
 };
@@ -254,6 +262,9 @@ T3_CHECK_SIZE(UT3Game, 0x1BC);
 class UT3GameEngine : public UGameEngine
 {
     DECLARE_CLASS(UT3GameEngine, UGameEngine, 0xC, T3Player)
+
+public:
+    virtual ~UT3GameEngine();               // slot 2: 0x10B13650
 
 public:
     BYTE thief3specificstuff[4];            // 0x17C

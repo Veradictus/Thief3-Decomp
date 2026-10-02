@@ -121,6 +121,9 @@ class UFractalTexture : public UTexture
     DECLARE_CLASS(UFractalTexture, UTexture, 0x1, Fire)
 
 public:
+    virtual void Unknown3C();               // slot 15: 0x10A69170
+
+public:
     INT UMask;                              // 0xDC
     INT VMask;                              // 0xE0
     INT LightOutput;                        // 0xE4

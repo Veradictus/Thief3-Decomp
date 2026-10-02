@@ -131,12 +131,18 @@ class AAIModel : public AMetaProperty
     DECLARE_CLASS(AAIModel, AMetaProperty, 0x0, AICore)
 
 public:
+    virtual ~AAIModel();                    // slot 2: 0x10962880
+
+public:
 };
 T3_CHECK_SIZE(AAIModel, 0xC0);
 
 class AAIBehaviorModel : public AAIModel
 {
     DECLARE_CLASS(AAIBehaviorModel, AAIModel, 0x0, AICore)
+
+public:
+    virtual ~AAIBehaviorModel();            // slot 2: 0x10962920
 
 public:
 };
@@ -147,12 +153,18 @@ class AAICombatModel : public AAIModel
     DECLARE_CLASS(AAICombatModel, AAIModel, 0x0, AICore)
 
 public:
+    virtual ~AAICombatModel();              // slot 2: 0x109629C0
+
+public:
 };
 T3_CHECK_SIZE(AAICombatModel, 0xC0);
 
 class AAIContextVolume : public AVolume
 {
     DECLARE_CLASS(AAIContextVolume, AVolume, 0x0, AICore)
+
+public:
+    virtual ~AAIContextVolume();            // slot 2: 0x10B93430
 
 public:
 };
@@ -163,12 +175,18 @@ class AAIFactionModel : public AAIModel
     DECLARE_CLASS(AAIFactionModel, AAIModel, 0x0, AICore)
 
 public:
+    virtual ~AAIFactionModel();             // slot 2: 0x10962A60
+
+public:
 };
 T3_CHECK_SIZE(AAIFactionModel, 0xC0);
 
 class AAIMovementModel : public AAIModel
 {
     DECLARE_CLASS(AAIMovementModel, AAIModel, 0x0, AICore)
+
+public:
+    virtual ~AAIMovementModel();            // slot 2: 0x10962B00
 
 public:
     FLOAT CombatTurnSpeedMultiplier;        // 0xC0
@@ -187,6 +205,13 @@ class AAIPathPoint : public AMarker
     DECLARE_CLASS(AAIPathPoint, AMarker, 0x0, AICore)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x10BBEF80
+    virtual ~AAIPathPoint();                // slot 2: 0x10B93830
+    virtual void Unknown18();               // slot 6: 0x10BBF010
+    virtual void Unknown1C();               // slot 7: 0x10BBEF10
+    virtual void Unknown20();               // slot 8: 0x10BBEFD0
+
+public:
     INT pad;                                // 0xC0
 };
 T3_CHECK_SIZE(AAIPathPoint, 0xC4);
@@ -194,6 +219,9 @@ T3_CHECK_SIZE(AAIPathPoint, 0xC4);
 class AAIPawn : public APawn
 {
     DECLARE_CLASS(AAIPawn, APawn, 0x0, AICore)
+
+public:
+    virtual ~AAIPawn();                     // slot 2: 0x10B97680
 
 public:
     BITFIELD DiagnosticsOn:1;               // 0x208
@@ -216,6 +244,11 @@ class AAIPawnController : public AAIController
     DECLARE_CLASS(AAIPawnController, AAIController, 0x0, AICore)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x10B9C520
+    virtual ~AAIPawnController();           // slot 2: 0x10962790
+    virtual void Unknown20();               // slot 8: 0x10B9BE00
+
+public:
     BITFIELD initialized:1;                 // 0x114
     INT pad0;                               // 0x118
 };
@@ -226,12 +259,18 @@ class AAISensoryModel : public AAIModel
     DECLARE_CLASS(AAISensoryModel, AAIModel, 0x0, AICore)
 
 public:
+    virtual ~AAISensoryModel();             // slot 2: 0x10962BA0
+
+public:
 };
 T3_CHECK_SIZE(AAISensoryModel, 0xC0);
 
 class AAITaggedVolume : public AVolume
 {
     DECLARE_CLASS(AAITaggedVolume, AVolume, 0x0, AICore)
+
+public:
+    virtual ~AAITaggedVolume();             // slot 2: 0x10B934D0
 
 public:
 };
@@ -242,12 +281,18 @@ class AAddAIPoint : public AAIPathPoint
     DECLARE_CLASS(AAddAIPoint, AAIPathPoint, 0x0, AICore)
 
 public:
+    virtual ~AAddAIPoint();                 // slot 2: 0x10B938D0
+
+public:
 };
 T3_CHECK_SIZE(AAddAIPoint, 0xC4);
 
 class AChangeDirectionPoint : public AAIPathPoint
 {
     DECLARE_CLASS(AChangeDirectionPoint, AAIPathPoint, 0x0, AICore)
+
+public:
+    virtual ~AChangeDirectionPoint();       // slot 2: 0x10B93970
 
 public:
 };
@@ -258,12 +303,19 @@ class APatrolPoint : public AAIPathPoint
     DECLARE_CLASS(APatrolPoint, AAIPathPoint, 0x0, AICore)
 
 public:
+    virtual ~APatrolPoint();                // slot 2: 0x10B93E00
+
+public:
 };
 T3_CHECK_SIZE(APatrolPoint, 0xC4);
 
 class ACityPopPoint : public APatrolPoint
 {
     DECLARE_CLASS(ACityPopPoint, APatrolPoint, 0x0, AICore)
+
+public:
+    virtual ~ACityPopPoint();               // slot 2: 0x10B93E70
+    virtual void Unknown1C();               // slot 7: 0x10BC2F00
 
 public:
 };
@@ -274,12 +326,19 @@ class ACitySectionPopulationInfo : public AInfo
     DECLARE_CLASS(ACitySectionPopulationInfo, AInfo, 0x0, AICore)
 
 public:
+    virtual ~ACitySectionPopulationInfo();  // slot 2: 0x10B940F0
+    virtual void Unknown1C();               // slot 7: 0x10BC2F20
+
+public:
 };
 T3_CHECK_SIZE(ACitySectionPopulationInfo, 0xC0);
 
 class AEnumEvidenceType : public AActor
 {
     DECLARE_CLASS(AEnumEvidenceType, AActor, 0x0, AICore)
+
+public:
+    virtual ~AEnumEvidenceType();           // slot 2: 0x10B93610
 
 public:
     BYTE DummyVariable;                     // 0xC0  EEvidenceType
@@ -291,6 +350,9 @@ class AEnumInferenceType : public AActor
     DECLARE_CLASS(AEnumInferenceType, AActor, 0x0, AICore)
 
 public:
+    virtual ~AEnumInferenceType();          // slot 2: 0x10B936B0
+
+public:
     BYTE DummyVariable;                     // 0xC0  EInferenceType
 };
 T3_CHECK_SIZE(AEnumInferenceType, 0xC4);
@@ -298,6 +360,9 @@ T3_CHECK_SIZE(AEnumInferenceType, 0xC4);
 class AEnumStateType : public AActor
 {
     DECLARE_CLASS(AEnumStateType, AActor, 0x0, AICore)
+
+public:
+    virtual ~AEnumStateType();              // slot 2: 0x10B93750
 
 public:
     BYTE DummyVariable;                     // 0xC0  EStateType
@@ -309,12 +374,18 @@ class AFocusPoint : public AMarker
     DECLARE_CLASS(AFocusPoint, AMarker, 0x0, AICore)
 
 public:
+    virtual ~AFocusPoint();                 // slot 2: 0x10B93FB0
+
+public:
 };
 T3_CHECK_SIZE(AFocusPoint, 0xC0);
 
 class AFormationPoint : public AAIPathPoint
 {
     DECLARE_CLASS(AFormationPoint, AAIPathPoint, 0x0, AICore)
+
+public:
+    virtual ~AFormationPoint();             // slot 2: 0x10B93A10
 
 public:
 };
@@ -325,12 +396,18 @@ class AFormationPointAbsolute : public AAIPathPoint
     DECLARE_CLASS(AFormationPointAbsolute, AAIPathPoint, 0x0, AICore)
 
 public:
+    virtual ~AFormationPointAbsolute();     // slot 2: 0x10B93AB0
+
+public:
 };
 T3_CHECK_SIZE(AFormationPointAbsolute, 0xC4);
 
 class AHeadTurnPoint : public AAIPathPoint
 {
     DECLARE_CLASS(AHeadTurnPoint, AAIPathPoint, 0x0, AICore)
+
+public:
+    virtual ~AHeadTurnPoint();              // slot 2: 0x10B93B50
 
 public:
 };
@@ -341,12 +418,18 @@ class ALookPoint : public AAIPathPoint
     DECLARE_CLASS(ALookPoint, AAIPathPoint, 0x0, AICore)
 
 public:
+    virtual ~ALookPoint();                  // slot 2: 0x10B93C20
+
+public:
 };
 T3_CHECK_SIZE(ALookPoint, 0xC4);
 
 class ANavMeshInsertionPoint : public AMarker
 {
     DECLARE_CLASS(ANavMeshInsertionPoint, AMarker, 0x0, AICore)
+
+public:
+    virtual ~ANavMeshInsertionPoint();      // slot 2: 0x10B94050
 
 public:
 };
@@ -357,12 +440,18 @@ class ANavMeshSubtractionVolume : public AVolume
     DECLARE_CLASS(ANavMeshSubtractionVolume, AVolume, 0x0, AICore)
 
 public:
+    virtual ~ANavMeshSubtractionVolume();   // slot 2: 0x10B93570
+
+public:
 };
 T3_CHECK_SIZE(ANavMeshSubtractionVolume, 0x148);
 
 class APlayAnimPoint : public ALookPoint
 {
     DECLARE_CLASS(APlayAnimPoint, ALookPoint, 0x0, AICore)
+
+public:
+    virtual ~APlayAnimPoint();              // slot 2: 0x10B93C90
 
 public:
 };
@@ -373,12 +462,18 @@ class APlayBarkPoint : public ALookPoint
     DECLARE_CLASS(APlayBarkPoint, ALookPoint, 0x0, AICore)
 
 public:
+    virtual ~APlayBarkPoint();              // slot 2: 0x10B93D30
+
+public:
 };
 T3_CHECK_SIZE(APlayBarkPoint, 0xC4);
 
 class AWanderPoint : public APatrolPoint
 {
     DECLARE_CLASS(AWanderPoint, APatrolPoint, 0x0, AICore)
+
+public:
+    virtual ~AWanderPoint();                // slot 2: 0x10B93F10
 
 public:
 };

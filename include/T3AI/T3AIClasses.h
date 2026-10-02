@@ -12,12 +12,18 @@ class AT3AIPawnController : public AAIPawnController
     DECLARE_CLASS(AT3AIPawnController, AAIPawnController, 0x0, T3AI)
 
 public:
+    virtual ~AT3AIPawnController();         // slot 2: 0x10962BF0
+
+public:
 };
 T3_CHECK_SIZE(AT3AIPawnController, 0x11C);
 
 class AT3BehaviorModel : public AAIBehaviorModel
 {
     DECLARE_CLASS(AT3BehaviorModel, AAIBehaviorModel, 0x0, T3AI)
+
+public:
+    virtual ~AT3BehaviorModel();            // slot 2: 0x10962C90
 
 public:
 };
@@ -28,12 +34,18 @@ class AT3CombatModel : public AAICombatModel
     DECLARE_CLASS(AT3CombatModel, AAICombatModel, 0x0, T3AI)
 
 public:
+    virtual ~AT3CombatModel();              // slot 2: 0x10962D30
+
+public:
 };
 T3_CHECK_SIZE(AT3CombatModel, 0xC0);
 
 class AT3FactionModel : public AAIFactionModel
 {
     DECLARE_CLASS(AT3FactionModel, AAIFactionModel, 0x0, T3AI)
+
+public:
+    virtual ~AT3FactionModel();             // slot 2: 0x10962DD0
 
 public:
 };
@@ -44,12 +56,18 @@ class AT3MovementModel : public AAIMovementModel
     DECLARE_CLASS(AT3MovementModel, AAIMovementModel, 0x0, T3AI)
 
 public:
+    virtual ~AT3MovementModel();            // slot 2: 0x10962E70
+
+public:
 };
 T3_CHECK_SIZE(AT3MovementModel, 0xE0);
 
 class AT3SensoryModel : public AAISensoryModel
 {
     DECLARE_CLASS(AT3SensoryModel, AAISensoryModel, 0x0, T3AI)
+
+public:
+    virtual ~AT3SensoryModel();             // slot 2: 0x10962F10
 
 public:
 };

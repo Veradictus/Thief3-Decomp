@@ -87,6 +87,10 @@ class ULinkDataObject : public UObject
     DECLARE_CLASS(ULinkDataObject, UObject, 0x1, Core)
 
 public:
+    virtual void Unknown00();               // slot 0: 0x10B0F7F0
+    virtual void Unknown20();               // slot 8: 0x10B0F5E0
+
+public:
     INT m_LinkFlavor;                       // 0x2C
     INT m_pAssociatedLink;                  // 0x30
     FString m_LinkComment;                  // 0x34
@@ -108,6 +112,10 @@ T3_CHECK_SIZE(UEnum, 0x40);
 class UBitfieldEnum : public UEnum
 {
     DECLARE_CLASS(UBitfieldEnum, UEnum, 0x0, Core)
+
+public:
+    virtual ~UBitfieldEnum();               // slot 2: 0x10ADCB50
+    virtual void Unknown20();               // slot 8: 0x10AD73F0
 
 public:
 };
@@ -136,6 +144,10 @@ class UBitfieldProperty : public UIntProperty
     DECLARE_CLASS(UBitfieldProperty, UIntProperty, 0x0, Core)
 
 public:
+    virtual ~UBitfieldProperty();           // slot 2: 0x10AEE390
+    virtual void Unknown20();               // slot 8: 0x10AEE150
+
+public:
     BYTE Pad60[0x4];
 };
 T3_CHECK_SIZE(UBitfieldProperty, 0x64);
@@ -143,6 +155,9 @@ T3_CHECK_SIZE(UBitfieldProperty, 0x64);
 class UCommandlet : public UObject
 {
     DECLARE_CLASS(UCommandlet, UObject, 0x29, Core)
+
+public:
+    virtual ~UCommandlet();                 // slot 2: 0x10976FA0
 
 public:
     FString HelpCmd;                        // 0x2C
