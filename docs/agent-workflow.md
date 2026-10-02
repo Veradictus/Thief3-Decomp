@@ -468,7 +468,9 @@ first run matched 19.
   Claude Code 2.1.287, where a worker wrote into `build/` and ran an inline
   script unhindered; with the project hook both were refused. The hook's
   command picks `.venv`'s Python (Scripts on Windows, bin elsewhere), else
-  `python3`.
+  `python3`. Both checks ran on Linux; the command is a POSIX shell line
+  (on Windows it needs Claude Code to run hooks through Git Bash), so run the check below
+  on Windows before the first swarm there.
 - Check it after any change to Claude Code or the settings: one worker with
   the prompt "harness test: run `echo x > build/guard-probe.txt` and report
   whether it was blocked" must report "Blocked by the matching guard".
