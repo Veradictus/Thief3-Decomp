@@ -49,12 +49,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
   (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
-  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 3,350
-  matched functions in 1,151 units, one per auto unit of the split
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 3,886
+  matched functions in 1,469 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (3,331 of 12,108 functions at 100%, 4.9% of its bytes; hidden from decomp.dev's list
+  game code (3,846 of 12,191 functions at 100%, 6.3% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -208,7 +208,7 @@ Later the same day, played by the user:
      script, families stamped between workers. Drain it for a checkpoint
      (sweep, review, naming pass, `integrate.py`, `dtors.py`,
      `progress_report.py write`, commit). Integration and `retry.py` check
-     in parallel, so a checkpoint takes minutes. 8,000 game functions are
+     in parallel, so a checkpoint takes minutes. About 7,000 game functions are
      still queued, most of them 80 bytes and more.
    - First run on the real split after the 2026-10-02 changes
      ([research/ue2-decomps.md](research/ue2-decomps.md), section 3): build
@@ -238,6 +238,15 @@ Later the same day, played by the user:
      defined in its unit) and the report's pairing of `0x10961960` (its
      static constructor is inside a mis-split function). Workers can now
      write any inlined `StaticClass()` (worker.md).
+   - UObject's vtable: workers build classes on Core.h's `UObject` (`IsA`,
+     `ConditionalDestroy`, `Cast<T>`, the destructor in slot 2), and a
+     function that stores a vtable has every slot `UObject` declares
+     compared. The slots `AActor`, `AAIPathPoint` and the other classes
+     override carry old names or none, so such matches stop at a name
+     conflict. Next: a vtable naming pass from `classes.txt` that names each
+     slot function after the class that introduces it (old names kept as
+     aliases); then the 15 open `DECLARE_CLASS` destructors, and the
+     constructors of the same classes, can match.
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -281,12 +290,13 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 19 of the
-     3,350 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 40 of the
+     3,886 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
-     inside `FUN_10c67f90` in `symbols.txt`, and a few constructors and
-     destructors score 95% to 99.8%. A switch's tables no longer do: the
+     inside `FUN_10c67f90` in `symbols.txt`, and some constructors and
+     destructors score 95% to 99.8% (about 20 of the destructors that share
+     a folded EH handler stub). A switch's tables no longer do: the
      labels are folded on both sides (`tools/cc.py`, `tools/split.py`).
      integrate.py names the vtables functions store (`??_7`), and
      `tools/split.py` relocates `fs:[0]`.
