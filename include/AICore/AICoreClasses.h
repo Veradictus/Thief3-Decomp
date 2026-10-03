@@ -205,11 +205,11 @@ class AAIPathPoint : public AMarker
     DECLARE_CLASS(AAIPathPoint, AMarker, 0x0, AICore)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10BBEF80
+    virtual void Destroy();                 // slot 0: 0x10BBEF80
     virtual ~AAIPathPoint();                // slot 2: 0x10B93830
-    virtual void Unknown18();               // slot 6: 0x10BBF010
-    virtual void Unknown1C();               // slot 7: 0x10BBEF10
-    virtual void Unknown20();               // slot 8: 0x10BBEFD0
+    virtual void Modify();                  // slot 6: 0x10BBF010
+    virtual void PostLoad();                // slot 7: 0x10BBEF10
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10BBEFD0
 
 public:
     INT pad;                                // 0xC0
@@ -244,9 +244,9 @@ class AAIPawnController : public AAIController
     DECLARE_CLASS(AAIPawnController, AAIController, 0x0, AICore)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10B9C520
+    virtual void Destroy();                 // slot 0: 0x10B9C520
     virtual ~AAIPawnController();           // slot 2: 0x10962790
-    virtual void Unknown20();               // slot 8: 0x10B9BE00
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10B9BE00
 
 public:
     BITFIELD initialized:1;                 // 0x114
@@ -315,7 +315,7 @@ class ACityPopPoint : public APatrolPoint
 
 public:
     virtual ~ACityPopPoint();               // slot 2: 0x10B93E70
-    virtual void Unknown1C();               // slot 7: 0x10BC2F00
+    virtual void PostLoad();                // slot 7: 0x10BC2F00
 
 public:
 };
@@ -327,7 +327,7 @@ class ACitySectionPopulationInfo : public AInfo
 
 public:
     virtual ~ACitySectionPopulationInfo();  // slot 2: 0x10B940F0
-    virtual void Unknown1C();               // slot 7: 0x10BC2F20
+    virtual void PostLoad();                // slot 7: 0x10BC2F20
 
 public:
 };

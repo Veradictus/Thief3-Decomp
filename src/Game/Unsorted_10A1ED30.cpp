@@ -83,6 +83,9 @@ void Class_10A1EDC0::FUN_10a1edc0()
         Buf->Unknown04.FUN_10d382eb();
 }
 
+// FUNCTION: 0x10A1EE60 ??_GClass_10E65574@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A1ED50's definition in this unit.
+
 // FUNCTION: 0x10A1F880 ?FUN_10a1f880@Class_10A1F880@@QAEHH@Z
 int Class_10A1F880::FUN_10a1f880(int Index)
 {

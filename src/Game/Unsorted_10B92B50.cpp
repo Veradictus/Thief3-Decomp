@@ -9,7 +9,7 @@ class Class_10E89A6C
 public:
     Class_10E89A6C(int Value) : Unknown04(Value) {}
 
-    virtual void Virtual0();
+    virtual ~Class_10E89A6C();
     virtual Class_10E89A6C* FUN_10b92b50();
 
     int Unknown04;

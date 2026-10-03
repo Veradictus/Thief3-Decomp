@@ -28,6 +28,7 @@ typedef DWORD BITFIELD;                 // a script bool: one bit of a 32-bit wo
 // for it (the generated <Package>Classes.h headers use it).
 #define T3_CHECK_SIZE(T, Size) typedef char T3_SizeCheck_##T[sizeof(T) == (Size) ? 1 : -1]
 
+class FArchive;
 class FFrame;
 class UObject;
 class UField;
@@ -177,6 +178,8 @@ public:
 
 // Selects UClass's constructor for a native class (UClass::UClass below).
 enum EStaticConstructor { EC_StaticConstructor };
+// What UObject::GotoState returns.
+enum EGotoState { GOTOSTATE_NotFound, GOTOSTATE_Success, GOTOSTATE_Preempted };
 
 // Object flags a native class's UClass object is created with (stock values).
 enum EObjectFlags
@@ -204,31 +207,35 @@ class UObject
     typedef UObject WithinClass;
 
 public:
-    virtual void Unknown00();
+    // Stock Unreal Engine 2's virtuals in Ion Storm's order: Destroy first
+    // (ConditionalDestroy calls slot 0), the destructor in slot 2, then the
+    // stock order. Every native class's table agrees with each slot's
+    // argument bytes (ret N); slots 1, 15 and 16 are not identified.
+    virtual void Destroy();
     virtual void Unknown04();
     // Slot 2: the deleting destructor (0x10ADD4C0) calls ~UObject (0x10ADC750).
     virtual ~UObject();
     // What each class's deleting destructor calls, with the class's size
     // (0x10AD1DC0, folded with ::operator delete).
     void operator delete(void* Object, size_t Size);
-    virtual void Unknown0C();
-    virtual void Unknown10();
-    virtual void Unknown14();
-    virtual void Unknown18();
-    virtual void Unknown1C();
-    virtual void Unknown20();
-    virtual void Unknown24();
-    virtual void Unknown28();
-    virtual void Unknown2C();
-    virtual void Unknown30();
-    virtual void Unknown34();
-    virtual void Unknown38();
+    virtual void ProcessEvent(UFunction* Function, void* Parms, void* Result = NULL);
+    virtual void ProcessState(FLOAT DeltaSeconds);
+    virtual UBOOL ProcessRemoteFunction(UFunction* Function, void* Parms, FFrame* Stack);
+    virtual void Modify();
+    virtual void PostLoad();
+    virtual void Serialize(FArchive& Ar);
+    virtual UBOOL IsPendingKill();
+    virtual EGotoState GotoState(FName State);
+    virtual INT GotoLabel(FName Label);
+    virtual void InitExecution();
+    virtual void ShutdownAfterError();
+    virtual void PostEditChange();
     virtual void Unknown3C();
     virtual void Unknown40();
 
     // Runs a script function (execFinalFunction and the other calls).
     virtual void CallFunction(FFrame& Stack, RESULT_DECL, UFunction* Function);
-    virtual void Unknown48();
+    virtual UBOOL ScriptConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor);
     // Registers a native class's natives once the object system is up
     // (InitializePrivateStaticClass's last call, slot 19).
     virtual void Register();

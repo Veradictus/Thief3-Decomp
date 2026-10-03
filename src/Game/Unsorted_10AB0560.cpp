@@ -43,3 +43,6 @@ Class_10E6DDB4::Class_10E6DDB4(std::string A, int B) : Class_10E77978(A), Unknow
 {
     Unknown24 = new Class_10AB04A0(A);
 }
+
+// FUNCTION: 0x10AB0650 ??_GClass_10E6DDB4@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10AB0570's definition in this unit.

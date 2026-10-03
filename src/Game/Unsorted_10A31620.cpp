@@ -25,6 +25,43 @@ public:
     void* Unknown08;
 };
 
+class Class_10A31F00;
+
+class Class_10A31F00_Owner
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual int Virtual2(Class_10A31F00* A, int B);
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual bool Virtual7(Class_10A31F00* A);
+};
+
+class Class_10A31F00
+{
+public:
+    int FUN_10a31f00();
+
+    Class_10A31F00_Owner* Unknown00;
+    char Unknown04[8];
+    int Unknown0C;
+};
+
+// FUNCTION: 0x10A31F00 ?FUN_10a31f00@Class_10A31F00@@QAEHXZ
+int Class_10A31F00::FUN_10a31f00()
+{
+    if (!Unknown00)
+        return 0;
+    if (!Unknown00->Virtual7(this))
+        return 0;
+    int Result = Unknown00->Virtual2(this, Unknown0C);
+    Unknown0C = -1;
+    return Result;
+}
+
 // FUNCTION: 0x10A32270 ?FUN_10a32270@Class_10A32270@@QAEXXZ
 void Class_10A32270::FUN_10a32270()
 {

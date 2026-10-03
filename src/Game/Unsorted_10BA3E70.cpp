@@ -37,3 +37,6 @@ Class_10E8C4A4* Class_10E8C5E8::FUN_10ba3e70(int A, int B)
 {
     return new(0, 0, 0, 0, 0) Class_10E8C4A4;
 }
+
+// FUNCTION: 0x10BA41C0 ??_GClass_10E8C4A4@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10BA3E70's definition in this unit.

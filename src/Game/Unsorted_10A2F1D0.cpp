@@ -9,7 +9,7 @@ class Class_10E5D5E0
 public:
     Class_10E5D5E0() : Unknown04(0) {}
 
-    virtual void Virtual0();
+    virtual ~Class_10E5D5E0();
     virtual Class_10E5D5E0* FUN_10a2f1d0();
 
     int Unknown04;
@@ -20,11 +20,14 @@ class Class_10E662C0
 public:
     Class_10E662C0(int Value) : Unknown04(Value) {}
 
-    virtual void Virtual0();
+    virtual ~Class_10E662C0();
     virtual Class_10E662C0* FUN_10a2f2c0();
 
     int Unknown04;
 };
+
+// FUNCTION: 0x10A15B00 ??_GClass_10E5D5E0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A2F1D0's definition in this unit.
 
 // FUNCTION: 0x10A2F1D0 ?FUN_10a2f1d0@Class_10E5D5E0@@UAEPAV1@XZ
 Class_10E5D5E0* Class_10E5D5E0::FUN_10a2f1d0()

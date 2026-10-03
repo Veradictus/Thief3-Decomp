@@ -37,6 +37,9 @@ public:
     Class_10E8D658 Unknown4030;
 };
 
+// FUNCTION: 0x10BA8F90 ??_GClass_10E8D65C@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10BA8FB0's definition in this unit.
+
 // FUNCTION: 0x10BA8FB0 ??1Class_10E8D65C@@UAE@XZ
 Class_10E8D65C::~Class_10E8D65C()
 {

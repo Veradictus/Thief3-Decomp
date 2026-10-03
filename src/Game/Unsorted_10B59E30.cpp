@@ -54,3 +54,6 @@ Class_10E82480::Class_10E82480()
     : Unknown2CC(0), Unknown2D0(0), Unknown2D4(0)
 {
 }
+
+// FUNCTION: 0x10B59F80 ??_GClass_10E82480@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B59F20's definition in this unit.

@@ -41,6 +41,37 @@ public:
     int Unknown10;
 };
 
+class Class_10BFBD70
+{
+public:
+    void FUN_109dff50(int Index);
+
+    int Unknown00;
+    int Unknown04;
+    int* Unknown08;
+};
+
+class Class_10B47C50
+{
+public:
+    void FUN_10b47b20(int A, float B, float C, int D, int E, bool F, bool G, float H);
+    void FUN_10b47c50();
+
+    char Unknown00[0x4C];
+    Class_10BFBD70 Unknown4C;
+};
+
+// FUNCTION: 0x10B47C50 ?FUN_10b47c50@Class_10B47C50@@QAEXXZ
+void Class_10B47C50::FUN_10b47c50()
+{
+    int Count = Unknown4C.Unknown00;
+    if (Count > 0)
+    {
+        FUN_10b47b20(Unknown4C.Unknown08[Count - 1], -1.0f, 1.0f, 0x101, 0, true, false, -1.0f);
+        Unknown4C.FUN_109dff50(Count - 1);
+    }
+}
+
 // FUNCTION: 0x10B483C0 ?FUN_10b483c0@Class_10E7E538@@UAEXPAVClass_10B22020@@@Z
 void Class_10E7E538::FUN_10b483c0(Class_10B22020* A)
 {

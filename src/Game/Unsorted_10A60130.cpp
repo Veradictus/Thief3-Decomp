@@ -145,6 +145,29 @@ public:
     virtual void Virtual133();
 };
 
+class Class_10A62680
+{
+public:
+    void FUN_10a62680(float A, float B);
+
+    char Unknown00[0xC];
+    bool Unknown0C;
+    char Unknown0D[7];
+    float Unknown14;
+    float Unknown18;
+};
+
+// FUNCTION: 0x10A62680 ?FUN_10a62680@Class_10A62680@@QAEXMM@Z
+void Class_10A62680::FUN_10a62680(float A, float B)
+{
+    if (A != Unknown14 || B != Unknown18)
+    {
+        Unknown14 = A;
+        Unknown18 = B;
+        Unknown0C = false;
+    }
+}
+
 // FUNCTION: 0x10A626C0 ?FUN_10a626c0@Class_10E6A9F8@@UAEXH@Z
 void Class_10E6A9F8::FUN_10a626c0(int A)
 {

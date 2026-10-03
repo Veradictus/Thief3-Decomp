@@ -461,14 +461,14 @@ class AActor : public UObject
     DECLARE_CLASS(AActor, UObject, 0x800, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10993EC0
+    virtual void Destroy();                 // slot 0: 0x10993EC0
     virtual ~AActor();                      // slot 2: 0x109624C0
-    virtual void Unknown0C();               // slot 3: 0x1098CFC0
-    virtual void Unknown10();               // slot 4: 0x109E97F0
-    virtual void Unknown1C();               // slot 7: 0x10993FC0
-    virtual void Unknown20();               // slot 8: 0x10995410
-    virtual void Unknown24();               // slot 9: 0x109623C0
-    virtual void Unknown30();               // slot 12: 0x109E9650
+    virtual void ProcessEvent(UFunction* Function, void* Parms, void* Result);// slot 3: 0x1098CFC0
+    virtual void ProcessState(FLOAT DeltaSeconds);// slot 4: 0x109E97F0
+    virtual void PostLoad();                // slot 7: 0x10993FC0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10995410
+    virtual UBOOL IsPendingKill();          // slot 9: 0x109623C0
+    virtual void InitExecution();           // slot 12: 0x109E9650
     virtual void Unknown3C();               // slot 15: 0x1098E0E0
 
 public:
@@ -578,7 +578,7 @@ class ABrush : public AActor
 
 public:
     virtual ~ABrush();                      // slot 2: 0x1098C850
-    virtual void Unknown1C();               // slot 7: 0x109941C0
+    virtual void PostLoad();                // slot 7: 0x109941C0
     virtual void Unknown3C();               // slot 15: 0x10993AD0
 
 public:
@@ -613,7 +613,7 @@ class AController : public AActor
     DECLARE_CLASS(AController, AActor, 0x800, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x109ECDB0
+    virtual void Destroy();                 // slot 0: 0x109ECDB0
 
 public:
     APawn* Pawn;                            // 0xC0
@@ -657,10 +657,10 @@ class APawn : public AActor
     DECLARE_CLASS(APawn, AActor, 0x800, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10A4FD70
+    virtual void Destroy();                 // slot 0: 0x10A4FD70
     virtual ~APawn();                       // slot 2: 0x10A46E10
-    virtual void Unknown1C();               // slot 7: 0x109A6250
-    virtual void Unknown20();               // slot 8: 0x10A50120
+    virtual void PostLoad();                // slot 7: 0x109A6250
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10A50120
 
 public:
     AController* Controller;                // 0xC0
@@ -1011,9 +1011,9 @@ class AEmitter : public AFX
     DECLARE_CLASS(AEmitter, AFX, 0x0, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x109966F0
+    virtual void Destroy();                 // slot 0: 0x109966F0
     virtual ~AEmitter();                    // slot 2: 0x109973B0
-    virtual void Unknown1C();               // slot 7: 0x10996810
+    virtual void PostLoad();                // slot 7: 0x10996810
     virtual void Unknown3C();               // slot 15: 0x10996490
     virtual void Unknown40();               // slot 16: 0x10996600
 
@@ -1046,7 +1046,7 @@ class APlayerPawn : public APawn
 
 public:
     virtual ~APlayerPawn();                 // slot 2: 0x10A47700
-    virtual void Unknown20();               // slot 8: 0x10A464D0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10A464D0
 
 public:
     TArray<FsGoal> Goals;                   // 0x208
@@ -1242,7 +1242,7 @@ class ANavigationPoint : public AKeypoint
     DECLARE_CLASS(ANavigationPoint, AKeypoint, 0x0, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10A3D8B0
+    virtual void Destroy();                 // slot 0: 0x10A3D8B0
     virtual ~ANavigationPoint();            // slot 2: 0x1098C9D0
 
 public:
@@ -1642,9 +1642,9 @@ class UParticleEmitter : public UObject
     DECLARE_CLASS(UParticleEmitter, UObject, 0x0, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x109A67D0
+    virtual void Destroy();                 // slot 0: 0x109A67D0
     virtual ~UParticleEmitter();            // slot 2: 0x109A9EE0
-    virtual void Unknown1C();               // slot 7: 0x109A67B0
+    virtual void PostLoad();                // slot 7: 0x109A67B0
     virtual void Unknown3C();               // slot 15: 0x10D660B0
     virtual void Unknown40();               // slot 16: 0x109A6BB0
 
@@ -1812,10 +1812,10 @@ class UBitmap : public UObject
     DECLARE_CLASS(UBitmap, UObject, 0x1, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x1096D7A0
+    virtual void Destroy();                 // slot 0: 0x1096D7A0
     virtual ~UBitmap();                     // slot 2: 0x1096BE40
-    virtual void Unknown1C();               // slot 7: 0x1096BC10
-    virtual void Unknown20();               // slot 8: 0x1096BA90
+    virtual void PostLoad();                // slot 7: 0x1096BC10
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x1096BA90
 
 public:
     BYTE Format;                            // 0x2C  ETextureFormat
@@ -1860,7 +1860,7 @@ class UCARDEntry : public UObject
 
 public:
     virtual ~UCARDEntry();                  // slot 2: 0x1098AA70
-    virtual void Unknown20();               // slot 8: 0x1098ABF0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x1098ABF0
 
 public:
     BYTE Pad2C[0x34];
@@ -2454,7 +2454,7 @@ class UPalette : public UObject
 
 public:
     virtual ~UPalette();                    // slot 2: 0x1096B290
-    virtual void Unknown20();               // slot 8: 0x1096AED0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x1096AED0
 
 public:
     TArray<FColor> Colors;                  // 0x2C
@@ -2466,10 +2466,10 @@ class UPlayer : public UObject
     DECLARE_CLASS(UPlayer, UObject, 0xD, Engine)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10C86020
+    virtual void Destroy();                 // slot 0: 0x10C86020
     virtual ~UPlayer();                     // slot 2: 0x10C8DA60
-    virtual void Unknown20();               // slot 8: 0x109DCFF0
-    virtual void Unknown38();               // slot 14: 0x10C85D10
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x109DCFF0
+    virtual void PostEditChange();          // slot 14: 0x10C85D10
 
 public:
     INT vfOut;                              // 0x2C

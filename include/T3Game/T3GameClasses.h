@@ -139,7 +139,7 @@ class ASpellProjectile : public AActor
     DECLARE_CLASS(ASpellProjectile, AActor, 0x800, T3Game)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10ABD7F0
+    virtual void Destroy();                 // slot 0: 0x10ABD7F0
     virtual ~ASpellProjectile();            // slot 2: 0x10AB4020
 
 public:

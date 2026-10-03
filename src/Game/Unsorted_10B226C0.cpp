@@ -29,6 +29,38 @@ public:
     Class_10B3ED20* Unknown94;
 };
 
+class Object_10B22790
+{
+public:
+    virtual ~Object_10B22790();
+};
+
+class Class_10E7A768
+{
+public:
+    virtual ~Class_10E7A768();
+
+    int Unknown04;
+    Object_10B22790* Unknown08[34];
+    int Unknown90;
+    int Unknown94;
+};
+
+// FUNCTION: 0x10B22790 ??1Class_10E7A768@@UAE@XZ
+Class_10E7A768::~Class_10E7A768()
+{
+    for (int i = 0; i < 34; i++)
+    {
+        if (Unknown08[i])
+        {
+            delete Unknown08[i];
+            Unknown08[i] = 0;
+        }
+    }
+    Unknown90 = 0;
+    Unknown94 = 0;
+}
+
 // FUNCTION: 0x10B228A0 ?FUN_10b228a0@Class_10B228A0@@QAEHXZ
 int Class_10B228A0::FUN_10b228a0()
 {

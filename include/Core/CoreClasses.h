@@ -87,8 +87,8 @@ class ULinkDataObject : public UObject
     DECLARE_CLASS(ULinkDataObject, UObject, 0x1, Core)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10B0F7F0
-    virtual void Unknown20();               // slot 8: 0x10B0F5E0
+    virtual void Destroy();                 // slot 0: 0x10B0F7F0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10B0F5E0
 
 public:
     INT m_LinkFlavor;                       // 0x2C
@@ -118,7 +118,7 @@ class UBitfieldEnum : public UEnum
 
 public:
     virtual ~UBitfieldEnum();               // slot 2: 0x10ADCB50
-    virtual void Unknown20();               // slot 8: 0x10AD73F0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10AD73F0
 
 public:
 };
@@ -151,7 +151,7 @@ class UBitfieldProperty : public UIntProperty
 
 public:
     virtual ~UBitfieldProperty();           // slot 2: 0x10AEE390
-    virtual void Unknown20();               // slot 8: 0x10AEE150
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10AEE150
 
 public:
     BYTE Pad60[0x4];

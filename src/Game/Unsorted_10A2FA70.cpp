@@ -9,12 +9,13 @@ void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D
 class Class_10E662C0
 {
 public:
-    virtual void Virtual0();
+    virtual ~Class_10E662C0();
 };
 
 class Class_10E6B93C : public Class_10E662C0
 {
 public:
+    virtual ~Class_10E6B93C();
     Class_10E6B93C(int Value) : Unknown04(Value) {}
 
     virtual Class_10E6B93C* FUN_10a2fa70();

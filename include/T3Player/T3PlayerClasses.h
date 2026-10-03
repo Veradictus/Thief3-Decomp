@@ -91,9 +91,9 @@ class AGarrett : public APlayerPawn
     DECLARE_CLASS(AGarrett, APlayerPawn, 0x800, T3Player)
 
 public:
-    virtual void Unknown00();               // slot 0: 0x10B21630
+    virtual void Destroy();                 // slot 0: 0x10B21630
     virtual ~AGarrett();                    // slot 2: 0x10B133A0
-    virtual void Unknown20();               // slot 8: 0x10B21AD0
+    virtual void Serialize(FArchive& Ar);   // slot 8: 0x10B21AD0
 
 public:
     TArray<FRemovedInventoryInfo> RemovedInventory; // 0x278

@@ -47,3 +47,6 @@ Class_10E6C4A8* Class_10E5D734::FUN_10a891a0(int A, int B)
     FUN_10905aa0()->Virtual9();
     return Result;
 }
+
+// FUNCTION: 0x10A89540 ??_GClass_10E6C4A8@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A891A0's definition in this unit.

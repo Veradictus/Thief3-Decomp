@@ -48,6 +48,9 @@ public:
     virtual Class_10E6C5D0* FUN_10a8a620(int A, int B);
 };
 
+// FUNCTION: 0x10A8A5B0 ??_GClass_10E6C5D0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A8A620's definition in this unit.
+
 // FUNCTION: 0x10A8A5D0 ??$Cast@VUByteProperty@@@@YAPAVUByteProperty@@PAVUObject@@@Z
 template UByteProperty* Cast<UByteProperty>(UObject* Src);
 

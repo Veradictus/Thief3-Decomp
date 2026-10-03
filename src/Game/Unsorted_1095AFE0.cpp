@@ -13,6 +13,33 @@ public:
     float Unknown10;
 };
 
+class TimeManager
+{
+public:
+    static TimeManager* Instance();
+    bool IsPaused();
+    double GetGameTime();
+};
+
+double FUN_1095af80();
+
+class Class_1095B040
+{
+public:
+    void FUN_1095b040(int A);
+
+    float Unknown00;
+};
+
+// FUNCTION: 0x1095B040 ?FUN_1095b040@Class_1095B040@@QAEXH@Z
+void Class_1095B040::FUN_1095b040(int A)
+{
+    if (TimeManager::Instance()->IsPaused())
+        Unknown00 = FUN_1095af80();
+    else
+        Unknown00 = TimeManager::Instance()->GetGameTime();
+}
+
 // FUNCTION: 0x1095B070 ?FUN_1095b070@Class_1095B070@@QAEHXZ
 int Class_1095B070::FUN_1095b070()
 {

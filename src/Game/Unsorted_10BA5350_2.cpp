@@ -262,6 +262,9 @@ Class_10E8D658::Class_10E8D658()
 {
 }
 
+// FUNCTION: 0x10BA8EF0 ??_GClass_10E8D658@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10BA8E40's definition in this unit.
+
 // FUNCTION: 0x10BA8F10 ?FUN_10ba8f10@@YAXXZ
 void FUN_10ba8f10()
 {

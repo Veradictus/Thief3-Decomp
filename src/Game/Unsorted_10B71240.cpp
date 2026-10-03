@@ -85,3 +85,6 @@ Class_10E873B0::Class_10E873B0()
 {
     Unknown184 = 8;
 }
+
+// FUNCTION: 0x10B71AC0 ??_GClass_10E873B0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B71830's definition in this unit.

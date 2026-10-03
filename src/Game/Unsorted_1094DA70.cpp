@@ -27,6 +27,33 @@ public:
     Info_1094DF40 Unknown14C;
 };
 
+extern "C" int memcmp(const void*, const void*, unsigned);
+
+struct Struct_1094DF00
+{
+    char Unknown00[0x40];
+};
+
+class Class_1094DF00
+{
+public:
+    void FUN_1094df00(const Struct_1094DF00& Value);
+
+    char Unknown00[4];
+    Struct_1094DF00 Unknown04;
+    char Unknown44[0x18];
+    unsigned int Unknown5C;
+};
+
+// FUNCTION: 0x1094DF00 ?FUN_1094df00@Class_1094DF00@@QAEXABUStruct_1094DF00@@@Z
+void Class_1094DF00::FUN_1094df00(const Struct_1094DF00& Value)
+{
+    int Diff = memcmp(&Unknown04, &Value, sizeof(Struct_1094DF00));
+    if (Diff != 0)
+        Unknown5C |= 4;
+    Unknown04 = Value;
+}
+
 // FUNCTION: 0x1094DF40 ?FUN_1094df40@Class_1094DF40@@QAEXPBUInfo_1094DF40@@@Z
 void Class_1094DF40::FUN_1094df40(const Info_1094DF40* In)
 {
