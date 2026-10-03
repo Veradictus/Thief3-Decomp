@@ -24,6 +24,7 @@ the claim. Deferring is a successful outcome.
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import sys
 import time
@@ -37,6 +38,18 @@ from verify import Verifier, render
 
 # Functions MSVC writes itself: scalar and vector deleting destructors.
 GENERATED = ("??_G", "??_E")
+
+
+def defines(source: str, symbol: str) -> bool:
+    """Whether the definition after the `// FUNCTION:` line is the constructor (??0) or destructor (??1)
+    `symbol` names, rather than another function's."""
+    cls = re.match(r"\?\?[01](\w+?)@", symbol)
+    marked = re.search(r"// FUNCTION: [^\n]*\n([^{;]*?)\(", source)
+    if not cls or not marked:
+        return True
+    tilde = "~" if symbol.startswith("??1") else ""
+    return bool(re.search(r"\b%s::%s%s\s*$" % (re.escape(cls.group(1)), tilde, re.escape(cls.group(1))),
+                          marked.group(1).strip()))
 
 
 def emitter_of(p: Project, obj_path: Path, address: int):
@@ -105,7 +118,13 @@ def accept(argv) -> None:
         reject(reasons or ["no match"], render(res))
 
     generated = {}
-    if res.symbol.startswith(GENERATED):
+    # An implicit constructor or destructor has no definition either: the marker sits on another function's,
+    # which must be the game's own (--with), never one made up to make the compiler emit it.
+    implicit = res.symbol.startswith(("??0", "??1")) and not defines(source, res.symbol)
+    if implicit and not args.emitter:
+        reject([f"the marker sits on another function's definition, not {res.symbol}'s: an implicit constructor "
+                f"or destructor is accepted with --with <the game's function whose definition emits it>"])
+    if res.symbol.startswith(GENERATED) or implicit:
         # No definition of its own: it is emitted with its class's vtable, where the class's constructor or
         # destructor is defined. integrate.py puts its marker in that function's unit.
         workdir = p.state / "tmp" / f"{agent}-{addr_key(address)}-accept"

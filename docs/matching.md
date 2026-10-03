@@ -187,6 +187,11 @@ integrate.py puts only the marker in that function's unit, which emits it
 (in the same run when that function goes in then). The queue excludes
 deleting destructors, so that workers leave them alone; that does not keep
 an accepted one out of `src/`.
+So does an implicit constructor or destructor (`??0`, `??1`): accept.py
+refuses one whose `// FUNCTION:` line sits on another function's definition
+unless `--with` names the game's function that emits it. A function made up
+to make the compiler write it would put code in `src/` that the game does
+not have.
 In a vtable, the vector deleting destructor `??_E` is a weak external that
 stands for `??_G`; the rulers follow it.
 

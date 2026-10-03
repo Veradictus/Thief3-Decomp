@@ -294,6 +294,18 @@ def test_wrong_literal_rejected(base: Path) -> None:
     print(f"    note: objdiff functionRelocDiffs=data_value scores the wrong float at {pct}%")
 
 
+def test_implicit_needs_emitter(base: Path) -> None:
+    """An implicit destructor's marker on a constructor's definition is a stand-in unless --with names the
+    game's function that emits it: accept.py tells the two apart."""
+    import accept
+    stand_in = "struct C { C(); int n; };\n// FUNCTION: 0x10901000\nC::C()\n{\n}\n"
+    check(not accept.defines(stand_in, "??1C@@UAE@XZ"), "a constructor's definition does not define ~C")
+    check(accept.defines("// FUNCTION: 0x10901000\nC::~C()\n{\n}\n", "??1C@@UAE@XZ")
+          and accept.defines("// FUNCTION: 0x10901000\nC::C(int A)\n    : n(A)\n{\n}\n", "??0C@@QAE@H@Z")
+          and accept.defines("// FUNCTION: 0x10901000\nint F()\n{\n    return 0;\n}\n", "?F@@YAHXZ"),
+          "a destructor, a constructor and any other function define themselves")
+
+
 def test_lint(base: Path) -> None:
     e = Env(base, "lint")
     sym = "?Seven@@YAHH@Z"
@@ -844,7 +856,8 @@ def test_categories_and_except_list(base: Path) -> None:
 TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
     test_wrong_callee_rejected, test_self_call,
-    test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
+    test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_implicit_needs_emitter,
+    test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_generated_follows_emitter,
     test_integrate_keeps_distinct_includes,
     test_integrate_drops_what_breaks,

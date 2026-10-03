@@ -186,6 +186,12 @@ call, `test byte ptr [esp+8], 1`, a delete call, `return this`) and a global
 object's initializer (a constructor call, then `atexit`): the compiler emits
 them from a virtual destructor or a global's definition. Defer them at once
 with the blocker "compiler-generated: <what>"; never write them as functions.
+An implicit destructor or constructor is compiler-generated too: it matches
+only with the game's function whose definition emits it (`--with <addr>`,
+that function's own source), never through a made-up constructor or
+destructor written to make the compiler emit it; accept.py refuses that.
+Defer it with "compiler-generated: implicit <what> of <class>, emitted by
+<addr>".
 
 ## Names need evidence
 
