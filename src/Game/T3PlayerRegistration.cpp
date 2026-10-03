@@ -122,12 +122,12 @@ void AT3PlayerController::InitializePrivateStaticClassAT3PlayerController()
 UClass* AT3PlayerController::GetPrivateStaticClassAT3PlayerController(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3PlayerController), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3PlayerController")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3PlayerController::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3PlayerController), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3PlayerController")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3PlayerController::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -136,12 +136,12 @@ UClass* AT3PlayerController::GetPrivateStaticClassAT3PlayerController(const TCHA
 UClass* UAttachment_LinkDataObject::GetPrivateStaticClassUAttachment_LinkDataObject(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UAttachment_LinkDataObject), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UAttachment_LinkDataObject")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UAttachment_LinkDataObject::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UAttachment_LinkDataObject), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UAttachment_LinkDataObject")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UAttachment_LinkDataObject::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -150,12 +150,12 @@ UClass* UAttachment_LinkDataObject::GetPrivateStaticClassUAttachment_LinkDataObj
 UClass* UInvenBook_LinkDataObject::GetPrivateStaticClassUInvenBook_LinkDataObject(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UInvenBook_LinkDataObject), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UInvenBook_LinkDataObject")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UInvenBook_LinkDataObject::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UInvenBook_LinkDataObject), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UInvenBook_LinkDataObject")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UInvenBook_LinkDataObject::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -164,12 +164,12 @@ UClass* UInvenBook_LinkDataObject::GetPrivateStaticClassUInvenBook_LinkDataObjec
 UClass* UHUDRenderLinkDataObject::GetPrivateStaticClassUHUDRenderLinkDataObject(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UHUDRenderLinkDataObject), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UHUDRenderLinkDataObject")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UHUDRenderLinkDataObject::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UHUDRenderLinkDataObject), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UHUDRenderLinkDataObject")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UHUDRenderLinkDataObject::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -178,12 +178,12 @@ UClass* UHUDRenderLinkDataObject::GetPrivateStaticClassUHUDRenderLinkDataObject(
 UClass* UGarrettEquipLinkDataObject::GetPrivateStaticClassUGarrettEquipLinkDataObject(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UGarrettEquipLinkDataObject), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UGarrettEquipLinkDataObject")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UGarrettEquipLinkDataObject::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UGarrettEquipLinkDataObject), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UGarrettEquipLinkDataObject")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UGarrettEquipLinkDataObject::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -192,12 +192,12 @@ UClass* UGarrettEquipLinkDataObject::GetPrivateStaticClassUGarrettEquipLinkDataO
 UClass* AGarrett::GetPrivateStaticClassAGarrett(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AGarrett), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AGarrett")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AGarrett::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AGarrett), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AGarrett")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AGarrett::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -206,12 +206,12 @@ UClass* AGarrett::GetPrivateStaticClassAGarrett(const TCHAR* Package)
 UClass* UT3GameEngine::GetPrivateStaticClassUT3GameEngine(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UT3GameEngine), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UT3GameEngine")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UT3GameEngine::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UT3GameEngine), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UT3GameEngine")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UT3GameEngine::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -233,12 +233,12 @@ void UT3Game::InitializePrivateStaticClassUT3Game()
 UClass* UT3Game::GetPrivateStaticClassUT3Game(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UT3Game), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UT3Game")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UT3Game::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UT3Game), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UT3Game")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UT3Game::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }

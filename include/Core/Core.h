@@ -78,11 +78,15 @@ public:
     T& operator()(INT i) { return ((T*)Data)[i]; }
 };
 
+// A constructor that leaves the object as it is (the object system zeroes it first).
+enum ENoInit { E_NoInit = 0 };
+
 // A string: its characters and terminator in an array (TArray<ANSICHAR> in
 // stock Unreal Engine 2), with these members out of line in this build.
 class FString : public FArray
 {
 public:
+    FString(ENoInit) {}
     FString();                                                // 0x10AF8230
     FString(const FString& Other);                            // 0x10AF8250
     FString(const ANSICHAR* In);                              // 0x10AF82B0
@@ -96,6 +100,16 @@ public:
     INT InStr(const FString& SubStr, UBOOL Right = 0) const;  // 0x10AF8190
 
     INT Len() const;                                          // 0x10AF7F70
+};
+
+// A script class's string property, as the generated class headers declare it (stock Unreal
+// Engine 2). Bodies inline its implicit destructor (~FString); unwind code calls its out-of-line
+// copy, a jump to ~FString (0x10BB7C00).
+class FStringNoInit : public FString
+{
+public:
+    FStringNoInit() : FString(E_NoInit) {}
+    using FString::operator=;
 };
 
 class FVector
@@ -192,6 +206,9 @@ public:
     virtual void Unknown04();
     // Slot 2: the deleting destructor (0x10ADD4C0) calls ~UObject (0x10ADC750).
     virtual ~UObject();
+    // What each class's deleting destructor calls, with the class's size
+    // (0x10AD1DC0, folded with ::operator delete).
+    void operator delete(void* Object, size_t Size);
     virtual void Unknown0C();
     virtual void Unknown10();
     virtual void Unknown14();

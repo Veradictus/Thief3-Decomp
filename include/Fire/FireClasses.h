@@ -139,6 +139,9 @@ class UFireTexture : public UFractalTexture
     DECLARE_CLASS(UFireTexture, UFractalTexture, 0x0, Fire)
 
 public:
+    virtual ~UFireTexture();                // slot 2: 0x109DBFB0
+
+public:
     BYTE SparkType;                         // 0xF4  ESpark
     BYTE RenderHeat;                        // 0xF5
     BITFIELD bRising:1;                     // 0xF8
@@ -192,12 +195,18 @@ class UFluidTexture : public UWaterTexture
     DECLARE_CLASS(UFluidTexture, UWaterTexture, 0x0, Fire)
 
 public:
+    virtual ~UFluidTexture();               // slot 2: 0x109DC170
+
+public:
 };
 T3_CHECK_SIZE(UFluidTexture, 0x1314);
 
 class UIceTexture : public UFractalTexture
 {
     DECLARE_CLASS(UIceTexture, UFractalTexture, 0x0, Fire)
+
+public:
+    virtual ~UIceTexture();                 // slot 2: 0x109DC2E0
 
 public:
     UTexture* GlassTexture;                 // 0xF4
@@ -229,6 +238,9 @@ class UWaveTexture : public UWaterTexture
     DECLARE_CLASS(UWaveTexture, UWaterTexture, 0x0, Fire)
 
 public:
+    virtual ~UWaveTexture();                // slot 2: 0x109DC0D0
+
+public:
     BYTE BumpMapLight;                      // 0x1314
     BYTE BumpMapAngle;                      // 0x1315
     BYTE PhongRange;                        // 0x1316
@@ -239,6 +251,9 @@ T3_CHECK_SIZE(UWaveTexture, 0x1318);
 class UWetTexture : public UWaterTexture
 {
     DECLARE_CLASS(UWetTexture, UWaterTexture, 0x0, Fire)
+
+public:
+    virtual ~UWetTexture();                 // slot 2: 0x109DC210
 
 public:
     UTexture* SourceTexture;                // 0x1314

@@ -61,7 +61,7 @@ T3_CHECK_SIZE(FRemovedInventoryInfo, 0x8);
 
 struct FInvLootRecord
 {
-    FString ItemName;                       // 0x0
+    FStringNoInit ItemName;                 // 0x0
     INT Quantity;                           // 0xC
     INT SellPrice;                          // 0x10
     BYTE lootType;                          // 0x14  ELootType
@@ -71,8 +71,8 @@ T3_CHECK_SIZE(FInvLootRecord, 0x1C);
 
 struct FInvQuestItemRecord
 {
-    FString ClassName;                      // 0x0
-    FString ItemName;                       // 0xC
+    FStringNoInit ClassName;                // 0x0
+    FStringNoInit ItemName;                 // 0xC
     INT Quantity;                           // 0x18
 };
 T3_CHECK_SIZE(FInvQuestItemRecord, 0x1C);
@@ -112,25 +112,25 @@ public:
     INT MtNextState;                        // 0x34C
     FVector moveToLoc;                      // 0x350
     INT moveToYaw;                          // 0x35C
-    FString neckBoneName;                   // 0x360
+    FStringNoInit neckBoneName;             // 0x360
     INT neckBoneNumber;                     // 0x36C
-    FString rightArmBoneName;               // 0x370
+    FStringNoInit rightArmBoneName;         // 0x370
     INT rightArmBoneNumber;                 // 0x37C
-    FString leftArmBoneName;                // 0x380
+    FStringNoInit leftArmBoneName;          // 0x380
     INT leftArmBoneNumber;                  // 0x38C
-    FString cameraBoneName;                 // 0x390
+    FStringNoInit cameraBoneName;           // 0x390
     INT cameraBoneNumber;                   // 0x39C
-    FString headingBoneName;                // 0x3A0
+    FStringNoInit headingBoneName;          // 0x3A0
     INT headingBoneNumber;                  // 0x3AC
-    FString leftFootBoneName;               // 0x3B0
+    FStringNoInit leftFootBoneName;         // 0x3B0
     INT leftFootBoneNumber;                 // 0x3BC
-    FString rightFootBoneName;              // 0x3C0
+    FStringNoInit rightFootBoneName;        // 0x3C0
     INT rightFootBoneNumber;                // 0x3CC
-    FString pelvisBoneName;                 // 0x3D0
+    FStringNoInit pelvisBoneName;           // 0x3D0
     INT pelvisBoneNumber;                   // 0x3DC
-    FString leftHandBoneName;               // 0x3E0
+    FStringNoInit leftHandBoneName;         // 0x3E0
     INT leftHandBoneNumber;                 // 0x3EC
-    FString rightHandBoneName;              // 0x3F0
+    FStringNoInit rightHandBoneName;        // 0x3F0
     INT rightHandBoneNumber;                // 0x3FC
     FRotator HeadRot;                       // 0x400
     FLOAT newPitchRot;                      // 0x40C
@@ -192,8 +192,8 @@ public:
     TArray<FLOAT> thirdPersonMantleTable;   // 0x4F0
     FLOAT firstPersonMaxMantleHeight;       // 0x4FC
     FLOAT thirdPersonMaxMantleHeight;       // 0x500
-    FString hammerFactionActions[3];        // 0x504
-    FString paganFactionActions[3];         // 0x528
+    FStringNoInit hammerFactionActions[3];  // 0x504
+    FStringNoInit paganFactionActions[3];   // 0x528
     BYTE InputSpeed;                        // 0x54C  GARRETT_SPEEDS
     BYTE ArmUse;                            // 0x54D  EArmUse
     BYTE BodyMovementType;                  // 0x54E  EBodyMovementType
@@ -221,6 +221,9 @@ class UAttachment_LinkDataObject : public ULinkDataObject
     DECLARE_CLASS(UAttachment_LinkDataObject, ULinkDataObject, 0x0, T3Player)
 
 public:
+    virtual ~UAttachment_LinkDataObject();  // slot 2: 0x10B129F0
+
+public:
     BYTE AttachPos;                         // 0x50  EAttachPos
 };
 T3_CHECK_SIZE(UAttachment_LinkDataObject, 0x54);
@@ -230,7 +233,10 @@ class UGarrettEquipLinkDataObject : public ULinkDataObject
     DECLARE_CLASS(UGarrettEquipLinkDataObject, ULinkDataObject, 0x0, T3Player)
 
 public:
-    FString GarEquipName;                   // 0x50
+    virtual ~UGarrettEquipLinkDataObject(); // slot 2: 0x10B12AB0
+
+public:
+    FStringNoInit GarEquipName;             // 0x50
 };
 T3_CHECK_SIZE(UGarrettEquipLinkDataObject, 0x5C);
 
@@ -239,12 +245,18 @@ class UHUDRenderLinkDataObject : public ULinkDataObject
     DECLARE_CLASS(UHUDRenderLinkDataObject, ULinkDataObject, 0x0, T3Player)
 
 public:
+    virtual ~UHUDRenderLinkDataObject();    // slot 2: 0x10B12B50
+
+public:
 };
 T3_CHECK_SIZE(UHUDRenderLinkDataObject, 0x50);
 
 class UInvenBook_LinkDataObject : public ULinkDataObject
 {
     DECLARE_CLASS(UInvenBook_LinkDataObject, ULinkDataObject, 0x0, T3Player)
+
+public:
+    virtual ~UInvenBook_LinkDataObject();   // slot 2: 0x10B12BE0
 
 public:
 };

@@ -61,7 +61,7 @@ BUILTIN = {"byte", "int", "float", "bool", "name", "string", "pointer", "button"
 SCRIPT_SIZE = {"byte": (1, 1), "button": (1, 1), "int": (4, 4), "float": (4, 4), "name": (4, 4),
                "string": (12, 4), "pointer": (4, 4), "object": (4, 4)}
 CPP_TYPE = {"byte": "BYTE", "button": "BYTE", "int": "INT", "float": "FLOAT", "name": "FName",
-            "string": "FString", "pointer": "void*", "object": "UObject*"}
+            "string": "FStringNoInit", "pointer": "void*", "object": "UObject*"}
 # Declared by hand in include/Core/Core.h: not generated. Their C++ sizes where the generated
 # classes derive from them.
 CORE_H_CLASSES = {"UObject": 0x2C, "UField": 0x34, "UStruct": 0x74, "UState": 0x8C, "UClass": 0x114}
@@ -486,7 +486,7 @@ class Emitter:
             return f"{t[1]}*", 4
         if kind == "array":
             inner, _ = self.cpp_type(t[1])
-            return f"TArray<{inner}>", 4
+            return f"TArray<{'FString' if inner == 'FStringNoInit' else inner}>", 4
         if kind == "enum":
             return "BYTE", 1
         if kind == "bitfield":

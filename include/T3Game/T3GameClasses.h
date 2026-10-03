@@ -71,7 +71,7 @@ T3_CHECK_SIZE(FDifficultyLevel, 0x2C);
 
 struct FLoadoutItem
 {
-    FString ItemName;                       // 0x0
+    FStringNoInit ItemName;                 // 0x0
     INT Num;                                // 0xC
 };
 T3_CHECK_SIZE(FLoadoutItem, 0x10);
@@ -103,17 +103,17 @@ public:
 
 public:
     BITFIELD EntryMapObjectFlag:1;          // 0xC0
-    FString VisibleObjectivesFileName;      // 0xC4
+    FStringNoInit VisibleObjectivesFileName; // 0xC4
     TArray<FLoadoutItem> DefaultInventory;  // 0xD0
-    FString BriefingFileName;               // 0xDC
-    FString BriefingVoiceOverSchemaName;    // 0xE8
+    FStringNoInit BriefingFileName;         // 0xDC
+    FStringNoInit BriefingVoiceOverSchemaName; // 0xE8
     BITFIELD AbortFlag:1;                   // 0xF4
     INT HandDrawnMap0;                      // 0xF8
     INT HandDrawnMap1;                      // 0xFC
     INT HandDrawnMap2;                      // 0x100
     INT HandDrawnMap3;                      // 0x104
     INT HandDrawnMap4;                      // 0x108
-    FString PostStartMissionBinkFileName;   // 0x10C
+    FStringNoInit PostStartMissionBinkFileName; // 0x10C
 };
 T3_CHECK_SIZE(AEnterMissionInfo, 0x118);
 
@@ -126,11 +126,11 @@ public:
 
 public:
     BITFIELD EntryMapObjectFlag:1;          // 0xC0
-    FString DestMapName;                    // 0xC4
-    FString DestTeleportName;               // 0xD0
-    FString FirstVisitGlobalVar;            // 0xDC
-    FString PostContinueBinkFileName;       // 0xE8
-    FString DebriefingVOSchemaName;         // 0xF4
+    FStringNoInit DestMapName;              // 0xC4
+    FStringNoInit DestTeleportName;         // 0xD0
+    FStringNoInit FirstVisitGlobalVar;      // 0xDC
+    FStringNoInit PostContinueBinkFileName; // 0xE8
+    FStringNoInit DebriefingVOSchemaName;   // 0xF4
 };
 T3_CHECK_SIZE(AExitMissionInfo, 0x100);
 
@@ -168,6 +168,9 @@ class UInventorySwitchLinkDataObject : public ULinkDataObject
     DECLARE_CLASS(UInventorySwitchLinkDataObject, ULinkDataObject, 0x0, T3Game)
 
 public:
+    virtual ~UInventorySwitchLinkDataObject();// slot 2: 0x10AB4D80
+
+public:
 };
 T3_CHECK_SIZE(UInventorySwitchLinkDataObject, 0x50);
 
@@ -176,12 +179,18 @@ class ULockLinkDataObject : public ULinkDataObject
     DECLARE_CLASS(ULockLinkDataObject, ULinkDataObject, 0x0, T3Game)
 
 public:
+    virtual ~ULockLinkDataObject();         // slot 2: 0x10AB4E10
+
+public:
 };
 T3_CHECK_SIZE(ULockLinkDataObject, 0x50);
 
 class ULockTickLinkDataObject : public ULinkDataObject
 {
     DECLARE_CLASS(ULockTickLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
+public:
+    virtual ~ULockTickLinkDataObject();     // slot 2: 0x10AB4EA0
 
 public:
     FLOAT MidpointRotation;                 // 0x50
@@ -194,14 +203,20 @@ class URopeArrowSpawnLinkDataObject : public ULinkDataObject
     DECLARE_CLASS(URopeArrowSpawnLinkDataObject, ULinkDataObject, 0x0, T3Game)
 
 public:
+    virtual ~URopeArrowSpawnLinkDataObject();// slot 2: 0x10AB4F60
+
+public:
     FLOAT RopeLength;                       // 0x50
-    FString UnfurlAnimName;                 // 0x54
+    FStringNoInit UnfurlAnimName;           // 0x54
 };
 T3_CHECK_SIZE(URopeArrowSpawnLinkDataObject, 0x60);
 
 class USpawnPoolLinkDataObject : public ULinkDataObject
 {
     DECLARE_CLASS(USpawnPoolLinkDataObject, ULinkDataObject, 0x0, T3Game)
+
+public:
+    virtual ~USpawnPoolLinkDataObject();    // slot 2: 0x10AB5000
 
 public:
 };

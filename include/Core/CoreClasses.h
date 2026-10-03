@@ -93,8 +93,8 @@ public:
 public:
     INT m_LinkFlavor;                       // 0x2C
     INT m_pAssociatedLink;                  // 0x30
-    FString m_LinkComment;                  // 0x34
-    FString m_name;                         // 0x40
+    FStringNoInit m_LinkComment;            // 0x34
+    FStringNoInit m_name;                   // 0x40
     FName m_GroupName;                      // 0x4C
 };
 T3_CHECK_SIZE(ULinkDataObject, 0x50);
@@ -103,6 +103,9 @@ class UEnum : public UField
 {
     DECLARE_CLASS(UEnum, UField, 0x0, Core)
     DECLARE_WITHIN(UStruct)
+
+public:
+    virtual ~UEnum();                       // slot 2: 0x10ADCAC0
 
 public:
     BYTE Pad34[0xC];
@@ -136,6 +139,9 @@ class UIntProperty : public UProperty
     DECLARE_CLASS(UIntProperty, UProperty, 0x0, Core)
 
 public:
+    virtual ~UIntProperty();                // slot 2: 0x109768D0
+
+public:
 };
 T3_CHECK_SIZE(UIntProperty, 0x60);
 
@@ -160,12 +166,12 @@ public:
     virtual ~UCommandlet();                 // slot 2: 0x10976FA0
 
 public:
-    FString HelpCmd;                        // 0x2C
-    FString HelpOneLiner;                   // 0x38
-    FString HelpUsage;                      // 0x44
-    FString HelpWebLink;                    // 0x50
-    FString HelpParm[16];                   // 0x5C
-    FString HelpDesc[16];                   // 0x11C
+    FStringNoInit HelpCmd;                  // 0x2C
+    FStringNoInit HelpOneLiner;             // 0x38
+    FStringNoInit HelpUsage;                // 0x44
+    FStringNoInit HelpWebLink;              // 0x50
+    FStringNoInit HelpParm[16];             // 0x5C
+    FStringNoInit HelpDesc[16];             // 0x11C
     BITFIELD LogToStdout:1;                 // 0x1DC
     BITFIELD IsServer:1;
     BITFIELD IsClient:1;

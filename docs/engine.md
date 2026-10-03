@@ -83,6 +83,7 @@ highest number, `+0x10` `TArray<DWORD>` per-number flags, `+0x1C` ANSI text
 | `UObject::IsA(UClass*) const` | `0x10AD1EE0` | static: every `Cast<T>` instance calls it after `T::StaticClass()` |
 | `UObject::ConditionalDestroy()` | `0x10AD5310` | static: logs "%s failed to route Destroy" through GError |
 | `UObject::~UObject()`; its deleting destructor (vtable slot 2) | `0x10ADC750`; `0x10ADD4C0` | static |
+| `UObject::operator delete(void*, size_t)`, folded with `::operator delete` | `0x10AD1DC0` | static: every native class's deleting destructor passes it the class's size |
 | object iterator begin / next (per-class lists, Ion Storm addition) | `0x1096BD50` / `0x1096C8D0` | static |
 
 Every native class's destructor is the one Unreal's `DECLARE_CLASS` writes,
@@ -91,7 +92,10 @@ vtable stored, `ConditionalDestroy`, then the parent's destructor (133
 functions call `ConditionalDestroy`; 103 of them are one family of 79-byte
 destructors). The destructor is slot 2 of UObject's
 vtable (`0x10E70A50`), not slot 0 as in stock Unreal Engine 2; slot 0
-(`0x10ADB3A0`) is not identified yet. `Cast<T>` is stock: the game keeps one
+(`0x10ADB3A0`) is not identified yet. The class's deleting destructor at
+slot 2 calls it, then `UObject::operator delete(this, sizeof(TClass))`;
+MSVC writes it wherever it writes the vtable, so it matches from the
+destructor's unit. `Cast<T>` is stock: the game keeps one
 out-of-line copy per class it casts to (`Cast<AGarrett>` at `0x109E9FD0`).
 
 `UObject` layout (the first 0x28 bytes match stock Unreal Engine 2):
@@ -179,12 +183,14 @@ functions for each of Ion Storm's classes; 250 are in
 
 - **The getter** (`GetPrivateStaticClass<Class>`, 192 to 196 bytes) opens a
   scope of Ion Storm's memory manager (the singleton `0x10905AA0`, slots 8
-  and 9 around the allocation), then `new(0, 0, 0, 0, 0) UClass(...)`
+  and 9 around the allocation), then `::new(0, 0, 0, 0, 0) UClass(...)`
   through Ion Storm's placement `operator new` (`0x10905C10`, which passes the
   size and the last four arguments to the manager's slot 2 and ignores the
   second, a `const&`). Its placement `operator delete`, called by the unwind
   code if the constructor throws, is folded into `::operator delete`
-  (`0x10AD1DC0`). The `UClass` constructor (`0x10AE7E30`) takes
+  (`0x10AD1DC0`). The `::` is needed: `UObject`'s own `operator delete`
+  would hide the placement one from a plain `new`, and the unwind code
+  would go. The `UClass` constructor (`0x10AE7E30`) takes
   `EC_StaticConstructor`, the object size, the class flags, a zero `FGuid`
   by value, the name without its prefix letter (`&TEXT("AGarrett")[1]`), the
   package, `StaticConfigName()`, `RF_Public | RF_Standalone | RF_Transient |
@@ -227,6 +233,10 @@ at `0x28` after stock Unreal Engine 2's fields, so `UField::SuperField` is at
 `include/<Package>/<Package>Classes.h` (names, types and offsets, each class's
 size checked at compile time). One accessor confirms a member: `AGarrett`'s
 virtual at `0x10B21280` returns bit 1 of the word at `0x450`, `isCrouching`.
+A string variable is an `FStringNoInit`, as in stock Unreal Engine 2's
+generated headers: a destructor inlines its implicit destructor (a call to
+`FString::~FString`, `0x10AF83B0`), and the unwind code calls its
+out-of-line copy, `0x10BB7C00`, a jump to `~FString`.
 
 ## Script natives
 

@@ -31,12 +31,12 @@ void operator delete(void* Ptr, const int& Tag, int A, int B, int C, int D);
 UClass* UBitfieldEnum::GetPrivateStaticClassUBitfieldEnum(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UBitfieldEnum), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UBitfieldEnum")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UBitfieldEnum::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UBitfieldEnum), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UBitfieldEnum")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UBitfieldEnum::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -45,12 +45,12 @@ UClass* UBitfieldEnum::GetPrivateStaticClassUBitfieldEnum(const TCHAR* Package)
 UClass* UBitfieldProperty::GetPrivateStaticClassUBitfieldProperty(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UBitfieldProperty), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UBitfieldProperty")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UBitfieldProperty::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UBitfieldProperty), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UBitfieldProperty")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UBitfieldProperty::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -59,12 +59,12 @@ UClass* UBitfieldProperty::GetPrivateStaticClassUBitfieldProperty(const TCHAR* P
 UClass* ULinkDataObject::GetPrivateStaticClassULinkDataObject(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ULinkDataObject), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("ULinkDataObject")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&ULinkDataObject::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ULinkDataObject), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("ULinkDataObject")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&ULinkDataObject::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }

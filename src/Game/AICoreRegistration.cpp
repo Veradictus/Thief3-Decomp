@@ -188,12 +188,12 @@ void AAITaggedVolume::InitializePrivateStaticClassAAITaggedVolume()
 UClass* UAI::GetPrivateStaticClassUAI(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UAI), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UAI")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UAI::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UAI), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UAI")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UAI::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -293,12 +293,12 @@ void ACitySectionPopulationInfo::InitializePrivateStaticClassACitySectionPopulat
 UClass* AAIModel::GetPrivateStaticClassAAIModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -307,12 +307,12 @@ UClass* AAIModel::GetPrivateStaticClassAAIModel(const TCHAR* Package)
 UClass* AAISensoryModel::GetPrivateStaticClassAAISensoryModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAISensoryModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAISensoryModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAISensoryModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAISensoryModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAISensoryModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAISensoryModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -321,12 +321,12 @@ UClass* AAISensoryModel::GetPrivateStaticClassAAISensoryModel(const TCHAR* Packa
 UClass* AAIBehaviorModel::GetPrivateStaticClassAAIBehaviorModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIBehaviorModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIBehaviorModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIBehaviorModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIBehaviorModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIBehaviorModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIBehaviorModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -335,12 +335,12 @@ UClass* AAIBehaviorModel::GetPrivateStaticClassAAIBehaviorModel(const TCHAR* Pac
 UClass* AAIMovementModel::GetPrivateStaticClassAAIMovementModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIMovementModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIMovementModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIMovementModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIMovementModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIMovementModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIMovementModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -349,12 +349,12 @@ UClass* AAIMovementModel::GetPrivateStaticClassAAIMovementModel(const TCHAR* Pac
 UClass* AAICombatModel::GetPrivateStaticClassAAICombatModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAICombatModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAICombatModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAICombatModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAICombatModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAICombatModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAICombatModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -363,12 +363,12 @@ UClass* AAICombatModel::GetPrivateStaticClassAAICombatModel(const TCHAR* Package
 UClass* AAIFactionModel::GetPrivateStaticClassAAIFactionModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIFactionModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIFactionModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIFactionModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIFactionModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIFactionModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIFactionModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -377,12 +377,12 @@ UClass* AAIFactionModel::GetPrivateStaticClassAAIFactionModel(const TCHAR* Packa
 UClass* AAIPathPoint::GetPrivateStaticClassAAIPathPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIPathPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIPathPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIPathPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIPathPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIPathPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIPathPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -391,12 +391,12 @@ UClass* AAIPathPoint::GetPrivateStaticClassAAIPathPoint(const TCHAR* Package)
 UClass* AFocusPoint::GetPrivateStaticClassAFocusPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AFocusPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AFocusPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AFocusPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AFocusPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AFocusPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AFocusPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -405,12 +405,12 @@ UClass* AFocusPoint::GetPrivateStaticClassAFocusPoint(const TCHAR* Package)
 UClass* APatrolPoint::GetPrivateStaticClassAPatrolPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(APatrolPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("APatrolPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&APatrolPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(APatrolPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("APatrolPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&APatrolPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -419,12 +419,12 @@ UClass* APatrolPoint::GetPrivateStaticClassAPatrolPoint(const TCHAR* Package)
 UClass* AWanderPoint::GetPrivateStaticClassAWanderPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AWanderPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AWanderPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AWanderPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AWanderPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AWanderPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AWanderPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -433,12 +433,12 @@ UClass* AWanderPoint::GetPrivateStaticClassAWanderPoint(const TCHAR* Package)
 UClass* AAddAIPoint::GetPrivateStaticClassAAddAIPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAddAIPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAddAIPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAddAIPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAddAIPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAddAIPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAddAIPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -447,12 +447,12 @@ UClass* AAddAIPoint::GetPrivateStaticClassAAddAIPoint(const TCHAR* Package)
 UClass* AFormationPoint::GetPrivateStaticClassAFormationPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AFormationPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AFormationPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AFormationPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AFormationPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AFormationPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AFormationPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -461,12 +461,12 @@ UClass* AFormationPoint::GetPrivateStaticClassAFormationPoint(const TCHAR* Packa
 UClass* AFormationPointAbsolute::GetPrivateStaticClassAFormationPointAbsolute(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AFormationPointAbsolute), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AFormationPointAbsolute")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AFormationPointAbsolute::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AFormationPointAbsolute), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AFormationPointAbsolute")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AFormationPointAbsolute::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -475,12 +475,12 @@ UClass* AFormationPointAbsolute::GetPrivateStaticClassAFormationPointAbsolute(co
 UClass* AChangeDirectionPoint::GetPrivateStaticClassAChangeDirectionPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AChangeDirectionPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AChangeDirectionPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AChangeDirectionPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AChangeDirectionPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AChangeDirectionPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AChangeDirectionPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -489,12 +489,12 @@ UClass* AChangeDirectionPoint::GetPrivateStaticClassAChangeDirectionPoint(const 
 UClass* ALookPoint::GetPrivateStaticClassALookPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ALookPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("ALookPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&ALookPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ALookPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("ALookPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&ALookPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -503,12 +503,12 @@ UClass* ALookPoint::GetPrivateStaticClassALookPoint(const TCHAR* Package)
 UClass* APlayAnimPoint::GetPrivateStaticClassAPlayAnimPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(APlayAnimPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("APlayAnimPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&APlayAnimPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(APlayAnimPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("APlayAnimPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&APlayAnimPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -517,12 +517,12 @@ UClass* APlayAnimPoint::GetPrivateStaticClassAPlayAnimPoint(const TCHAR* Package
 UClass* APlayBarkPoint::GetPrivateStaticClassAPlayBarkPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(APlayBarkPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("APlayBarkPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&APlayBarkPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(APlayBarkPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("APlayBarkPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&APlayBarkPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -531,12 +531,12 @@ UClass* APlayBarkPoint::GetPrivateStaticClassAPlayBarkPoint(const TCHAR* Package
 UClass* AHeadTurnPoint::GetPrivateStaticClassAHeadTurnPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AHeadTurnPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AHeadTurnPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AHeadTurnPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AHeadTurnPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AHeadTurnPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AHeadTurnPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -545,12 +545,12 @@ UClass* AHeadTurnPoint::GetPrivateStaticClassAHeadTurnPoint(const TCHAR* Package
 UClass* AAIPawnController::GetPrivateStaticClassAAIPawnController(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIPawnController), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIPawnController")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIPawnController::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIPawnController), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIPawnController")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIPawnController::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -559,12 +559,12 @@ UClass* AAIPawnController::GetPrivateStaticClassAAIPawnController(const TCHAR* P
 UClass* AAIContextVolume::GetPrivateStaticClassAAIContextVolume(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIContextVolume), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIContextVolume")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIContextVolume::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIContextVolume), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIContextVolume")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIContextVolume::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -573,12 +573,12 @@ UClass* AAIContextVolume::GetPrivateStaticClassAAIContextVolume(const TCHAR* Pac
 UClass* AAITaggedVolume::GetPrivateStaticClassAAITaggedVolume(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAITaggedVolume), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAITaggedVolume")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAITaggedVolume::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAITaggedVolume), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAITaggedVolume")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAITaggedVolume::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -587,12 +587,12 @@ UClass* AAITaggedVolume::GetPrivateStaticClassAAITaggedVolume(const TCHAR* Packa
 UClass* AEnumStateType::GetPrivateStaticClassAEnumStateType(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AEnumStateType), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AEnumStateType")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AEnumStateType::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AEnumStateType), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AEnumStateType")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AEnumStateType::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -601,12 +601,12 @@ UClass* AEnumStateType::GetPrivateStaticClassAEnumStateType(const TCHAR* Package
 UClass* AEnumEvidenceType::GetPrivateStaticClassAEnumEvidenceType(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AEnumEvidenceType), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AEnumEvidenceType")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AEnumEvidenceType::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AEnumEvidenceType), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AEnumEvidenceType")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AEnumEvidenceType::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -615,12 +615,12 @@ UClass* AEnumEvidenceType::GetPrivateStaticClassAEnumEvidenceType(const TCHAR* P
 UClass* AEnumInferenceType::GetPrivateStaticClassAEnumInferenceType(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AEnumInferenceType), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AEnumInferenceType")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AEnumInferenceType::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AEnumInferenceType), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AEnumInferenceType")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AEnumInferenceType::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -629,12 +629,12 @@ UClass* AEnumInferenceType::GetPrivateStaticClassAEnumInferenceType(const TCHAR*
 UClass* ANavMeshSubtractionVolume::GetPrivateStaticClassANavMeshSubtractionVolume(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ANavMeshSubtractionVolume), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("ANavMeshSubtractionVolume")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&ANavMeshSubtractionVolume::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ANavMeshSubtractionVolume), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("ANavMeshSubtractionVolume")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&ANavMeshSubtractionVolume::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -643,12 +643,12 @@ UClass* ANavMeshSubtractionVolume::GetPrivateStaticClassANavMeshSubtractionVolum
 UClass* ANavMeshInsertionPoint::GetPrivateStaticClassANavMeshInsertionPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ANavMeshInsertionPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("ANavMeshInsertionPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&ANavMeshInsertionPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ANavMeshInsertionPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("ANavMeshInsertionPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&ANavMeshInsertionPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -657,12 +657,12 @@ UClass* ANavMeshInsertionPoint::GetPrivateStaticClassANavMeshInsertionPoint(cons
 UClass* ACitySectionPopulationInfo::GetPrivateStaticClassACitySectionPopulationInfo(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ACitySectionPopulationInfo), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("ACitySectionPopulationInfo")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&ACitySectionPopulationInfo::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ACitySectionPopulationInfo), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("ACitySectionPopulationInfo")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&ACitySectionPopulationInfo::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -671,12 +671,12 @@ UClass* ACitySectionPopulationInfo::GetPrivateStaticClassACitySectionPopulationI
 UClass* ACityPopPoint::GetPrivateStaticClassACityPopPoint(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ACityPopPoint), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("ACityPopPoint")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&ACityPopPoint::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(ACityPopPoint), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("ACityPopPoint")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&ACityPopPoint::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -899,12 +899,12 @@ void ACityPopPoint::InitializePrivateStaticClassACityPopPoint()
 UClass* AAIPawn::GetPrivateStaticClassAAIPawn(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIPawn), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AAIPawn")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AAIPawn::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AAIPawn), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AAIPawn")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AAIPawn::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }

@@ -109,12 +109,12 @@ void AT3FactionModel::InitializePrivateStaticClassAT3FactionModel()
 UClass* AT3AIPawnController::GetPrivateStaticClassAT3AIPawnController(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3AIPawnController), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3AIPawnController")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3AIPawnController::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3AIPawnController), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3AIPawnController")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3AIPawnController::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -123,12 +123,12 @@ UClass* AT3AIPawnController::GetPrivateStaticClassAT3AIPawnController(const TCHA
 UClass* AT3BehaviorModel::GetPrivateStaticClassAT3BehaviorModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3BehaviorModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3BehaviorModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3BehaviorModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3BehaviorModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3BehaviorModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3BehaviorModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -137,12 +137,12 @@ UClass* AT3BehaviorModel::GetPrivateStaticClassAT3BehaviorModel(const TCHAR* Pac
 UClass* AT3SensoryModel::GetPrivateStaticClassAT3SensoryModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3SensoryModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3SensoryModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3SensoryModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3SensoryModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3SensoryModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3SensoryModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -151,12 +151,12 @@ UClass* AT3SensoryModel::GetPrivateStaticClassAT3SensoryModel(const TCHAR* Packa
 UClass* AT3CombatModel::GetPrivateStaticClassAT3CombatModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3CombatModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3CombatModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3CombatModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3CombatModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3CombatModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3CombatModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -165,12 +165,12 @@ UClass* AT3CombatModel::GetPrivateStaticClassAT3CombatModel(const TCHAR* Package
 UClass* AT3MovementModel::GetPrivateStaticClassAT3MovementModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3MovementModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3MovementModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3MovementModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3MovementModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3MovementModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3MovementModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
@@ -179,12 +179,12 @@ UClass* AT3MovementModel::GetPrivateStaticClassAT3MovementModel(const TCHAR* Pac
 UClass* AT3FactionModel::GetPrivateStaticClassAT3FactionModel(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3FactionModel), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("AT3FactionModel")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&AT3FactionModel::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(AT3FactionModel), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("AT3FactionModel")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&AT3FactionModel::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }

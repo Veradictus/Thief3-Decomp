@@ -44,12 +44,12 @@ void UT3GamePhysics::InitializePrivateStaticClassUT3GamePhysics()
 UClass* UT3GamePhysics::GetPrivateStaticClassUT3GamePhysics(const TCHAR* Package)
 {
     FUN_10905aa0()->Virtual8(0, 0);
-    UClass* ReturnClass = new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UT3GamePhysics), StaticClassFlags,
-                                                    FGuid(0, 0, 0, 0), &TEXT("UT3GamePhysics")[1], Package,
-                                                    StaticConfigName(),
-                                                    RF_Public | RF_Standalone | RF_Transient | RF_Native,
-                                                    InternalConstructor,
-                                                    (void (UObject::*)())&UT3GamePhysics::StaticConstructor);
+    UClass* ReturnClass = ::new(0, 0, 0, 0, 0) UClass(EC_StaticConstructor, sizeof(UT3GamePhysics), StaticClassFlags,
+                                                      FGuid(0, 0, 0, 0), &TEXT("UT3GamePhysics")[1], Package,
+                                                      StaticConfigName(),
+                                                      RF_Public | RF_Standalone | RF_Transient | RF_Native,
+                                                      InternalConstructor,
+                                                      (void (UObject::*)())&UT3GamePhysics::StaticConstructor);
     FUN_10905aa0()->Virtual9();
     return ReturnClass;
 }
