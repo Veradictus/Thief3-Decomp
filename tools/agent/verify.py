@@ -253,7 +253,13 @@ def objdiff_rows(project: Project, target_obj: Path, base_obj: Path, symbol: str
     # function's start.
     def insn(row: dict, start: int) -> Optional[Insn]:
         i = row.get("instruction")
-        return Insn(int(i.get("address", 0)) - start, int(i.get("size", 0)), i.get("formatted", "")) if i else None
+        if not i:
+            return None
+        text = i.get("formatted", "")
+        if "branch_dest" in i:  # a section offset as well: shown from the function's start, as the rows are
+            dest = int(i["branch_dest"])
+            text = text.replace(f"0x{dest:x}", f"0x{dest - start:x}")
+        return Insn(int(i.get("address", 0)) - start, int(i.get("size", 0)), text)
 
     def mnemonic(row: dict) -> str:
         for part in row.get("instruction", {}).get("parts", []):
