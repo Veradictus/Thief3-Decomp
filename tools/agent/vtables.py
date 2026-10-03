@@ -273,8 +273,8 @@ def plan(p: Project) -> Tuple[dict, List[str]]:
         if not c.vtable or (sup is not None and sup.vtable == c.vtable):
             continue  # the super's table: this class's own is not known
         want, key, sym = f"??_7{cls}@@6B@", fmt_addr(c.vtable), p.by_addr.get(c.vtable)
-        if sym is None or sym.address != c.vtable or sym.name == want or taken.get(want, c.vtable) != c.vtable:
-            continue
+        if sym is None or sym.address != c.vtable or want in taken:
+            continue  # named so already, or the name is another address's
         if key in renames:
             aliases[key].append(want)
         elif placeholder_name(sym.name):

@@ -213,8 +213,11 @@ def spec_prepare(p: Project, spec: dict) -> None:
         if not m:
             sys.exit(f"{addr}: no symbols.txt line")
         for name in names:
-            if re.search(r"(?m)^%s = " % re.escape(name), text):
-                sys.exit(f"{name} is already in symbols.txt")
+            there = re.search(r"(?m)^%s = \.\w+:(0x[0-9A-Fa-f]+);" % re.escape(name), text)
+            if there and p.parse_addr(there.group(1)) == p.parse_addr(addr):
+                continue  # already a name of this address
+            if there:
+                sys.exit(f"{name} is already in symbols.txt, at {there.group(1)}")
             print(f"{addr}: + alias {name}")
             line = f"{name} = {m.group(1)}:{fmt_addr(p.parse_addr(addr))}; // type:alias\n"
             text = text[:m.end()] + line + text[m.end():]
