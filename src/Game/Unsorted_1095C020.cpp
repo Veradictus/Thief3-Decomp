@@ -57,16 +57,6 @@ Class_1095C2B0* Class_1095C2B0::FUN_1095c2b0()
     return this;
 }
 
-// FUNCTION: 0x1095D6C0 ?FUN_1095d6c0@Class_1095D6C0@@QAEXXZ
-void Class_1095D6C0::FUN_1095d6c0()
-{
-    if (Unknown08)
-        ::operator delete(Unknown08);
-    Unknown08 = 0;
-    Unknown0C = 0;
-    Unknown10 = 0;
-}
-
 // FUNCTION: 0x1095D720 ?FUN_1095d720@Class_1095D720@@QAEXHHH@Z
 void Class_1095D720::FUN_1095d720(int A, int B, int C)
 {

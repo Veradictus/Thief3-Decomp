@@ -42,11 +42,3 @@ void Class_10C40730::FUN_10c40730()
     if (P)
         P->Virtual2();
 }
-
-// FUNCTION: 0x10C40740 ?FUN_10c40740@Class_10C40740@@QAEXXZ
-void Class_10C40740::FUN_10c40740()
-{
-    Class_10C40740_Member* P = Unknown10;
-    if (P)
-        P->Virtual2();
-}

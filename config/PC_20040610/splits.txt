@@ -271,7 +271,6 @@ Game/Unsorted_10929530.cpp:
 	.text  start:0x10929530 end:0x1092954E
 
 Game/Unsorted_109295C0.cpp:
-	.text  start:0x10929710 end:0x10929735
 	.text  start:0x10929D60 end:0x10929DB3
 
 Game/Unsorted_10929DC0_2.cpp:
@@ -409,7 +408,6 @@ Game/Unsorted_109377D0.cpp:
 	.text  start:0x10938EE0 end:0x10938F0B
 
 Game/Unsorted_10939380.cpp:
-	.text  start:0x109393E0 end:0x10939407
 	.text  start:0x109394C0 end:0x109394CE
 	.text  start:0x1093BCB0 end:0x1093BCD6
 	.text  start:0x1093C750 end:0x1093C775
@@ -664,7 +662,6 @@ Game/Unsorted_1095BF80.cpp:
 
 Game/Unsorted_1095C020.cpp:
 	.text  start:0x1095C2B0 end:0x1095C2C8
-	.text  start:0x1095D6C0 end:0x1095D6EA
 	.text  start:0x1095D720 end:0x1095D744
 
 Game/Unsorted_1095C2D0.cpp:
@@ -3041,7 +3038,6 @@ Game/Unsorted_10AAF580.cpp:
 
 Game/Unsorted_10AB0150.cpp:
 	.text  start:0x10AB0150 end:0x10AB0158
-	.text  start:0x10AB0330 end:0x10AB0357
 
 Game/Unsorted_10AB0160.cpp:
 	.text  start:0x10AB0180 end:0x10AB01F2
@@ -7027,7 +7023,7 @@ Game/Unsorted_10C3FF40.cpp:
 	.text  start:0x10C40580 end:0x10C4058D
 
 Game/Unsorted_10C405C0.cpp:
-	.text  start:0x10C40730 end:0x10C4074D
+	.text  start:0x10C40730 end:0x10C40740
 
 Game/Unsorted_10C40C90.cpp:
 	.text  start:0x10C41000 end:0x10C41055
@@ -7109,7 +7105,6 @@ Game/Unsorted_10C4DE80.cpp:
 
 Game/Unsorted_10C4EDA0_2.cpp:
 	.text  start:0x10C4EDA0 end:0x10C4EDD1
-	.text  start:0x10C4EE60 end:0x10C4EE94
 	.text  start:0x10C4F450 end:0x10C4F481
 	.text  start:0x10C4F970 end:0x10C4F9A1
 

@@ -90,12 +90,6 @@ void Class_10C4EDA0::FUN_10c4eda0()
     }
 }
 
-// FUNCTION: 0x10C4EE60 ?FUN_10c4ee60@Class_10C4EE60@@QAEXXZ
-void Class_10C4EE60::FUN_10c4ee60()
-{
-    Unknown08.Empty();
-}
-
 // FUNCTION: 0x10C4F450 ?FUN_10c4f450@Class_10C4F450@@QAEXXZ
 void Class_10C4F450::FUN_10c4f450()
 {

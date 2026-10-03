@@ -61,17 +61,6 @@ public:
 
 Class_10905A90_Member* FUN_10905aa0();
 
-// FUNCTION: 0x109393E0 ?FUN_109393e0@@YGXPAPAH@Z
-void __stdcall FUN_109393e0(int** Slot)
-{
-    if (*Slot)
-    {
-        int* Obj = *Slot - 1;
-        FUN_10905aa0()->Virtual5(Obj);
-        *Slot = 0;
-    }
-}
-
 // FUNCTION: 0x109394C0 ?FUN_109394c0@Class_109394C0@@QAEPAV1@XZ
 Class_109394C0* Class_109394C0::FUN_109394c0()
 {

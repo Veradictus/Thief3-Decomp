@@ -47,9 +47,3 @@ void Class_10E6DD68::FUN_10ab0150()
 {
     Unknown24->Virtual6();
 }
-
-// FUNCTION: 0x10AB0330 ?FUN_10ab0330@@YGXHHPAH@Z
-void __stdcall FUN_10ab0330(int A, int B, int* C)
-{
-    new Struct_10AB0330(A, B, *C);
-}

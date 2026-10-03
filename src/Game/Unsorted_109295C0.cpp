@@ -46,17 +46,6 @@ public:
     virtual void FUN_10929d60(int A, int B, int C, Struct_10929D60* Out);
 };
 
-// FUNCTION: 0x10929710 ?FUN_10929710@Class_10929710@@QAEXXZ
-void Class_10929710::FUN_10929710()
-{
-    if (Unknown0C)
-    {
-        char* Block = Unknown0C - 4;
-        FUN_10905aa0()->Virtual5(Block);
-        Unknown0C = 0;
-    }
-}
-
 // FUNCTION: 0x10929D60 ?FUN_10929d60@Class_10E49B48@@UAEXHHHPAUStruct_10929D60@@@Z
 void Class_10E49B48::FUN_10929d60(int A, int B, int C, Struct_10929D60* Out)
 {
