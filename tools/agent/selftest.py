@@ -683,7 +683,7 @@ def test_stamp_derive(base: Path) -> None:
 
 def test_vtables(base: Path) -> None:
     """vtables.py names each slot function after the class whose table first holds it: inherited slots
-    are left to the super, a class whose own table is not known takes what its subclasses agree on, and
+    are left to the super, a class whose own table is not known takes what two or more subclasses agree on, and
     a class's own table holds its own deleting destructor (slot 2) unless the linker folded it."""
     import vtables
     supers = {"UObject": "", "AActor": "UObject", "ALink": "UObject", "AKid1": "ALink", "AKid2": "ALink",
@@ -695,6 +695,10 @@ def test_vtables(base: Path) -> None:
                   (31, "AKid2", 2), (300, "APawn", 2)],
           f"the root's slots, then each override; under an unknown table only a deleting destructor not folded "
           f"with an ancestor's: {got}")
+    got = vtables.attribute({"UObject": "", "AOne": "UObject", "ASolo": "AOne"},
+                            {"UObject": [1, 2, 3], "AOne": None, "ASolo": [1, 50, 60]}, slots=3)
+    check(got == [(1, "UObject", 0), (2, "UObject", 1), (3, "UObject", 2), (60, "ASolo", 2)],
+          f"a single subclass's table is its own: the class whose table is not known takes none of it: {got}")
     check(vtables.placeholder_name("??1Class_10E56A28@@QAE@XZ") and not vtables.placeholder_name("??1AActor@@UAE@XZ"),
           "a method of a class known by its address is a placeholder")
     check(vtables.slot_name("AActor", 2) == "??_GAActor@@UAEPAXI@Z"

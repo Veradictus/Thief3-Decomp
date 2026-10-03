@@ -213,7 +213,10 @@ functions for each of Ion Storm's classes; 250 are in
   `StaticClass()` is inlined. `UBitfieldEnum`'s, in Core, reads
   `GObjInitialized` directly: its file defines `GetInitialized`.
 - **`InternalConstructor`**: 22 classes whose constructor is `UObject`'s
-  share one (`0x10964A80`, folded), named `UObject`'s.
+  share one (`0x10964A80`, folded), named `UObject`'s. `classes.txt`
+  therefore records `UObject`'s vtable for them; their own tables show only
+  in their destructors (`UTriggerRegistrar`'s, `0x10AB3C50`, stores
+  `0x10E6E178`).
 
 `UStruct`, `UState` and `UClass` are `0x74`, `0x8C` and `0x114` bytes (the
 sizes their registrations allocate); `ClassWithin` is at `0xA4`.

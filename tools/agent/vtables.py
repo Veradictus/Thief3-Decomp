@@ -88,7 +88,8 @@ def slot_declaration(cls: str, slot: int) -> str:
 
 
 def effective_tables(supers: Dict[str, str], tables: Dict[str, Optional[List[int]]]) -> Dict[str, List[Optional[int]]]:
-    """Each class's slots: its own table, else (None: not known) the slots all its subclasses agree on."""
+    """Each class's slots: its own table, else (None: not known) the slots two or more of its subclasses
+    agree on (a single subclass's table holds its own overrides too: nothing tells them apart)."""
     children: Dict[str, List[str]] = defaultdict(list)
     for c, s in supers.items():
         children[s].append(c)
@@ -103,7 +104,7 @@ def effective_tables(supers: Dict[str, str], tables: Dict[str, Optional[List[int
             return out[c]
         kids = [table(k) for k in children.get(c, [])]
         kids = [k for k in kids if k]
-        width = min((len(k) for k in kids), default=0)
+        width = min((len(k) for k in kids), default=0) if len(kids) > 1 else 0
         out[c] = [k0 if all(k[i] == (k0 := kids[0][i]) for k in kids) else None for i in range(width)]
         return out[c]
 
@@ -209,9 +210,12 @@ def introductions(p: Project) -> List[Tuple[int, str, int]]:
     tables: Dict[str, Optional[List[int]]] = {}
     for n, c in classes.items():
         s = classes.get(c.super)
-        # A table recorded for a class and its super alike is the super's: this class's is not known.
-        tables[n] = None if not c.vtable or (s is not None and s.vtable == c.vtable) else \
-            read_table(pe_image, c.vtable, SLOTS, code)
+        vtable = c.vtable
+        if not vtable or (s is not None and s.vtable == vtable):
+            # None recorded, or the super's (the internal constructor of an abstract class builds a
+            # UObject): this class's own is the one symbols.txt names for it, found from its destructor.
+            vtable = p.address_of(f"??_7{n}@@6B@") or 0
+        tables[n] = read_table(pe_image, vtable, SLOTS, code) if vtable else None
     return attribute(supers, tables)
 
 

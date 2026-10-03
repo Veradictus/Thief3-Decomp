@@ -394,7 +394,14 @@ patterns that need no judgement:
   second run named 164 more. The plan also names each native class's own
   vtable `??_7C@@6B@` where symbols.txt had a placeholder (a `DAT_` or a
   pointer global a caller guessed): objdiff's report pairs a stored vtable
-  by name, and 79 functions the gate had accepted reached 100% there.
+  by name, and 79 functions the gate had accepted reached 100% there. A
+  class whose table is not known takes only the slots two or more of its
+  subclasses agree on: a single subclass's table holds that subclass's own
+  overrides too, which once gave `UT3GameRegistrar`'s destructor and
+  `Register` to `UTriggerRegistrar`, and `UTexture`'s, `ULevel`'s,
+  `UWindowsClient`'s and `UWindowsViewport`'s destructors to their abstract
+  supers. Where a destructor shows such a class's own table, symbols.txt
+  names it `??_7C@@6B@` and vtables.py reads it from there.
 - `fixnames.py constants` finds every queued function whose whole code is
   `mov eax, imm; ret` (or `xor eax, eax; ret`), writes `int FUN_x() { return
   imm; }` for it, and excludes it from the queue until `fixnames.py accept`
