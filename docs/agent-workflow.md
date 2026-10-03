@@ -495,6 +495,19 @@ destructor is accepted as generated with it (`fixnames.py spec`,
 `configure.py && ninja`, `fixnames.py spec-accept`, `integrate.py`). The
 first run matched 19.
 
+A native class's deleting destructor (slot 2) calls its destructor, then
+`UObject::operator delete(this, sizeof(C))`, which Core.h declares.
+`dtors.py native` accepts each of Ion Storm's from the generated headers:
+the destructor in its header form, `C::~C() { ConditionalDestroy(); }`
+(matched, or accepted anew), then the deleting destructor as generated with
+it. A worker's older placeholder-chain form of the destructor is re-accepted
+too: when it is not in `src/`, or is alone in its unit, which the tool
+removes with its `splits.txt` block so that the next integration writes it
+anew (`configure.py && ninja`, then `integrate.py`, which places a
+generated function in the same run as its emitter). The first runs matched
+117. String properties are `FStringNoInit` in the generated headers: unwind
+code calls its implicit destructor's out-of-line copy, not `~FString`.
+
 ## Guard and permissions
 
 - The guard ([hooks/guard.py](../tools/agent/hooks/guard.py)) keeps workers'

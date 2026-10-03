@@ -23,15 +23,32 @@ slot 0 holds one, the plan:
 
 Deleting destructors whose destructor is inlined (no call) need the destructor's definition in the same
 unit, and classes with several bases need their secondary vtables: both are reported and left out.
+
+    python tools/agent/dtors.py native [--dry-run]
+    python configure.py && ninja
+    python tools/agent/integrate.py
+
+A native class (classes.txt, the generated include/<Package>/<Package>Classes.h) has DECLARE_CLASS's
+destructor, `C::~C() { ConditionalDestroy(); }`, and a deleting destructor at slot 2 that calls it, then
+UObject::operator delete(this, sizeof(C)) (Core.h). `native` accepts each of Ion Storm's: the destructor
+in the header form (as matched, or accepted anew; a worker's placeholder-chain form is re-accepted when it
+is not in src/ or is alone in its unit, which is removed with its splits.txt block for the integration to
+write anew), then the deleting destructor as compiler-generated with it.
 """
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
+from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Dict, List
 
-from common import Project, fmt_addr, is_placeholder
+from common import Project, addr_key, fmt_addr, is_placeholder
+
+HERE = Path(__file__).resolve().parent
 
 VTABLE = re.compile(r"\?\?_7(\w+)@@6B@")
 
@@ -171,11 +188,88 @@ def plan(p: Project) -> dict:
     return spec
 
 
+# A native class's destructor as workers wrote it before the generated headers declared the class: one
+# call, to ConditionalDestroy (or its placeholder name), in a placeholder chain of classes.
+STOCK_BODY = re.compile(r"(\w+)::~\1\(\)\s*\{\s*(?:FUN_10ad5310|ConditionalDestroy)\(\);\s*\}")
+
+
+def accept(p: Project, *args: str) -> str:
+    proc = subprocess.run([sys.executable, str(HERE / "accept.py"), *args], cwd=p.root,
+                          env=dict(os.environ, T3_AGENT_ID="lead"), capture_output=True, text=True)
+    lines = (proc.stdout + proc.stderr).strip().splitlines()
+    return lines[-1] if lines else str(proc.returncode)
+
+
+def drop_unit(p: Project, unit: str) -> None:
+    """Remove a src/ unit and its splits.txt block."""
+    (p.src_dir / unit).unlink()
+    text = p.splits_txt.read_text(encoding="utf-8")
+    m = re.search(r"(?ms)^%s:\n.*?(?:\n\n|\Z)" % re.escape(unit), text)
+    if m:
+        p.splits_txt.write_text(text[:m.start()] + text[m.end():], encoding="utf-8", newline="\n")
+
+
+def native(p: Project, dry_run: bool = False) -> Dict[str, List[str]]:
+    """{outcome: [class]} for each of Ion Storm's native classes whose deleting destructor is not accepted."""
+    accepted, integrated = p.accepted(), p.integrated()
+    alone = Counter(integrated.values())
+    work = p.state_dir("tmp", "dtors")
+    out: Dict[str, List[str]] = defaultdict(list)
+    for cls, c in sorted(p.classes().items()):
+        g, d = p.address_of(f"??_G{cls}@@UAEPAXI@Z"), p.address_of(f"??1{cls}@@UAE@XZ")
+        if g is None or g in accepted or c.category != "game":
+            continue
+        if d is None:
+            out["no destructor named (vtables.py)"].append(cls)
+            continue
+        include = f'#include "{c.package}/{c.package}Classes.h"'
+        source = f"{include}\n\n// FUNCTION: {fmt_addr(d)}\n{cls}::~{cls}()\n{{\n    ConditionalDestroy();\n}}\n"
+        unit, replace = integrated.get(d), d in accepted
+        if replace:
+            old = (p.state / "accepted" / f"{addr_key(d)}.cpp").read_text(encoding="utf-8")
+            if include in old:
+                source, replace = old, None
+            elif not STOCK_BODY.search(old) or (unit is not None and alone[unit] != 1):
+                out["destructor not in the stock form, or not alone in its unit"].append(cls)
+                continue
+        if dry_run:
+            out["planned"].append(cls)
+            continue
+        if replace is not None:  # the destructor in the header form first
+            path = work / f"{addr_key(d)}.cpp"
+            path.write_text(source, encoding="utf-8")
+            verdict = accept(p, fmt_addr(d), str(path), "--symbol", f"??1{cls}@@UAE@XZ",
+                             *(["--replace"] if replace else []))
+            if not verdict.startswith("ACCEPTED"):
+                out["destructor does not match in the header form"].append(f"{cls}: {verdict[:100]}")
+                continue
+            if unit is not None:
+                drop_unit(p, unit)  # its placeholder form: the integration writes it anew
+                out["units removed"].append(unit)
+        path = work / f"{addr_key(g)}.cpp"
+        path.write_text(source.replace(f"// FUNCTION: {fmt_addr(d)}", f"// FUNCTION: {fmt_addr(g)}"),
+                        encoding="utf-8")
+        verdict = accept(p, fmt_addr(g), str(path), "--symbol", f"??_G{cls}@@UAEPAXI@Z", "--with", fmt_addr(d))
+        out["accepted" if verdict.startswith("ACCEPTED") else "deleting destructor rejected"].append(
+            cls if verdict.startswith("ACCEPTED") else f"{cls}: {verdict[:100]}")
+    return out
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("mode", nargs="?", choices=("plan", "native"), default="plan")
     parser.add_argument("-o", "--output", type=Path, help="the plan (default: build/agent/dtors-plan.json)")
+    parser.add_argument("--dry-run", action="store_true", help="native: list what would be accepted")
     args = parser.parse_args()
     p = Project()
+    if args.mode == "native":
+        for outcome, items in native(p, args.dry_run).items():
+            print(f"{outcome}: {len(items)}")
+            for item in items[:20]:
+                print(f"  {item}")
+        if not args.dry_run:
+            print("Next: python configure.py && ninja, then integrate.py")
+        return
     out = args.output or p.state / "dtors-plan.json"
     spec = plan(p)
     out.write_text(json.dumps(spec, indent=1), encoding="utf-8")
