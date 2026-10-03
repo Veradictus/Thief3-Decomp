@@ -68,6 +68,70 @@ public:
     int Unknown2C;
 };
 
+class Class_10B8D520;
+
+// The member at +0x4C: two arrays, constructed at 0x10DA91B0 and destroyed at 0x10DA91F0.
+class Class_10DA91B0
+{
+public:
+    Class_10DA91B0();
+    ~Class_10DA91B0();
+
+    void FUN_10da91d0();
+
+    char Unknown00[0x18];
+};
+
+// Three values its inline constructor clears.
+struct Struct_10B87560
+{
+    Struct_10B87560() : Unknown00(0), Unknown04(0), Unknown08(0) {}
+
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+// The base (vtable 0x10E89384); its destructor's out-of-line copy is 0x10B87530.
+class Class_10E89384
+{
+public:
+    Class_10E89384(int A) : Unknown04(A), Unknown08(0) {}
+    virtual ~Class_10E89384() {}
+
+    int Unknown04;
+    int Unknown08;
+};
+
+class Class_10E893B0 : public Class_10E89384
+{
+public:
+    Class_10E893B0();
+    virtual ~Class_10E893B0();
+
+    int Unknown0C;
+    Struct_10B87560 Unknown10;
+    Struct_10B87560 Unknown1C;
+    Struct_10B87560 Unknown28;
+    Struct_10B87560 Unknown34;
+    int Unknown40;
+    int Unknown44;
+    int Unknown48;
+    Class_10DA91B0 Unknown4C;
+    Struct_10B87560 Unknown64;
+    int Unknown70;
+    int Unknown74;
+    Class_10B8D520* Unknown78;
+};
+
+// FUNCTION: 0x10B87560 ??0Class_10E893B0@@QAE@XZ
+Class_10E893B0::Class_10E893B0()
+    : Class_10E89384(1), Unknown0C(0), Unknown40(0), Unknown44(0), Unknown48(0), Unknown70(0), Unknown74(0),
+      Unknown78(0)
+{
+    Unknown4C.FUN_10da91d0();
+}
+
 // FUNCTION: 0x10B88840 ?FUN_10b88840@Class_10B88840@@QAEPAV1@XZ
 Class_10B88840* Class_10B88840::FUN_10b88840()
 {

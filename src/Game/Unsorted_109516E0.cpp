@@ -53,7 +53,7 @@ class Class_10E4AC6C
 public:
     Class_10E4AC6C();
 
-    virtual void Virtual0();
+    virtual ~Class_10E4AC6C();
 
     int Unknown04;
     int Unknown08;
@@ -128,3 +128,6 @@ void Class_10951900::FUN_10951900(int* A, int B)
             Unknown04 |= 0x400;
     }
 }
+
+// FUNCTION: 0x10951A60 ??_GClass_10E4AC6C@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10951780's definition in this unit.

@@ -290,3 +290,8 @@
 0x10C84070 engine Epic's engine code: not decompiled or published
 0x10C6A570 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(long&)
 0x10C6A690 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(long&)
+0x109267A0 libs   an STL exception class's constructor from const std::string& (exception() base, inlined string copy)
+0x10C6B1C0 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(..., double&) (xlocnum: errno, _Getffld, _Stod)
+0x10C6B2E0 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(..., double&) (xlocnum: errno, _Getffld, _Stod)
+0x109263E0 libs   std::basic_string<char>::assign(const char*, size_type)
+0x10A6F0C0 libs   stdext::hash_map<int, V>::lower_bound (an out-of-line _Hash member)

@@ -113,6 +113,53 @@ public:
     Object_10AB9FF0* Unknown00;
 };
 
+class Class_10E67938
+{
+public:
+    Class_10E67938();
+    virtual void FUN_10ab9d90(int Type, int A, int B, int C);
+    virtual ~Class_10E67938();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual bool FUN_10a4c4d0(int A);
+    virtual void Virtual7();
+};
+
+class Class_10AB90F0
+{
+public:
+    Class_10AB90F0() : Unknown00(0), Unknown04(0), Unknown08(0) {}
+    ~Class_10AB90F0();
+
+    int Unknown00;
+    int Unknown04;
+    void* Unknown08;
+};
+
+class Class_10E6F30C : public Class_10E67938
+{
+public:
+    Class_10E6F30C();
+    virtual ~Class_10E6F30C();
+
+    virtual void FUN_10ab9d90(int Type, int A, int B, int C);
+
+    void FUN_10ab85a0();
+
+    Class_10AB90F0 Unknown04;
+    int Unknown10;
+    int Unknown14;
+};
+
+// FUNCTION: 0x10AB9130 ??0Class_10E6F30C@@QAE@XZ
+Class_10E6F30C::Class_10E6F30C()
+    : Unknown10(0), Unknown14(0)
+{
+    FUN_10ab85a0();
+}
+
 // FUNCTION: 0x10AB9D40 ?FUN_10ab9d40@Class_10AB9D40@@QAEXHPAUStruct_10AB9D40@@H@Z
 void Class_10AB9D40::FUN_10ab9d40(int A, Struct_10AB9D40* B, int C)
 {

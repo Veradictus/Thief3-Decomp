@@ -88,11 +88,3 @@ Class_10AB5B20 Class_10C54970::FUN_10c54970()
         return Class_10AB5B20(Unknown28);
     return Class_10AB5B20();
 }
-
-// FUNCTION: 0x10C55800 ?FUN_10c55800@Class_10C55800@@QAEXXZ
-void Class_10C55800::FUN_10c55800()
-{
-    FUN_10c553a0();
-    delete Unknown18;
-    Unknown18 = 0;
-}

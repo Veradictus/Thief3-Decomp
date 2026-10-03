@@ -59,6 +59,32 @@ struct Struct_10BADCE0
 
 void FUN_10badc40(Struct_10BADCE0* Data, const FRotator& Rotation, float Distance, int A, int B);
 
+class FCoords
+{
+public:
+    FCoords& FUN_10961af0(const FRotator& Rot);
+
+    FVector Origin;
+    FVector XAxis;
+    FVector YAxis;
+    FVector ZAxis;
+};
+
+extern FCoords DAT_10f46de8;
+
+// FUNCTION: 0x10BADB90 ?FUN_10badb90@@YA?AVFVector@@ABVFRotator@@ABV1@M@Z
+FVector FUN_10badb90(const FRotator& Rotation, const FVector& Origin, float Distance)
+{
+    FCoords Coords = FCoords(DAT_10f46de8).FUN_10961af0(Rotation);
+    FVector Dir = Coords.XAxis;
+    Dir.Normalize();
+    Dir.X *= Distance;
+    Dir.Y *= Distance;
+    Dir.Z *= Distance;
+    Dir += Origin;
+    return Dir;
+}
+
 // FUNCTION: 0x10BADCE0 ?FUN_10badce0@@YAXPAUStruct_10BADCE0@@MHH@Z
 void FUN_10badce0(Struct_10BADCE0* Data, float Angle, int A, int B)
 {

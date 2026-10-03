@@ -45,6 +45,41 @@ public:
     virtual void FUN_10b4e650(int p1);
 };
 
+class Class_10B22020
+{
+public:
+    char Unknown00[0x54E];
+    bool Unknown54E;
+};
+
+class Class_10B39530
+{
+public:
+    void FUN_10b39530(int A, float B, float C, int D, int E, int F, float G);
+};
+
+class Class_10E7EBF8 : public Class_10AA82D0
+{
+public:
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void FUN_10b4d6f0(Class_10B22020* A);
+
+    char Unknown10;
+};
+
+// FUNCTION: 0x10B4D6F0 ?FUN_10b4d6f0@Class_10E7EBF8@@UAEXPAVClass_10B22020@@@Z
+void Class_10E7EBF8::FUN_10b4d6f0(Class_10B22020* A)
+{
+    if (Unknown08 != 0x101)
+    {
+        ((Class_10B396B0*)FUN_10aa82d0())->FUN_10b396b0(Unknown08);
+        Unknown08 = 0x101;
+    }
+    ((Class_10B39530*)FUN_10aa82d0())->FUN_10b39530(0x60 + (Unknown10 == 10), -1.0f, 1.0f, 0x101, 0, 0, -1.0f);
+    A->Unknown54E = false;
+}
+
 // FUNCTION: 0x10B4DB40 ?FUN_10b4db40@Class_10E7EBB0@@UAEHHH@Z
 int Class_10E7EBB0::FUN_10b4db40(int A, int B)
 {

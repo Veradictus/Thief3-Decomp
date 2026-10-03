@@ -21,9 +21,11 @@ game    start:0x10911950 end:0x10925FF0
 libs    start:0x10925FF0 end:0x10926020
 game    start:0x10926020 end:0x10926150
 libs    start:0x10926150 end:0x10926230
-game    start:0x10926230 end:0x10926650
-libs    start:0x10926650 end:0x109267A0
-game    start:0x109267A0 end:0x10927630
+game    start:0x10926230 end:0x109263E0
+libs    start:0x109263E0 end:0x109264D0
+game    start:0x109264D0 end:0x10926650
+libs    start:0x10926650 end:0x10926800
+game    start:0x10926800 end:0x10927630
 libs    start:0x10927630 end:0x10927730
 game    start:0x10927730 end:0x10929710
 libs    start:0x10929710 end:0x10929740
@@ -279,7 +281,9 @@ libs    start:0x10A60470 end:0x10A604A0
 game    start:0x10A604A0 end:0x10A6E930
 engine  start:0x10A6E930 end:0x10A6E990
 libs    start:0x10A6E990 end:0x10A6EA30
-game    start:0x10A6EA30 end:0x10A6F1A0
+game    start:0x10A6EA30 end:0x10A6F0C0
+libs    start:0x10A6F0C0 end:0x10A6F160
+game    start:0x10A6F160 end:0x10A6F1A0
 libs    start:0x10A6F1A0 end:0x10A6F2B0
 game    start:0x10A6F2B0 end:0x10A6F4F0
 libs    start:0x10A6F4F0 end:0x10A6F6E0
@@ -566,7 +570,9 @@ game    start:0x10C69990 end:0x10C69CC0
 libs    start:0x10C69CC0 end:0x10C69D10
 game    start:0x10C69D10 end:0x10C6A570
 libs    start:0x10C6A570 end:0x10C6A7B0
-game    start:0x10C6A7B0 end:0x10C6B530
+game    start:0x10C6A7B0 end:0x10C6B1C0
+libs    start:0x10C6B1C0 end:0x10C6B400
+game    start:0x10C6B400 end:0x10C6B530
 libs    start:0x10C6B530 end:0x10C6B570
 game    start:0x10C6B570 end:0x10C6EBE0
 libs    start:0x10C6EBE0 end:0x10C6EC10

@@ -101,14 +101,6 @@ void Class_10A71C40::FUN_10a71c40()
     Unknown08.FUN_10ab0400();
 }
 
-// FUNCTION: 0x10A72DB0 ?FUN_10a72db0@Class_10A72DB0@@QAEXXZ
-void Class_10A72DB0::FUN_10a72db0()
-{
-    FUN_10a111b0();
-    ::operator delete(Unknown18);
-    Unknown18 = 0;
-}
-
 // FUNCTION: 0x10A73200 ?FUN_10a73200@Class_10E6BAB0@@UAEPAHI@Z
 int* Class_10E6BAB0::FUN_10a73200(unsigned int Key)
 {

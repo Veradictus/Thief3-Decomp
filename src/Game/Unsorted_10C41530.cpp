@@ -56,11 +56,3 @@ Class_10AB5B20 Class_10C41530::FUN_10c41530(int Index)
 {
     return UnknownC0[Index].Unknown00;
 }
-
-// FUNCTION: 0x10C423F0 ?FUN_10c423f0@Class_10C423F0@@QAEXXZ
-void Class_10C423F0::FUN_10c423f0()
-{
-    FUN_10c415d0();
-    delete Unknown18;
-    Unknown18 = 0;
-}

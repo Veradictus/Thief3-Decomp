@@ -131,19 +131,3 @@ int FUN_10c549e0(Struct_10C549E0** A, Struct_10C549E0** B)
     int Time = TimeManager::Instance()->FUN_10afcf40();
     return ItemB->Unknown08->Virtual15(Time) - ItemA->Unknown08->Virtual15(Time);
 }
-
-// FUNCTION: 0x10C553A0 ?FUN_10c553a0@Class_10C55800@@QAEXXZ
-void Class_10C55800::FUN_10c553a0()
-{
-    Class_10C55090* Node = Unknown18->Unknown00;
-    Unknown18->Unknown00 = Unknown18;
-    Unknown18->Unknown04 = Unknown18;
-    Unknown1C = 0;
-    while (Node != Unknown18)
-    {
-        Class_10C55090* Next = Node->Unknown00;
-        Node->FUN_10c55090();
-        ::operator delete(Node);
-        Node = Next;
-    }
-}

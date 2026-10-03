@@ -36,6 +36,57 @@ public:
     void* Unknown08;
 };
 
+class Class_109081E0
+{
+public:
+    Class_109081E0& operator=(const Class_109081E0& Other);
+
+    char* Unknown00;
+};
+
+class Class_10AC47F0
+{
+public:
+    Class_10AC47F0* FUN_10ac47f0(const Class_10AC47F0& Other);
+
+    Class_109081E0 Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+    int Unknown10;
+    int Unknown14;
+    int Unknown18;
+    int Unknown1C;
+    int Unknown20;
+    int Unknown24;
+    int Unknown28;
+    int Unknown2C;
+    int Unknown30;
+    int Unknown34;
+    int Unknown38;
+};
+
+// FUNCTION: 0x10AC47F0 ?FUN_10ac47f0@Class_10AC47F0@@QAEPAV1@ABV1@@Z
+Class_10AC47F0* Class_10AC47F0::FUN_10ac47f0(const Class_10AC47F0& Other)
+{
+    Unknown00 = Other.Unknown00;
+    Unknown04 = Other.Unknown04;
+    Unknown08 = Other.Unknown08;
+    Unknown0C = Other.Unknown0C;
+    Unknown10 = Other.Unknown10;
+    Unknown14 = Other.Unknown14;
+    Unknown18 = Other.Unknown18;
+    Unknown1C = Other.Unknown1C;
+    Unknown20 = Other.Unknown20;
+    Unknown24 = Other.Unknown24;
+    Unknown28 = Other.Unknown28;
+    Unknown2C = Other.Unknown2C;
+    Unknown30 = Other.Unknown30;
+    Unknown34 = Other.Unknown34;
+    Unknown38 = Other.Unknown38;
+    return this;
+}
+
 // FUNCTION: 0x10AC4920 ?FUN_10ac4920@Class_10AC4920@@QAEXXZ
 void Class_10AC4920::FUN_10ac4920()
 {

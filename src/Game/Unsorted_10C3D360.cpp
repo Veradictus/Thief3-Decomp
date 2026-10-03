@@ -30,3 +30,6 @@ Class_10E9B088::~Class_10E9B088()
     if (Unknown2C)
         Unknown2C->Virtual2();
 }
+
+// FUNCTION: 0x10C3D540 ??_GClass_10E9B088@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10C3D360's definition in this unit.

@@ -35,3 +35,6 @@ Class_10E81DD4::~Class_10E81DD4()
             GWindowManager->FUN_109e8ae0(Unknown08[i].Unknown00);
     }
 }
+
+// FUNCTION: 0x10B56370 ??_GClass_10E81DD4@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B561D0's definition in this unit.

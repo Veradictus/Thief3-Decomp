@@ -35,22 +35,6 @@ public:
     virtual void FUN_10c423d0(int A, int B, int C, int D);
 };
 
-// FUNCTION: 0x10C415D0 ?FUN_10c415d0@Class_10C423F0@@QAEXXZ
-void Class_10C423F0::FUN_10c415d0()
-{
-    Class_10C40750* Node = Unknown18->Unknown00;
-    Unknown18->Unknown00 = Unknown18;
-    Unknown18->Unknown04 = Unknown18;
-    Unknown1C = 0;
-    while (Node != Unknown18)
-    {
-        Class_10C40750* Next = Node->Unknown00;
-        Node->FUN_10c40750();
-        ::operator delete(Node);
-        Node = Next;
-    }
-}
-
 // FUNCTION: 0x10C423D0 ?FUN_10c423d0@Class_10E9B83C@@UAEXHHHH@Z
 void Class_10E9B83C::FUN_10c423d0(int A, int B, int C, int D)
 {

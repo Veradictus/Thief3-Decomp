@@ -42,6 +42,45 @@ public:
     Class_10c7d570* Unknown08;
 };
 
+class Class_10C262D0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+
+    void FUN_10c262d0(bool A);
+
+    char Unknown04[0x40];
+    bool Unknown44;
+};
+
+// FUNCTION: 0x10C262D0 ?FUN_10c262d0@Class_10C262D0@@QAEX_N@Z
+void Class_10C262D0::FUN_10c262d0(bool A)
+{
+    if (A == true)
+    {
+        if (!Unknown44)
+        {
+            Unknown44 = true;
+            Virtual6();
+        }
+    }
+    else if (!A)
+    {
+        if (Unknown44 == true)
+        {
+            Virtual7();
+            Unknown44 = false;
+        }
+    }
+}
+
 // FUNCTION: 0x10C26310 ?FUN_10c26310@Class_10E99298@@UAE?AUStruct_10C26310@@XZ
 Struct_10C26310 Class_10E99298::FUN_10c26310()
 {
