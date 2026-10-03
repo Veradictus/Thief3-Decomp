@@ -120,6 +120,15 @@ inlines any body in the file, even one defined after the caller). Use
   `void*` is undefined C++, though MSVC compiles it the same).
 - COM interfaces (Direct3D): declare slots `virtual int __stdcall
   VirtualN(...)`: `this` is pushed last, no ecx.
+- `test ecx, ecx; lea esi, [ecx+0xC]; ...; xor esi, esi`: `this` converted to
+  a second base (`class A : public Primary, public Second`) and passed on;
+  `lea esi, [ecx-N]` at entry is a virtual of a second base: declare both
+  bases and the override, MSVC adjusts `this`.
+- `push imm; call Getter; mov ecx, eax; call F` with Getter a plain `ret`: the
+  immediate is F's argument (`Getter()->F(imm)`), whatever symbols.txt says.
+- A destructor with no vtable store at entry is implicit (a written `~C()`
+  stores it): compiler-generated, matched only with the function that emits
+  it (see "Rules").
 - `mov eax, [G]; test eax, eax; jne; push "<Package>"; call
   GetPrivateStaticClass<C>; add esp, 4; mov [G], eax; call
   InitializePrivateStaticClass<C>` is `C::StaticClass()` inlined: `#include
