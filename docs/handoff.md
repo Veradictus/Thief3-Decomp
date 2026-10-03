@@ -39,7 +39,7 @@ decompilation** worked mostly by Claude agents under the strict gate in
   only"). `config/PC_20040610/categories.txt`, written by
   `tools/classify.py` from evidence in the exe (native class registrations
   with their packages, vtables, strings), says whose each function is: 2.6 MB
-  of game code, 0.8 MB of Epic's engine, 1.4 MB of libraries and 0.3 MB still
+  of game code, 0.8 MB of Epic's engine, 1.4 MB of libraries and 0.25 MB still
   unclassified ([decomp-dev.md](decomp-dev.md), "Whose code it is"). The
   queue offers game code only, integrate.py publishes nothing else, and
   `progress_report.py check` enforces it. Epic's engine code (the `UObject`
@@ -48,12 +48,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   unclassified); `include/Core/Core.h` keeps the declarations the game code
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of up to 12 sub-agents at a time
-  (Sonnet on functions under 160 bytes, Opus on bigger ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 5,236
-  matched functions in 2,379 units, one per auto unit of the split
+  (Sonnet on functions under 160 bytes, Opus on bigger ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 5,388
+  matched functions in 2,500 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (5,163 of 12,523 functions at 100%, 9.8% of its bytes; hidden from decomp.dev's list
+  game code (5,542 of 12,021 functions at 100%, 10.6% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -251,13 +251,16 @@ Later the same day, played by the user:
      vtable) still need their slots named the same way. `vtables.py` also
      names each native class's own vtable `??_7C@@6B@`, which objdiff's
      report pairs by name.
-   - Library code in `src/`: 21 STL members integrated by workers who did
+   - Library code in `src/`: 29 STL members integrated by workers who did
      not recognize them were found and taken out (`basic_string::assign`,
      `hash_map`'s constructor, `list` and `vector` internals: destructors,
      `clear`, `_Buynode`, `_Tidy`, `_Ufill`, node destructors). Two checks
      find them: the families of excluded library functions, and the
      functions excluded library code calls on the container or a node
      (an element's destructor, called for each element, is the game's).
+     Run both over every library exclusion at each checkpoint, not only
+     the new ones: the family stamper once copied a `std::list` model onto
+     seven other instances before the model was found to be the library's.
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -310,8 +313,8 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 72 of the
-     5,236 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 78 of the
+     5,388 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`, and some constructors and
@@ -321,10 +324,6 @@ Later the same day, played by the user:
      integrate.py names the vtables functions store (`??_7`), and
      `tools/split.py` relocates `fs:[0]`. Both name each function's
      exception tables after it, so its handler stub and funclets pair.
-   - About 210 library and 300 engine functions found inside game objects
-     (STL and Epic template instantiations) are excluded from the queue
-     but still count as game code in `categories.txt`: give
-     `tools/classify.py` a committed list of them as evidence.
    - Review every accepted file before integrating: workers stand in for
      what the header lacks (local types, `Shim` subclasses to reach
      undeclared members, `DAT_` slices of tables); add the real declarations
