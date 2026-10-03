@@ -391,7 +391,10 @@ patterns that need no judgement:
   holds its own deleting destructor, even where its super's table is not
   known (ULinkDataObject's subclasses: classes.txt records UObject's table
   for it), unless the linker folded it with an ancestor's; with that, a
-  second run named 164 more.
+  second run named 164 more. The plan also names each native class's own
+  vtable `??_7C@@6B@` where symbols.txt had a placeholder (a `DAT_` or a
+  pointer global a caller guessed): objdiff's report pairs a stored vtable
+  by name, and 79 functions the gate had accepted reached 100% there.
 - `fixnames.py constants` finds every queued function whose whole code is
   `mov eax, imm; ret` (or `xor eax, eax; ret`), writes `int FUN_x() { return
   imm; }` for it, and excludes it from the queue until `fixnames.py accept`

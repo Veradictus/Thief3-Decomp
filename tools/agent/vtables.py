@@ -238,6 +238,25 @@ def plan(p: Project) -> Tuple[dict, List[str]]:
             aliases[key] += new[1:]
         else:
             aliases[key] += new
+    # Each native class's own vtable is `??_7C@@6B@`, in place of a placeholder (DAT_, a pointer global a
+    # caller guessed, ??_7Class_<addr>): objdiff's report pairs a stored vtable by name. A table two classes
+    # share (the linker folded identical ones) takes the first name, the others as aliases.
+    classes = p.classes()
+    for cls, c in sorted(classes.items()):
+        sup = classes.get(c.super)
+        if not c.vtable or (sup is not None and sup.vtable == c.vtable):
+            continue  # the super's table: this class's own is not known
+        want, key, sym = f"??_7{cls}@@6B@", fmt_addr(c.vtable), p.by_addr.get(c.vtable)
+        if sym is None or sym.address != c.vtable or sym.name == want or taken.get(want, c.vtable) != c.vtable:
+            continue
+        if key in renames:
+            aliases[key].append(want)
+        elif placeholder_name(sym.name):
+            renames[key] = want
+            if not is_placeholder(sym.name):
+                aliases[key].append(sym.name)
+        else:
+            aliases[key].append(want)
     blocked = set()
     for rec_path in (p.state / "deferred").glob("*.json"):
         rec = read_json(rec_path, {}) or {}
