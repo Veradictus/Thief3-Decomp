@@ -91,8 +91,15 @@ Every native class's destructor is the one Unreal's `DECLARE_CLASS` writes,
 vtable stored, `ConditionalDestroy`, then the parent's destructor (133
 functions call `ConditionalDestroy`; 103 of them are one family of 79-byte
 destructors). The destructor is slot 2 of UObject's
-vtable (`0x10E70A50`), not slot 0 as in stock Unreal Engine 2; slot 0
-(`0x10ADB3A0`) is not identified yet. The class's deleting destructor at
+vtable (`0x10E70A50`), not slot 0 as in stock Unreal Engine 2: slot 0 is
+`Destroy()` (`0x10ADB3A0`; `ConditionalDestroy` calls it), and slot 1 is not
+identified. The rest follow stock Unreal Engine 2's order: `ProcessEvent`,
+`ProcessState`, `ProcessRemoteFunction`, `Modify`, `PostLoad`,
+`Serialize(FArchive&)` (slot 8), `IsPendingKill`, `GotoState`, `GotoLabel`,
+`InitExecution`, `ShutdownAfterError`, `PostEditChange`, two unidentified
+slots (15, 16), `CallFunction`, `ScriptConsoleExec` and `Register` (19).
+The argument bytes each slot's functions pop (`ret N`) agree in all 236
+native tables and with these signatures. The class's deleting destructor at
 slot 2 calls it, then `UObject::operator delete(this, sizeof(TClass))`;
 MSVC writes it wherever it writes the vtable, so it matches from the
 destructor's unit. `Cast<T>` is stock: the game keeps one

@@ -49,12 +49,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
   (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
-  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 4,655
-  matched functions in 1,961 units, one per auto unit of the split
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 4,792
+  matched functions in 2,064 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (4,613 of 12,359 functions at 100%, 8.2% of its bytes; hidden from decomp.dev's list
+  game code (4,741 of 12,399 functions at 100%, 8.5% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -208,7 +208,7 @@ Later the same day, played by the user:
      script, families stamped between workers. Drain it for a checkpoint
      (sweep, review, naming pass, `integrate.py`, `dtors.py`,
      `progress_report.py write`, commit). Integration and `retry.py` check
-     in parallel, so a checkpoint takes minutes. About 6,500 game functions are
+     in parallel, so a checkpoint takes minutes. About 6,400 game functions are
      still queued, most of them 80 bytes and more.
    - First run on the real split after the 2026-10-02 changes
      ([research/ue2-decomps.md](research/ue2-decomps.md), section 3): build
@@ -252,10 +252,13 @@ Later the same day, played by the user:
      vtable) still need their slots named the same way. `vtables.py` also
      names each native class's own vtable `??_7C@@6B@`, which objdiff's
      report pairs by name.
-   - Library code in `src/`: three STL members integrated in earlier
-     batches were found and taken out (`basic_string::assign`, a
-     `hash_map` constructor, `_Tree::_Buynode`); look for more among
-     functions whose callees are STL instances the workers excluded.
+   - Library code in `src/`: 15 STL members integrated by workers who did
+     not recognize them were found and taken out (`basic_string::assign`,
+     `hash_map`'s constructor, `list` and `vector` internals: destructors,
+     `clear`, `_Buynode`, `_Tidy`, `_Ufill`, node destructors). Two checks
+     find them: the families of excluded library functions, and the
+     functions excluded library code calls on the container or a node
+     (an element's destructor, called for each element, is the game's).
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -305,8 +308,8 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 42 of the
-     4,655 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 51 of the
+     4,792 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`, and some constructors and
