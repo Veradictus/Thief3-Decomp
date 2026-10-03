@@ -451,6 +451,13 @@ declarations (their accepted sources and `src/` units), then, after
 lifts the exclusions. A `jmp` stub whose callee is a method is written as a
 method call (the protocol says so), which avoids most of these.
 
+The gate now settles the commonest kind itself: a decorated name on the
+function's own placeholder (`?FUN_10b760b0@@YAXXZ`) counts as a caller's
+guess, so the function's own match replaces it, whatever its name (a
+method, a destructor), and `integrate.py` renames the address and keeps
+the guess as an alias for the callers in `src/`. `retry.py --conflicts`
+accepted the waiting ones at once.
+
 The first naming pass (2026-09-30) settled the rest by hand: 44 symbols got
 their real names, the 32 accepted callers that had pinned the guesses were
 rewritten (and `operator delete`'s 33), and 46 blocked functions matched.
