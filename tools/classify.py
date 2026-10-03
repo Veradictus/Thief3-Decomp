@@ -96,7 +96,7 @@ EPIC_NAMED = re.compile(r"^(?:\?[^@]+@|\?\?[0-9A-Z_])(U|A|F)(Object|Name|String|
 # ::m_ members, .\Source\ paths). Epic's: messages only its stock code prints.
 LIB_STRINGS = re.compile(r"<T> too long|<T> iterator|string too long|invalid string position|TLIPSinc"
                          r"|^(?:Tt|Lt|St|Lthk)[A-Z][A-Za-z]+$")
-ION_STRINGS = re.compile(r"(?<![A-Za-z])T3|Flesh|Garrett|Schema|Papyrus|LinkDataObject|Gamesys|ION_ROOT|VIKTORIA"
+ION_STRINGS = re.compile(r"(?<![A-Za-z])T3(?!D(?![A-Za-z]))|Flesh|Garrett|Schema|Papyrus|LinkDataObject|Gamesys|ION_ROOT|VIKTORIA"
                          r"|DX2|MetaSound|\.\\Source\\|UnitTests?\.cpp|Test\.cpp|^c[A-Z][a-z]\w*::|::m_")
 EPIC_STRINGS = re.compile(r"SpawnActor failed because|FLineBatcher|FCanvasUtil|FURL::|UnrealEd|EditorPrefs\.ini"
                           r"|FPropertyItem|FObjectsHierarchyItem|ClassCaption|appError called|%sUnreal%s|Log file open")
@@ -322,7 +322,9 @@ def evidence(img: Image) -> Tuple[Dict[int, Set[str]], Dict[int, List[str]]]:
             add(f.address, GAME, f"named {f.name}")
     # The vtables of Ion Storm's named classes (and of the classes derived from them).
     for table, slots in tables.items():
-        named = next((img.at[fn].name for fn in slots if ION_NAMED.match(img.at[fn].name)), None)
+        named = next((img.at[fn].name for fn in slots if ION_NAMED.match(img.at[fn].name)
+                      and not PLACEHOLDER_METHOD.match(img.at[fn].name)
+                      and not (fn in folded and img.at[fn].size <= TRIVIAL)), None)
         if named:
             for slot, fn in enumerate(slots):
                 if img.at[fn].size > TRIVIAL and fn < configure.LIBRARY_START:

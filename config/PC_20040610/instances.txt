@@ -295,3 +295,6 @@
 0x10C6B2E0 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(..., double&) (xlocnum: errno, _Getffld, _Stod)
 0x109263E0 libs   std::basic_string<char>::assign(const char*, size_type)
 0x10A6F0C0 libs   stdext::hash_map<int, V>::lower_bound (an out-of-line _Hash member)
+0x10A2E100 libs   std::vector<T>::push_back (size() < capacity() inlined, else _Insert_n 0x10A2DF20)
+0x10AE39F0 engine UObjectExporterT3D::StaticConstructor (Epic's Core: SupportedClass, bText, Formats 'T3D'; withdrawn)
+0x10AD0070 engine TArray<T>::Remove(INT Index, INT Count), an instance of Epic's template (element destructors, then FArray::Rem
