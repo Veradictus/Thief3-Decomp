@@ -267,6 +267,9 @@ class UT3Game : public UGameSubsystem
     DECLARE_CLASS(UT3Game, UGameSubsystem, 0x4, T3Player)
 
 public:
+    virtual ~UT3Game();                     // slot 2: 0x10B15220
+
+public:
     BYTE Pad34[0x188];
 };
 T3_CHECK_SIZE(UT3Game, 0x1BC);

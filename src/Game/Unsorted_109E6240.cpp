@@ -1,6 +1,8 @@
 // Game/Unsorted_109E6240.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
+#include <list>
+
 // Ion Storm's string (0x109081E0): a char pointer, null when default constructed.
 class Class_109081E0
 {
@@ -49,6 +51,89 @@ public:
     Class_109E6520_Node** Unknown14;
     Class_109E6520_Field18 Unknown18;
 };
+
+class Class_10E5B7C8_Unknown88
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual void Virtual13();
+    virtual void Virtual14();
+    virtual void Virtual15();
+    virtual void Virtual16(int A);
+    virtual void Virtual17();
+    virtual void Virtual18();
+    virtual void Virtual19();
+    virtual void Virtual20();
+    virtual void Virtual21();
+    virtual void Virtual22();
+    virtual void Virtual23();
+    virtual void Virtual24();
+    virtual void Virtual25();
+    virtual void Virtual26();
+    virtual void Virtual27();
+    virtual void Virtual28();
+    virtual void Virtual29();
+    virtual void Virtual30();
+    virtual void Virtual31();
+    virtual void Virtual32();
+    virtual void Virtual33();
+    virtual void Virtual34();
+    virtual void Virtual35();
+    virtual void Virtual36();
+    virtual void Virtual37();
+    virtual void Virtual38();
+    virtual void Virtual39();
+    virtual void Virtual40();
+    virtual void Virtual41();
+    virtual void Virtual42();
+    virtual void Virtual43();
+    virtual void Virtual44();
+    virtual void Virtual45();
+    virtual void Virtual46();
+    virtual void Virtual47();
+    virtual void Virtual48();
+    virtual void Virtual49();
+    virtual void Virtual50();
+    virtual void Virtual51();
+    virtual void Virtual52();
+    virtual void Virtual53();
+    virtual bool Virtual54();
+};
+
+class Class_10E5B7C8
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void FUN_109e64e0();
+
+    char Unknown04[0x84];
+    std::list<Class_10E5B7C8_Unknown88*> Unknown88;
+};
+
+// FUNCTION: 0x109E64E0 ?FUN_109e64e0@Class_10E5B7C8@@UAEXXZ
+void Class_10E5B7C8::FUN_109e64e0()
+{
+    for (std::list<Class_10E5B7C8_Unknown88*>::iterator It = Unknown88.begin(); It != Unknown88.end(); ++It)
+    {
+        Class_10E5B7C8_Unknown88* Item = *It;
+        if (Item->Virtual54())
+            Item->Virtual16(1);
+    }
+}
 
 // FUNCTION: 0x109E6520 ?FUN_109e6520@Class_109E6520@@QAEIABVClass_109081E0@@ABH@Z
 unsigned int Class_109E6520::FUN_109e6520(const Class_109081E0& Key, const int& Value)

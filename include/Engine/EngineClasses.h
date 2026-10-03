@@ -1812,12 +1812,6 @@ class UBitmap : public UObject
     DECLARE_CLASS(UBitmap, UObject, 0x1, Engine)
 
 public:
-    virtual void Destroy();                 // slot 0: 0x1096D7A0
-    virtual ~UBitmap();                     // slot 2: 0x1096BE40
-    virtual void PostLoad();                // slot 7: 0x1096BC10
-    virtual void Serialize(FArchive& Ar);   // slot 8: 0x1096BA90
-
-public:
     BYTE Format;                            // 0x2C  ETextureFormat
     UPalette* Palette;                      // 0x30
     BYTE UBits;                             // 0x34
@@ -1966,6 +1960,9 @@ T3_CHECK_SIZE(UCreationSpawnLinkDataObject, 0x60);
 class UTexture : public UBitmap
 {
     DECLARE_CLASS(UTexture, UBitmap, 0x40, Engine)
+
+public:
+    virtual ~UTexture();                    // slot 2: 0x1096BE40
 
 public:
     UTexture* BumpMap;                      // 0x58
@@ -2266,6 +2263,9 @@ class UGameEngine : public UEngine
     void StaticConstructor();       // 0x10983590
 
 public:
+    virtual ~UGameEngine();                 // slot 2: 0x10987860
+
+public:
     ULevel* GLevel;                         // 0x10C
     ULevel* GEntry;                         // 0x110
     FURL LastURL;                           // 0x114
@@ -2464,12 +2464,6 @@ T3_CHECK_SIZE(UPalette, 0x38);
 class UPlayer : public UObject
 {
     DECLARE_CLASS(UPlayer, UObject, 0xD, Engine)
-
-public:
-    virtual void Destroy();                 // slot 0: 0x10C86020
-    virtual ~UPlayer();                     // slot 2: 0x10C8DA60
-    virtual void Serialize(FArchive& Ar);   // slot 8: 0x109DCFF0
-    virtual void PostEditChange();          // slot 14: 0x10C85D10
 
 public:
     INT vfOut;                              // 0x2C
@@ -2819,8 +2813,8 @@ class UTriggerRegistrar : public UObject
     DECLARE_CLASS(UTriggerRegistrar, UObject, 0xD, Engine)
 
 public:
-    virtual ~UTriggerRegistrar();           // slot 2: 0x10AB3CE0
-    virtual void Register();                // slot 19: 0x10ABD7D0
+    virtual ~UTriggerRegistrar();           // slot 2: 0x10AB3CA0
+    virtual void Register();                // slot 19: 0x10D660B0
 
 public:
 };

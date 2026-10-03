@@ -40,6 +40,34 @@ struct Struct_10B198A0
 
 Struct_10B198A0* FUN_10b198a0(int A);
 
+struct Item_10B19940
+{
+    FString Unknown00;
+    int Unknown0C;
+    int Unknown10;
+    unsigned char Unknown14;
+    unsigned int Unknown18 : 1;
+};
+
+class Class_10B19940
+{
+public:
+    int FUN_10af4cc0(int A, int B);
+    int FUN_10b19940(const Item_10B19940& Item);
+
+    Item_10B19940* Unknown00;
+    int Unknown04;
+    int Unknown08;
+};
+
+// FUNCTION: 0x10B19940 ?FUN_10b19940@Class_10B19940@@QAEHABUItem_10B19940@@@Z
+int Class_10B19940::FUN_10b19940(const Item_10B19940& Item)
+{
+    int Index = FUN_10af4cc0(sizeof(Item_10B19940), 1);
+    Unknown00[Index] = Item;
+    return Index;
+}
+
 // FUNCTION: 0x10B199A0 ?FUN_10b199a0@Class_10B199A0@@QAEXHH@Z
 void Class_10B199A0::FUN_10b199a0(int Index, int Count)
 {

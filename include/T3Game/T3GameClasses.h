@@ -227,6 +227,10 @@ class UT3GameRegistrar : public UTriggerRegistrar
     DECLARE_CLASS(UT3GameRegistrar, UTriggerRegistrar, 0x4, T3Game)
 
 public:
+    virtual ~UT3GameRegistrar();            // slot 2: 0x10AB3CE0
+    virtual void Register();                // slot 19: 0x10ABD7D0
+
+public:
 };
 T3_CHECK_SIZE(UT3GameRegistrar, 0x2C);
 

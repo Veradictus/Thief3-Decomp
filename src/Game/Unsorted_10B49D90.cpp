@@ -54,6 +54,20 @@ public:
     virtual void FUN_10b4a160(AGarrett* Param);
 };
 
+class Class_10B49D90
+{
+public:
+    bool FUN_10b49d90(int A, int B);
+};
+
+// FUNCTION: 0x10B49D90 ?FUN_10b49d90@Class_10B49D90@@QAE_NHH@Z
+bool Class_10B49D90::FUN_10b49d90(int A, int B)
+{
+    if (A == 1 && B == 2 || A == 2 && B == 1 || A == 3 && B == 4 || A == 4 && B == 3)
+        return true;
+    return false;
+}
+
 // FUNCTION: 0x10B4A120 ?FUN_10b4a120@Class_10E7E730@@UAEXPAVAGarrett@@@Z
 void Class_10E7E730::FUN_10b4a120(AGarrett* Garrett)
 {

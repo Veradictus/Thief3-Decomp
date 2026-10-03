@@ -1,6 +1,8 @@
 // Game/Unsorted_10B1D2C0.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
+#include "Core/Core.h"
+
 class Class_10B1D3D0
 {
 public:
@@ -114,6 +116,91 @@ public:
     char Unknown04[0x2C0];
     Class_10B1D3D0 Unknown2C4;
 };
+
+class Class_10B48890
+{
+public:
+    virtual void Virtual0();
+
+    char Unknown04[0x1C];
+    FVector Unknown20;
+    FVector Unknown2C;
+};
+
+class Class_10B3AF40_UnknownB0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual Class_10B48890* Virtual6();
+};
+
+class APawn
+{
+public:
+    char Unknown00[0xB0];
+    Class_10B3AF40_UnknownB0* m_physicsObjectPadding;
+};
+
+class Class_10B22D60
+{
+public:
+    void FUN_10b22c80();
+};
+
+struct Struct_10B1D1B0_Unknown00
+{
+    char Unknown00[4];
+    Class_10B22D60* Unknown04;
+};
+
+class Class_10B1D1B0
+{
+public:
+    Struct_10B1D1B0_Unknown00* Unknown00;
+};
+
+// AT3PlayerController (0x2C0 is its bIsActive bitfield).
+class Class_10B1D500
+{
+public:
+    void FUN_10b1d500(bool A, bool B);
+
+    char Unknown00[0xC0];
+    APawn* Pawn;
+    char UnknownC4[0x1FC];
+    unsigned bIsActive : 1;
+    Class_10B1D1B0 Unknown2C4;
+};
+
+// FUNCTION: 0x10B1D500 ?FUN_10b1d500@Class_10B1D500@@QAEX_N0@Z
+void Class_10B1D500::FUN_10b1d500(bool A, bool B)
+{
+    bIsActive = A;
+    if (bIsActive)
+    {
+        if (B)
+        {
+            Struct_10B1D1B0_Unknown00* Holder = Unknown2C4.Unknown00;
+            Class_10B22D60* Target;
+            if (!Holder)
+                Target = 0;
+            else
+                Target = Holder->Unknown04;
+            Target->FUN_10b22c80();
+        }
+    }
+    else
+    {
+        Class_10B48890* Body = Pawn->m_physicsObjectPadding->Virtual6();
+        Body->Unknown20 = FVector(0.0f, 0.0f, 0.0f);
+        Body->Unknown2C = FVector(0.0f, 0.0f, 0.0f);
+    }
+}
 
 // FUNCTION: 0x10B1D5D0 ?FUN_10b1d5d0@AT3PlayerController@@UAEXHH@Z
 void AT3PlayerController::FUN_10b1d5d0(int A, int B)

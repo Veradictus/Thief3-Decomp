@@ -484,6 +484,9 @@ class UAI : public UAISubsystem
     DECLARE_CLASS(UAI, UAISubsystem, 0x4, AICore)
 
 public:
+    virtual ~UAI();                         // slot 2: 0x10BBE660
+
+public:
 };
 T3_CHECK_SIZE(UAI, 0x34);
 

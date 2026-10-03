@@ -95,6 +95,31 @@ public:
     void FUN_1097c880(int Size);
 };
 
+struct Struct_1097B790
+{
+    char Unknown00[0x2C];
+    void** Unknown2C;
+    int Unknown30;
+};
+
+class Class_1097B790
+{
+public:
+    void FUN_1097afb0(void* Item, int Flags);
+    void FUN_1097b790(Struct_1097B790* A);
+};
+
+// FUNCTION: 0x1097B790 ?FUN_1097b790@Class_1097B790@@QAEXPAUStruct_1097B790@@@Z
+void Class_1097B790::FUN_1097b790(Struct_1097B790* A)
+{
+    if (A)
+    {
+        int Count = A->Unknown30;
+        for (int i = 0; i < Count; i++)
+            FUN_1097afb0(A->Unknown2C[i], 0xF);
+    }
+}
+
 // FUNCTION: 0x1097C880 ?FUN_1097c880@Class_1097CBE0@@QAEXH@Z
 void Class_1097CBE0::FUN_1097c880(int Size)
 {

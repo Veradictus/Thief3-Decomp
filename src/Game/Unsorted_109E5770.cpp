@@ -64,6 +64,71 @@ public:
     Class_10BFBD70 Unknown0B8;
 };
 
+int FUN_10af36e0(const char* A, const char* B);
+
+extern const char DAT_10e47660[];
+
+// Ion Storm's string (0x109081E0): a char pointer, null when empty.
+class Class_109081E0
+{
+public:
+    char* Unknown00;
+};
+
+class Class_109E5910
+{
+public:
+    int FUN_109e5910(const Class_109081E0& Name);
+};
+
+struct Entry_10C32C30
+{
+    Entry_10C32C30* Next;
+    Entry_10C32C30* Prev;
+};
+
+class Class_10D3F830
+{
+public:
+    bool FUN_10d3f830(int* Key);
+};
+
+class Class_10C49740 : public Class_10D3F830
+{
+public:
+    bool FUN_10c49740(int* Key, Entry_10C32C30** Out);
+};
+
+class Class_109E59D0
+{
+public:
+    Entry_10C32C30* FUN_109e59d0(int* Key);
+
+    char Unknown00[0x3C];
+    Class_10C49740 Unknown3C;
+};
+
+// FUNCTION: 0x109E5910 ?FUN_109e5910@Class_109E5910@@QAEHABVClass_109081E0@@@Z
+int Class_109E5910::FUN_109e5910(const Class_109081E0& Name)
+{
+    if (!FUN_10af36e0(Name.Unknown00 ? Name.Unknown00 : DAT_10e47660, "ABSOLUTE"))
+        return 1;
+    return FUN_10af36e0(Name.Unknown00 ? Name.Unknown00 : DAT_10e47660, "RELATIVE") != 0;
+}
+
+// FUNCTION: 0x109E59D0 ?FUN_109e59d0@Class_109E59D0@@QAEPAUEntry_10C32C30@@PAH@Z
+Entry_10C32C30* Class_109E59D0::FUN_109e59d0(int* Key)
+{
+    Entry_10C32C30* Entry = 0;
+    Entry_10C32C30* Found = 0;
+    if (Unknown3C.FUN_10d3f830(Key))
+    {
+        Unknown3C.FUN_10c49740(Key, &Found);
+        Entry = Found;
+    }
+    return Entry;
+}
+
 // FUNCTION: 0x109E60E0 ?FUN_109e60e0@Class_10E5B2C0@@UAEXH@Z
 void Class_10E5B2C0::FUN_109e60e0(int Value)
 {

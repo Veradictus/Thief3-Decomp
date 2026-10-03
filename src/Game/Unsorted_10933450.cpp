@@ -71,6 +71,9 @@ public:
     Class_1095D6C0 Unknown3C;
 };
 
+// FUNCTION: 0x109334C0 ??_GClass_10E49DFC@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x109334E0's definition in this unit.
+
 // FUNCTION: 0x109334E0 ??1Class_10E49DFC@@UAE@XZ
 Class_10E49DFC::~Class_10E49DFC()
 {

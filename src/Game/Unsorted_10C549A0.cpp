@@ -59,6 +59,70 @@ struct Struct_10C549E0
     Class_10C549E0_Object* Unknown08;
 };
 
+class Class_10C549A0_Target
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+};
+
+class Class_10C549A0_Value
+{
+public:
+    char Unknown00[8];
+    Class_10C549A0_Target* Unknown08;
+};
+
+struct Struct_10C549A0_Entry
+{
+    int Unknown00;
+    Class_10C549A0_Value* Unknown04;
+};
+
+struct Struct_10C549A0
+{
+    char Unknown00[4];
+    int Unknown04;
+};
+
+class Class_10E9C330
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void FUN_10c549a0(Struct_10C549A0* A);
+
+    char Unknown04[0x48];
+    int Unknown4C;
+    char Unknown50[4];
+    Struct_10C549A0_Entry* Unknown54;
+};
+
+// FUNCTION: 0x10C549A0 ?FUN_10c549a0@Class_10E9C330@@UAEXPAUStruct_10C549A0@@@Z
+void Class_10E9C330::FUN_10c549a0(Struct_10C549A0* A)
+{
+    for (int i = 0; i < Unknown4C; i++)
+    {
+        Struct_10C549A0_Entry& Entry = Unknown54[i];
+        if (Entry.Unknown00 == A->Unknown04)
+            Entry.Unknown04->Unknown08->Virtual10();
+    }
+}
+
 // FUNCTION: 0x10C549E0 ?FUN_10c549e0@@YAHPAPAUStruct_10C549E0@@0@Z
 int FUN_10c549e0(Struct_10C549E0** A, Struct_10C549E0** B)
 {

@@ -75,6 +75,48 @@ public:
     Class_10B47660* Unknown0C[1];
 };
 
+class Class_10AF7F80
+{
+public:
+    const char* FUN_10af7f80();
+};
+
+int FUN_10af3690(const char* A, const char* B);
+
+extern const char* DAT_10ff3830;
+
+struct Struct_10B379E0
+{
+    char Unknown00[0x18];
+    Class_10AF7F80 Unknown18;
+    char Unknown19[0x23];
+    int Unknown3C;
+};
+
+class Class_10B21560
+{
+public:
+    char Unknown00[0x490];
+    unsigned Unknown490_0 : 1;
+    unsigned Unknown490_1 : 1;
+};
+
+class Class_10B379E0
+{
+public:
+    void FUN_10b379e0(Struct_10B379E0* A, int B);
+
+    char Unknown00[4];
+    Class_10B21560* Unknown04;
+};
+
+// FUNCTION: 0x10B379E0 ?FUN_10b379e0@Class_10B379E0@@QAEXPAUStruct_10B379E0@@H@Z
+void Class_10B379E0::FUN_10b379e0(Struct_10B379E0* A, int B)
+{
+    if (A->Unknown3C && &A->Unknown18)
+        Unknown04->Unknown490_1 = FUN_10af3690(A->Unknown18.FUN_10af7f80(), DAT_10ff3830) == 0;
+}
+
 // FUNCTION: 0x10B37FA0 ?FUN_10b37fa0@Class_10B37FA0@@QAEXHHH@Z
 void Class_10B37FA0::FUN_10b37fa0(int A, int B, int C)
 {

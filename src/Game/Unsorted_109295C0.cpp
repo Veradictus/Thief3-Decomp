@@ -64,6 +64,24 @@ extern int DAT_10f31ad4;
 
 extern Struct_10929600** DAT_10f31adc;
 
+struct Struct_10928B50;
+
+void FUN_10928b50(Struct_10928B50* Video);
+
+extern int DAT_10f31ac8;
+
+extern Struct_10928B50** DAT_10f31ad0;
+
+// FUNCTION: 0x109295C0 ?FUN_109295c0@@YAXM@Z
+void FUN_109295c0(float Value)
+{
+    if (Value != 0.0f)
+    {
+        for (int i = 0; i < DAT_10f31ac8; i++)
+            FUN_10928b50(DAT_10f31ad0[i]);
+    }
+}
+
 // FUNCTION: 0x10929600 ?FUN_10929600@@YAXXZ
 void FUN_10929600()
 {

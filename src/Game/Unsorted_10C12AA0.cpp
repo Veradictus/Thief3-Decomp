@@ -62,3 +62,6 @@ int Class_10E8C378::FUN_10c12b10()
     int Count = Unknown04 == 0 ? 0 : Unknown04[-1];
     return Count > 0;
 }
+
+// FUNCTION: 0x10C12C00 ??_GClass_10E984F4@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10C12AA0's definition in this unit.

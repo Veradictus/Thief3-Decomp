@@ -25,6 +25,40 @@ public:
     int Unknown10;
 };
 
+// Ion Storm's placement new (0x10905C10).
+void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D);
+
+// Slot 0 of this vtable is a scalar deleting destructor, like the other classes
+// cloned in this range (0x10A2F1D0, 0x10A2F300).
+class Class_10E5D5E0
+{
+public:
+    Class_10E5D5E0() : Unknown04(0) {}
+
+    virtual void Virtual0();
+
+    int Unknown04;
+};
+
+class Class_10E66310 : public Class_10E5D5E0
+{
+public:
+    Class_10E66310() : Unknown08(1) {}
+
+    virtual Class_10E66310* FUN_10a2f460();
+
+    int Unknown08;
+};
+
+// FUNCTION: 0x10A2F460 ?FUN_10a2f460@Class_10E66310@@UAEPAV1@XZ
+Class_10E66310* Class_10E66310::FUN_10a2f460()
+{
+    Class_10E66310* Copy = new(0, 0, 0, 0, 0) Class_10E66310();
+    Copy->Unknown08 = Unknown08;
+    Copy->Unknown04 = Unknown04;
+    return Copy;
+}
+
 // FUNCTION: 0x10A2F4C0 ??0Class_10E66320@@QAE@XZ
 Class_10E66320::Class_10E66320()
 {
