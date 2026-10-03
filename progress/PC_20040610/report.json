@@ -1,4 +1,4 @@
-{"measures":{"fuzzy_match_percent":4.2949467,"total_code":"5132754","matched_code":"216036","matched_code_percent":4.2089686,"total_functions":23523,"matched_functions":4613,"matched_functions_percent":19.610594,"total_units":3998},"version":2,"categories":[{"id":"main","name":"Game","measures":{"fuzzy_match_percent":8.361583,"total_code":"2636451","matched_code":"216036","matched_code_percent":8.194198,"total_functions":12359,"matched_functions":4613,"matched_functions_percent":37.325027,"total_units":3762}},{"id":"engine","name":"Engine (Epic)","measures":{"total_code":"794781","total_functions":3620,"total_units":65}},{"id":"libs","name":"Libraries","measures":{"total_code":"1423847","total_functions":6275,"total_units":90}},{"id":"unknown","name":"Unclassified","measures":{"total_code":"277675","total_functions":1269,"total_units":80}}],"units":[
+{"measures":{"fuzzy_match_percent":4.290855,"total_code":"5132754","matched_code":"215826","matched_code_percent":4.204877,"total_functions":23523,"matched_functions":4608,"matched_functions_percent":19.589338,"total_units":3993},"version":2,"categories":[{"id":"main","name":"Game","measures":{"fuzzy_match_percent":8.353618,"total_code":"2636451","matched_code":"215826","matched_code_percent":8.186233,"total_functions":12359,"matched_functions":4608,"matched_functions_percent":37.284573,"total_units":3757}},{"id":"engine","name":"Engine (Epic)","measures":{"total_code":"794781","total_functions":3620,"total_units":65}},{"id":"libs","name":"Libraries","measures":{"total_code":"1423847","total_functions":6275,"total_units":90}},{"id":"unknown","name":"Unclassified","measures":{"total_code":"277675","total_functions":1269,"total_units":80}}],"units":[
  {"name":"Game/Unsorted_10901710","measures":{"fuzzy_match_percent":100.0,"total_code":"76","matched_code":"76","matched_code_percent":100.0,"total_functions":2,"matched_functions":2,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"76","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10901710.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10901710@@YAHXZ","size":"38","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"int __cdecl FUN_10901710(void)","virtual_address":"277878544"},"address":"0"},
   {"name":"?FUN_10901740@@YAHXZ","size":"38","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"int __cdecl FUN_10901740(void)","virtual_address":"277878592"},"address":"38"}
@@ -2633,10 +2633,6 @@
   {"name":"Unwind@10e137b0","size":"8","metadata":{"virtual_address":"283195312"},"address":"311"},
   {"name":"__ehhandler$??0Class_10E6B610@@QAE@PAVClass_1098E330@@@Z","size":"10","fuzzy_match_percent":97.5,"metadata":{"virtual_address":"283195320"},"address":"319"}
  ]},
- {"name":"Game/Unsorted_10A6E6E0","measures":{"fuzzy_match_percent":100.0,"total_code":"110","matched_code":"110","matched_code_percent":100.0,"total_functions":2,"matched_functions":2,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"110","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10A6E6E0.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
-  {"name":"?FUN_10a6e990@Class_10AB0400@@QAEXXZ","size":"55","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10AB0400::FUN_10a6e990(void)","virtual_address":"279374224"},"address":"0"},
-  {"name":"?FUN_10a6e9f0@@YGPAUStruct_10A6E9F0@@HHPBUStruct_10A6E9F0A@@@Z","size":"55","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"struct Struct_10A6E9F0* __stdcall FUN_10a6e9f0(int, int, struct Struct_10A6E9F0A const *)","virtual_address":"279374320"},"address":"55"}
- ]},
  {"name":"Game/Unsorted_10A6EA30","measures":{"fuzzy_match_percent":99.77273,"total_code":"64","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"64","fuzzy_match_percent":99.77273,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10A6EA30.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10a6f160@Class_10E6BA40@@UAEHHM@Z","size":"64","fuzzy_match_percent":99.77273,"metadata":{"demangled_name":"public: virtual int __thiscall Class_10E6BA40::FUN_10a6f160(int, float)","virtual_address":"279376224"},"address":"0"}
  ]},
@@ -3690,9 +3686,8 @@
   {"name":"Unwind@10e17980","size":"8","metadata":{"virtual_address":"283212160"},"address":"114"},
   {"name":"__ehhandler$??1Class_10E6DD68@@UAE@XZ","size":"10","fuzzy_match_percent":97.5,"metadata":{"virtual_address":"283212168"},"address":"122"}
  ]},
- {"name":"Game/Unsorted_10AB0360","measures":{"fuzzy_match_percent":99.802216,"total_code":"79","matched_code":"29","matched_code_percent":36.708862,"total_functions":2,"matched_functions":1,"matched_functions_percent":50.0,"total_units":1},"sections":[{"name":".text","size":"79","fuzzy_match_percent":99.802216,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10AB0360.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
-  {"name":"?FUN_10ab0400@Class_10AB0400@@QAEXXZ","size":"29","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10AB0400::FUN_10ab0400(void)","virtual_address":"279643136"},"address":"0"},
-  {"name":"??1Class_10E77978@@UAE@XZ","size":"50","fuzzy_match_percent":99.6875,"metadata":{"demangled_name":"public: virtual __thiscall Class_10E77978::~Class_10E77978(void)","virtual_address":"279643424"},"address":"29"}
+ {"name":"Game/Unsorted_10AB0360","measures":{"fuzzy_match_percent":99.6875,"total_code":"50","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"50","fuzzy_match_percent":99.6875,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10AB0360.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
+  {"name":"??1Class_10E77978@@UAE@XZ","size":"50","fuzzy_match_percent":99.6875,"metadata":{"demangled_name":"public: virtual __thiscall Class_10E77978::~Class_10E77978(void)","virtual_address":"279643424"},"address":"0"}
  ]},
  {"name":"Game/Unsorted_10AB0560","measures":{"fuzzy_match_percent":89.18651,"total_code":"252","matched_code":"215","matched_code_percent":85.31746,"total_functions":5,"matched_functions":1,"matched_functions_percent":20.0,"total_units":1},"sections":[{"name":".text","size":"252","fuzzy_match_percent":89.18651,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10AB0560.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"??0Class_10E6DDB4@@QAE@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@H@Z","size":"215","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: __thiscall Class_10E6DDB4::Class_10E6DDB4(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char> >, int)","virtual_address":"279643504"},"address":"0"},
@@ -5498,9 +5493,8 @@
  {"name":"Game/Unsorted_10B7C670_3","measures":{"fuzzy_match_percent":100.0,"total_code":"44","matched_code":"44","matched_code_percent":100.0,"total_functions":1,"matched_functions":1,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"44","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10B7C670_3.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10b7c6a0@Class_10E4B180@@UAEXH@Z","size":"44","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: virtual void __thiscall Class_10E4B180::FUN_10b7c6a0(int)","virtual_address":"280479392"},"address":"0"}
  ]},
- {"name":"Game/Unsorted_10B7FB40","measures":{"fuzzy_match_percent":100.0,"total_code":"72","matched_code":"72","matched_code_percent":100.0,"total_functions":2,"matched_functions":2,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"72","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10B7FB40.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
-  {"name":"?FUN_10b7fc20@Class_10B7FC20@@QAEHXZ","size":"30","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: int __thiscall Class_10B7FC20::FUN_10b7fc20(void)","virtual_address":"280493088"},"address":"0"},
-  {"name":"?FUN_10b7fee0@Class_10B7FEE0@@QAEXXZ","size":"42","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10B7FEE0::FUN_10b7fee0(void)","virtual_address":"280493792"},"address":"30"}
+ {"name":"Game/Unsorted_10B7FB40","measures":{"fuzzy_match_percent":100.0,"total_code":"30","matched_code":"30","matched_code_percent":100.0,"total_functions":1,"matched_functions":1,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"30","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10B7FB40.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
+  {"name":"?FUN_10b7fc20@Class_10B7FC20@@QAEHXZ","size":"30","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: int __thiscall Class_10B7FC20::FUN_10b7fc20(void)","virtual_address":"280493088"},"address":"0"}
  ]},
  {"name":"Game/Unsorted_10B81B20","measures":{"fuzzy_match_percent":100.0,"total_code":"51","matched_code":"51","matched_code_percent":100.0,"total_functions":1,"matched_functions":1,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"51","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10B81B20.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10b81b20@Class_10B81B20@@QAEXM@Z","size":"51","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10B81B20::FUN_10b81b20(float)","virtual_address":"280501024"},"address":"0"}
@@ -8514,10 +8508,9 @@
  {"name":"Game/Unsorted_10C50EC0","measures":{"fuzzy_match_percent":100.0,"total_code":"49","matched_code":"49","matched_code_percent":100.0,"total_functions":1,"matched_functions":1,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"49","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10C50EC0.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10c50ec0@Class_10C50EC0@@QAEXXZ","size":"49","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10C50EC0::FUN_10c50ec0(void)","virtual_address":"281349824"},"address":"0"}
  ]},
- {"name":"Game/Unsorted_10C51600","measures":{"fuzzy_match_percent":100.0,"total_code":"86","matched_code":"86","matched_code_percent":100.0,"total_functions":3,"matched_functions":3,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"86","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10C51600.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
+ {"name":"Game/Unsorted_10C51600","measures":{"fuzzy_match_percent":100.0,"total_code":"57","matched_code":"57","matched_code_percent":100.0,"total_functions":2,"matched_functions":2,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"57","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10C51600.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10c51670@@YG_NPBVFVector@@0@Z","size":"50","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"bool __stdcall FUN_10c51670(class FVector const *, class FVector const *)","virtual_address":"281351792"},"address":"0"},
-  {"name":"?FUN_10c516b0@Class_10C516B0@@QAEXXZ","size":"29","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10C516B0::FUN_10c516b0(void)","virtual_address":"281351856"},"address":"50"},
-  {"name":"?FUN_10c531f0@Class_10c531f0@@QAEXXZ","size":"7","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10c531f0::FUN_10c531f0(void)","virtual_address":"281358832"},"address":"79"}
+  {"name":"?FUN_10c531f0@Class_10c531f0@@QAEXXZ","size":"7","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"public: void __thiscall Class_10c531f0::FUN_10c531f0(void)","virtual_address":"281358832"},"address":"50"}
  ]},
  {"name":"Game/Unsorted_10C53200","measures":{"fuzzy_match_percent":100.0,"total_code":"43","matched_code":"43","matched_code_percent":100.0,"total_functions":1,"matched_functions":1,"matched_functions_percent":100.0,"total_units":1},"sections":[{"name":".text","size":"43","fuzzy_match_percent":100.0,"metadata":{}}],"metadata":{"source_path":"src/Game/Unsorted_10C53200.cpp","progress_categories":["main"],"auto_generated":false},"functions":[
   {"name":"?FUN_10c53200@@YAXXZ","size":"43","fuzzy_match_percent":100.0,"metadata":{"demangled_name":"void __cdecl FUN_10c53200(void)","virtual_address":"281358848"},"address":"0"}
@@ -14922,21 +14915,19 @@
   {"name":"?FUN_10a6e370@Class_10E6B9F8@@QAEXPAVUObject@@HHH@Z","size":"278","metadata":{"demangled_name":"public: void __thiscall Class_10E6B9F8::FUN_10a6e370(class UObject *, int, int, int)","virtual_address":"279372656"},"address":"913"},
   {"name":"?FUN_10a6e490@Class_10E6B9F8@@QAEXPAVUObject@@HHHH@Z","size":"329","metadata":{"demangled_name":"public: void __thiscall Class_10E6B9F8::FUN_10a6e490(class UObject *, int, int, int, int)","virtual_address":"279372944"},"address":"1191"}
  ]},
- {"name":"auto/text_10A6E6E0","measures":{"total_code":"664","total_functions":4,"total_units":1},"sections":[{"name":".text","size":"664","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
+ {"name":"auto/text_10A6E6E0","measures":{"total_code":"2585","total_functions":12,"total_units":1},"sections":[{"name":".text","size":"2585","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10a6e6e0","size":"128","metadata":{"virtual_address":"279373536"},"address":"0"},
   {"name":"FUN_10a6e760","size":"164","metadata":{"virtual_address":"279373664"},"address":"128"},
   {"name":"FUN_10a6e810","size":"284","metadata":{"virtual_address":"279373840"},"address":"292"},
-  {"name":"FUN_10a6e930","size":"88","metadata":{"virtual_address":"279374128"},"address":"576"}
- ]},
- {"name":"auto/text_10A6E9D0","measures":{"total_code":"26","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"26","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
-  {"name":"FUN_10a6e9d0","size":"26","metadata":{"virtual_address":"279374288"},"address":"0"}
- ]},
- {"name":"auto/text_10A6EA30","measures":{"total_code":"1785","total_functions":5,"total_units":1},"sections":[{"name":".text","size":"1785","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
-  {"name":"?FUN_10a6ea30@APawn@@QAEXHH@Z","size":"98","metadata":{"demangled_name":"public: void __thiscall APawn::FUN_10a6ea30(int, int)","virtual_address":"279374384"},"address":"0"},
-  {"name":"FUN_10a6eaa0","size":"8","metadata":{"virtual_address":"279374496"},"address":"98"},
-  {"name":"FUN_10a6eab0","size":"1365","metadata":{"virtual_address":"279374512"},"address":"106"},
-  {"name":"FUN_10a6f010","size":"168","metadata":{"virtual_address":"279375888"},"address":"1471"},
-  {"name":"?FUN_10a6f0c0@Class_10A6F0C0@@QAEXPAPAUStruct_10A6F160@@PAH@Z","size":"146","metadata":{"demangled_name":"public: void __thiscall Class_10A6F0C0::FUN_10a6f0c0(struct Struct_10A6F160**, int *)","virtual_address":"279376064"},"address":"1639"}
+  {"name":"FUN_10a6e930","size":"88","metadata":{"virtual_address":"279374128"},"address":"576"},
+  {"name":"?FUN_10a6e990@Class_10AB0400@@QAEXXZ","size":"55","metadata":{"demangled_name":"public: void __thiscall Class_10AB0400::FUN_10a6e990(void)","virtual_address":"279374224"},"address":"664"},
+  {"name":"FUN_10a6e9d0","size":"26","metadata":{"virtual_address":"279374288"},"address":"719"},
+  {"name":"?FUN_10a6e9f0@@YGPAUStruct_10A6E9F0@@HHPBUStruct_10A6E9F0A@@@Z","size":"55","metadata":{"demangled_name":"struct Struct_10A6E9F0* __stdcall FUN_10a6e9f0(int, int, struct Struct_10A6E9F0A const *)","virtual_address":"279374320"},"address":"745"},
+  {"name":"?FUN_10a6ea30@APawn@@QAEXHH@Z","size":"98","metadata":{"demangled_name":"public: void __thiscall APawn::FUN_10a6ea30(int, int)","virtual_address":"279374384"},"address":"800"},
+  {"name":"FUN_10a6eaa0","size":"8","metadata":{"virtual_address":"279374496"},"address":"898"},
+  {"name":"FUN_10a6eab0","size":"1365","metadata":{"virtual_address":"279374512"},"address":"906"},
+  {"name":"FUN_10a6f010","size":"168","metadata":{"virtual_address":"279375888"},"address":"2271"},
+  {"name":"?FUN_10a6f0c0@Class_10A6F0C0@@QAEXPAPAUStruct_10A6F160@@PAH@Z","size":"146","metadata":{"demangled_name":"public: void __thiscall Class_10A6F0C0::FUN_10a6f0c0(struct Struct_10A6F160**, int *)","virtual_address":"279376064"},"address":"2439"}
  ]},
  {"name":"auto/text_10A6F1A0","measures":{"total_code":"252","total_functions":2,"total_units":1},"sections":[{"name":".text","size":"252","metadata":{}}],"metadata":{"progress_categories":["libs"],"auto_generated":true},"functions":[
   {"name":"FUN_10a6f1a0","size":"147","metadata":{"virtual_address":"279376288"},"address":"0"},
@@ -16221,12 +16212,11 @@
  {"name":"auto/text_10AB0200","measures":{"total_code":"303","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"303","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10ab0200","size":"303","metadata":{"virtual_address":"279642624"},"address":"0"}
  ]},
- {"name":"auto/text_10AB0360","measures":{"total_code":"146","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"146","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
-  {"name":"FUN_10ab0360","size":"146","metadata":{"virtual_address":"279642976"},"address":"0"}
- ]},
- {"name":"auto/text_10AB0420","measures":{"total_code":"245","total_functions":2,"total_units":1},"sections":[{"name":".text","size":"245","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
-  {"name":"FUN_10ab0420","size":"126","metadata":{"virtual_address":"279643168"},"address":"0"},
-  {"name":"??0Class_10AB04A0@@QAE@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z","size":"119","metadata":{"demangled_name":"public: __thiscall Class_10AB04A0::Class_10AB04A0(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char> >)","virtual_address":"279643296"},"address":"126"}
+ {"name":"auto/text_10AB0360","measures":{"total_code":"420","total_functions":4,"total_units":1},"sections":[{"name":".text","size":"420","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
+  {"name":"FUN_10ab0360","size":"146","metadata":{"virtual_address":"279642976"},"address":"0"},
+  {"name":"?FUN_10ab0400@Class_10AB0400@@QAEXXZ","size":"29","metadata":{"demangled_name":"public: void __thiscall Class_10AB0400::FUN_10ab0400(void)","virtual_address":"279643136"},"address":"146"},
+  {"name":"FUN_10ab0420","size":"126","metadata":{"virtual_address":"279643168"},"address":"175"},
+  {"name":"??0Class_10AB04A0@@QAE@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z","size":"119","metadata":{"demangled_name":"public: __thiscall Class_10AB04A0::Class_10AB04A0(class std::basic_string<char, struct std::char_traits<char>, class std::allocator<char> >)","virtual_address":"279643296"},"address":"301"}
  ]},
  {"name":"auto/text_10AB0560","measures":{"total_code":"8","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"8","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10ab0560","size":"8","metadata":{"virtual_address":"279643488"},"address":"0"}
@@ -19968,7 +19958,7 @@
  {"name":"auto/text_10B7FB40","measures":{"total_code":"220","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"220","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10b7fb40","size":"220","metadata":{"virtual_address":"280492864"},"address":"0"}
  ]},
- {"name":"auto/text_10B7FC40","measures":{"total_code":"611","total_functions":8,"total_units":1},"sections":[{"name":".text","size":"611","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
+ {"name":"auto/text_10B7FC40","measures":{"total_code":"2370","total_functions":12,"total_units":1},"sections":[{"name":".text","size":"2370","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10b7fc40","size":"216","metadata":{"virtual_address":"280493120"},"address":"0"},
   {"name":"FUN_10b7fd20","size":"57","metadata":{"virtual_address":"280493344"},"address":"216"},
   {"name":"FUN_10b7fd60","size":"43","metadata":{"virtual_address":"280493408"},"address":"273"},
@@ -19976,12 +19966,11 @@
   {"name":"FUN_10b7fdc0","size":"55","metadata":{"virtual_address":"280493504"},"address":"353"},
   {"name":"FUN_10b7fe00","size":"44","metadata":{"virtual_address":"280493568"},"address":"408"},
   {"name":"FUN_10b7fe30","size":"39","metadata":{"virtual_address":"280493616"},"address":"452"},
-  {"name":"FUN_10b7fe60","size":"120","metadata":{"virtual_address":"280493664"},"address":"491"}
- ]},
- {"name":"auto/text_10B7FF10","measures":{"total_code":"1717","total_functions":3,"total_units":1},"sections":[{"name":".text","size":"1717","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
-  {"name":"FUN_10b7ff10","size":"42","metadata":{"virtual_address":"280493840"},"address":"0"},
-  {"name":"FUN_10b7ff40","size":"485","metadata":{"virtual_address":"280493888"},"address":"42"},
-  {"name":"FUN_10b80130","size":"1190","metadata":{"virtual_address":"280494384"},"address":"527"}
+  {"name":"FUN_10b7fe60","size":"120","metadata":{"virtual_address":"280493664"},"address":"491"},
+  {"name":"?FUN_10b7fee0@Class_10B7FEE0@@QAEXXZ","size":"42","metadata":{"demangled_name":"public: void __thiscall Class_10B7FEE0::FUN_10b7fee0(void)","virtual_address":"280493792"},"address":"611"},
+  {"name":"FUN_10b7ff10","size":"42","metadata":{"virtual_address":"280493840"},"address":"653"},
+  {"name":"FUN_10b7ff40","size":"485","metadata":{"virtual_address":"280493888"},"address":"695"},
+  {"name":"FUN_10b80130","size":"1190","metadata":{"virtual_address":"280494384"},"address":"1180"}
  ]},
  {"name":"auto/text_10B805E0","measures":{"total_code":"105","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"105","metadata":{}}],"metadata":{"progress_categories":["libs"],"auto_generated":true},"functions":[
   {"name":"FUN_10b805e0","size":"105","metadata":{"virtual_address":"280495584"},"address":"0"}
@@ -23627,12 +23616,13 @@
  {"name":"auto/text_10C51600","measures":{"total_code":"100","total_functions":1,"total_units":1},"sections":[{"name":".text","size":"100","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10c51600","size":"100","metadata":{"virtual_address":"281351680"},"address":"0"}
  ]},
- {"name":"auto/text_10C516D0","measures":{"total_code":"6915","total_functions":5,"total_units":1},"sections":[{"name":".text","size":"6915","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
-  {"name":"FUN_10c516d0","size":"1717","metadata":{"virtual_address":"281351888"},"address":"0"},
-  {"name":"FUN_10c51d90","size":"2829","metadata":{"virtual_address":"281353616"},"address":"1717"},
-  {"name":"FUN_10c528a0","size":"2308","metadata":{"virtual_address":"281356448"},"address":"4546"},
-  {"name":"FUN_10c531b0","size":"31","metadata":{"virtual_address":"281358768"},"address":"6854"},
-  {"name":"FUN_10c531d0","size":"30","metadata":{"virtual_address":"281358800"},"address":"6885"}
+ {"name":"auto/text_10C516B0","measures":{"total_code":"6944","total_functions":6,"total_units":1},"sections":[{"name":".text","size":"6944","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
+  {"name":"?FUN_10c516b0@Class_10C516B0@@QAEXXZ","size":"29","metadata":{"demangled_name":"public: void __thiscall Class_10C516B0::FUN_10c516b0(void)","virtual_address":"281351856"},"address":"0"},
+  {"name":"FUN_10c516d0","size":"1717","metadata":{"virtual_address":"281351888"},"address":"29"},
+  {"name":"FUN_10c51d90","size":"2829","metadata":{"virtual_address":"281353616"},"address":"1746"},
+  {"name":"FUN_10c528a0","size":"2308","metadata":{"virtual_address":"281356448"},"address":"4575"},
+  {"name":"FUN_10c531b0","size":"31","metadata":{"virtual_address":"281358768"},"address":"6883"},
+  {"name":"FUN_10c531d0","size":"30","metadata":{"virtual_address":"281358800"},"address":"6914"}
  ]},
  {"name":"auto/text_10C53240","measures":{"total_code":"5466","total_functions":2,"total_units":1},"sections":[{"name":".text","size":"5466","metadata":{}}],"metadata":{"progress_categories":["main"],"auto_generated":true},"functions":[
   {"name":"FUN_10c53240","size":"119","metadata":{"virtual_address":"281358912"},"address":"0"},

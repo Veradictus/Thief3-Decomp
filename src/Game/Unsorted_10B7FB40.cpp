@@ -34,13 +34,3 @@ int Class_10B7FC20::FUN_10b7fc20()
 {
     return Unknown00.size();
 }
-
-// FUNCTION: 0x10B7FEE0 ?FUN_10b7fee0@Class_10B7FEE0@@QAEXXZ
-void Class_10B7FEE0::FUN_10b7fee0()
-{
-    if (Unknown04)
-        ::operator delete(Unknown04);
-    Unknown04 = 0;
-    Unknown08 = 0;
-    Unknown0C = 0;
-}

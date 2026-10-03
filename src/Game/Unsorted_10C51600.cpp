@@ -40,14 +40,6 @@ bool __stdcall FUN_10c51670(const FVector* A, const FVector* B)
     return FUN_10c51550()->FUN_10c4eb60(A) != FUN_10c51550()->FUN_10c4eb60(B);
 }
 
-// FUNCTION: 0x10C516B0 ?FUN_10c516b0@Class_10C516B0@@QAEXXZ
-void Class_10C516B0::FUN_10c516b0()
-{
-    FUN_10c50d40();
-    delete Unknown04;
-    Unknown04 = 0;
-}
-
 // FUNCTION: 0x10C531F0 ?FUN_10c531f0@Class_10c531f0@@QAEXXZ
 void Class_10c531f0::FUN_10c531f0()
 {
