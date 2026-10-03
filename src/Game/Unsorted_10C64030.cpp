@@ -113,6 +113,9 @@ Class_10E9CD84::Class_10E9CD84(Struct_10C64030_Param* A)
     A->Unknown08->Virtual13();
 }
 
+// FUNCTION: 0x10C648E0 ??_GClass_10E9CD84@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10C64030's definition in this unit.
+
 // FUNCTION: 0x10C64900 ?FUN_10c64900@Class_10C64900@@QAE?AVClass_109081E0@@XZ
 Class_109081E0 Class_10C64900::FUN_10c64900()
 {

@@ -63,6 +63,9 @@ Class_10E495F8::Class_10E495F8()
     Unknown0C.FUN_10914e60(0x40);
 }
 
+// FUNCTION: 0x10915AE0 ??_GClass_10E495F8@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10915860's definition in this unit.
+
 // FUNCTION: 0x10915B00 ?FUN_10915b00@Class_10915B00@@QAEHPBD@Z
 int Class_10915B00::FUN_10915b00(const char* Needle)
 {

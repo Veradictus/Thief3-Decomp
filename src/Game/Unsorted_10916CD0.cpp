@@ -50,6 +50,9 @@ Class_10E495FC::Class_10E495FC()
     Unknown08.FUN_10915e30(8);
 }
 
+// FUNCTION: 0x10917500 ??_GClass_10E495FC@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10916CD0's definition in this unit.
+
 // FUNCTION: 0x109178D0 ?FUN_109178d0@@YAIII@Z
 unsigned int FUN_109178d0(unsigned int Value, unsigned int Alignment)
 {

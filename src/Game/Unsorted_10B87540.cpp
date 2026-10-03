@@ -132,6 +132,9 @@ Class_10E893B0::Class_10E893B0()
     Unknown4C.FUN_10da91d0();
 }
 
+// FUNCTION: 0x10B87EE0 ??_GClass_10E893B0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B87560's definition in this unit.
+
 // FUNCTION: 0x10B88840 ?FUN_10b88840@Class_10B88840@@QAEPAV1@XZ
 Class_10B88840* Class_10B88840::FUN_10b88840()
 {

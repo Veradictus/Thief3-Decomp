@@ -63,3 +63,6 @@ Class_10E858D0::Class_10E858D0()
       Unknown2E4(0), Unknown2E8(0), Unknown2EC(0), Unknown2F0(0), Unknown2F4(0)
 {
 }
+
+// FUNCTION: 0x10B69280 ??_GClass_10E858D0@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B69200's definition in this unit.

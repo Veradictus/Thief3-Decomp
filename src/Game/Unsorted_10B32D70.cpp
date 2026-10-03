@@ -64,6 +64,32 @@ public:
     bool Unknown1A4;
 };
 
+class Class_109081E0
+{
+public:
+    Class_109081E0(const Class_109081E0& Other);
+    ~Class_109081E0();
+
+    char* Unknown00;
+};
+
+class Class_10B33200
+{
+public:
+    Class_10B33200(int A, const Class_109081E0& B, const Class_109081E0& C, int D);
+
+    int Unknown00;
+    Class_109081E0 Unknown04;
+    Class_109081E0 Unknown08;
+    int Unknown0C;
+};
+
+// FUNCTION: 0x10B33200 ??0Class_10B33200@@QAE@HABVClass_109081E0@@0H@Z
+Class_10B33200::Class_10B33200(int A, const Class_109081E0& B, const Class_109081E0& C, int D)
+    : Unknown00(A), Unknown04(B), Unknown08(C), Unknown0C(D)
+{
+}
+
 // FUNCTION: 0x10B33D70 ?FUN_10b33d70@Class_10B33D70@@QAEXXZ
 void Class_10B33D70::FUN_10b33d70()
 {
