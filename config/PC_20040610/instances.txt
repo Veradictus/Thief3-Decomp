@@ -1,0 +1,292 @@
+# Library and engine code among Ion Storm's functions, found while matching: template instances and inline
+# copies the game's objects carry (STL containers and algorithms, Epic's TArray and UnMath.h inlines) and
+# Epic's methods in Ion Storm's files. tools/classify.py gives each its category without letting it speak for
+# its neighbours; the matching queue leaves them out (tools/agent, build/agent/excluded.json).
+# address    category  what
+0x10905530 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x10905590 engine TArray<FString>::Remove (Epic's template)
+0x10925FF0 libs   STL instantiation
+0x10926150 libs   STL instantiation
+0x109261F0 libs   an STL exception class's destructor (inlined std::string _Tidy, then exception::~exception)
+0x10926650 libs   std::vector::_Destroy
+0x10926680 libs   std::vector::_Tidy
+0x109266D0 libs   STL instantiation
+0x10926700 libs   STL instantiation
+0x10926730 libs   std::basic_string::assign(const char*) (integrated by mistake, taken out of src)
+0x10926760 libs   std::basic_string<char>::basic_string(const char*)
+0x109276A0 libs   std::basic_string copy constructor
+0x10927710 libs   an STL exception class's implicit copy constructor
+0x10929710 libs   STL container internals (allocator::destroy, vector::_Tidy, list::_Buynode, list/tree node destructors)
+0x1092B850 libs   std::_Tree (std::set<Class_109081E0>) _Buynode / constructor instantiation
+0x1092C100 libs   std::_Tree (std::set<Class_109081E0>) _Buynode / constructor instantiation
+0x1092C160 libs   std::_Tree::_Erase
+0x1092C5B0 libs   an STL exception class's implicit copy constructor
+0x1092C780 libs   std::_Tree::erase(first, last)
+0x1092D300 libs   std::_Tree::_Tidy (erase(begin(), end()), delete the head node, zero head and size)
+0x1092D330 libs   a std::set/map constructor (forwards comparator and allocator to the _Tree constructor)
+0x10933E60 libs   std::vector<T>::insert(iterator, const T&) instantiation
+0x109346A0 libs   STL instantiation
+0x109346C0 libs   STL instantiation
+0x109393E0 libs   STL container internals (allocator::destroy, vector::_Tidy, list::_Buynode, list/tree node destructors)
+0x109396A0 libs   std::auto_ptr<T>::operator=(auto_ptr&) (reset(release()) inlined)
+0x10939770 libs   std::vector<T>::_Tidy / _Ufill / _Destroy_range instantiation
+0x1093B010 libs   std::fill instantiation over Class_109081E0
+0x1093B120 libs   std::_Copy_backward_opt instantiation (vector insert helper)
+0x1093B4D0 libs   STL instantiation
+0x1093C670 libs   std::_Tree::_Erase (VC7.1 STL; accepted by w7-m31 as plain code, withdrawn)
+0x1093C6B0 libs   std::_Tree (std::set<Class_109081E0>) _Buynode / constructor instantiation
+0x1093C780 libs   std::vector<T>::_Tidy / _Ufill / _Destroy_range instantiation
+0x1093C7C0 libs   STL instantiation
+0x1093CD30 libs   std::_Tree::erase(first, last)
+0x1093D360 libs   an STL _Tidy (erase(begin(), end()), delete the head node, zero head and size)
+0x1095BE20 libs   STL instantiation
+0x1095BE40 libs   std::vector<wchar_t>::_Buy / allocate / _Xlen instantiation
+0x1095BEA0 libs   STL instantiation
+0x1095BED0 libs   STL instantiation
+0x1095BEF0 libs   STL _Uninit_copy for wchar_t
+0x1095BF20 libs   STL _Uninit_fill_n for wchar_t
+0x1095C020 libs   std::vector<wchar_t>::_Buy / allocate / _Xlen instantiation
+0x1095CC80 libs   std::_Tree::_Max
+0x1095CCA0 libs   std::_Tree::_Min
+0x1095CD20 libs   std::_Tree::_Erase
+0x1095D6C0 libs   STL container internals (allocator::destroy, vector::_Tidy, list::_Buynode, list/tree node destructors)
+0x1095D6F0 libs   std::vector<4-byte T>::_Ufill
+0x1095DE80 libs   std::_Tree::erase(first, last)
+0x1095E010 libs   std::_Tree::insert instantiation (VC7.1 set/map)
+0x1095EBE0 libs   an STL container's _Tidy
+0x10963760 engine Epic's UnMath.h inline compiled out of line (FScaleMatrix / FTranslationMatrix constructor)
+0x10963850 engine Epic's UnMath.h inline compiled out of line (FScaleMatrix / FTranslationMatrix constructor)
+0x1097CC10 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x1097D350 engine TMapBase<K,V> constructor, an instance of Epic's template
+0x1097D560 libs   an STL container's _Tidy
+0x1097DCD0 libs   std::_Tree head-node initialization
+0x1097DEC0 libs   std::vector<16-byte T>::_Ufill
+0x1097DEF0 libs   std::vector<16-byte T>::_Destroy(first, last)
+0x1097E1E0 libs   std::vector<Class_1097DD10>::_Tidy (0x10-byte elements)
+0x1098CBD0 engine AActor's InitializePrivateStaticClass (Epic's class)
+0x109E6080 libs   std::list::_Buynode
+0x10A0E540 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x10A100F0 libs   std::list::_Buynode
+0x10A10380 libs   std::vector<T*>::erase(first, last) instantiation
+0x10A109F0 libs   std::vector::_Construct_n
+0x10A10A90 libs   std::list::_Insert(iterator, first, last)
+0x10A10B40 libs   std::vector::resize(size_type, T)
+0x10A10BB0 libs   std::vector::resize(size_type, T)
+0x10A10C20 libs   stdext::_Hash::erase / std::list::clear / list node destructor / vector::assign instantiation
+0x10A10C60 libs   std::vector::vector(size_type, const T&)
+0x10A10D10 libs   std::vector<T>::assign(count, value)
+0x10A10D60 libs   stdext::_Hash::_Copy (VC7.1 <xhash>; try/catch(...) and rethrow)
+0x10A110C0 libs   stdext::_Hash constructor
+0x10A111B0 libs   stdext::_Hash::erase / std::list::clear / list node destructor / vector::assign instantiation
+0x10A111F0 libs   stdext::_Hash::erase(first, last) / std::_Tree node constructor
+0x10A11310 libs   an STL hash container's erase(const key_type&)
+0x10A11360 libs   stdext::_Hash constructor (hash_map)
+0x10A11410 libs   std::list<T>::_Buynode instantiation
+0x10A2B1C0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A2B220 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A2B280 engine TMapBase<K,V> constructor, an instance of Epic's template
+0x10A2C5B0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A2DE80 libs   STL instantiation
+0x10A2DF20 libs   std::vector<unsigned int>::_Insert_n instantiation
+0x10A366B0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A3A9E0 libs   std::list::_Buynode
+0x10A3ACA0 libs   STL instantiation
+0x10A3B940 libs   std::vector::resize(size_type, T)
+0x10A3B9B0 libs   std::vector<T>::vector(size_type, const T&) instantiation
+0x10A3BA50 libs   stdext::_Hash constructor (hash_map)
+0x10A47530 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x10A4C200 libs   std::copy_backward<int*> (calls _Copy_backward_opt)
+0x10A4CDC0 libs   std::vector::resize(size_type, T)
+0x10A4CE30 libs   std::vector<T>::vector(size_type, const T&) instantiation
+0x10A4CED0 libs   stdext::_Hash constructor (hash_map)
+0x10A4D1B0 libs   stdext::hash_map constructor (forwards to _Hash's)
+0x10A4FCA0 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x10A4FD70 engine APawn override (Epic's class)
+0x10A4FFC0 engine APawn override (Epic's class)
+0x10A4FFF0 engine APawn's override of AActor's slot 32 (Epic's class)
+0x10A50120 engine APawn::Serialize, an override in Epic's class
+0x10A5E8E0 libs   std::_Tree::_Max
+0x10A5F120 libs   std::_Tree::_Erase
+0x10A60130 libs   std::_Tree::insert instantiation (VC7.1 set/map)
+0x10A601F0 libs   matched from library objects or original sources, not by workers
+0x10A60470 libs   std::list<T>::_Tidy (erase(begin, end), delete the head node, zero head and size)
+0x10A6E930 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A6E990 libs   std::list<int> member (~list, clear, _Buynode)
+0x10A6E9D0 libs   std::list::_Buynode
+0x10A6E9F0 libs   std::list<int> member (~list, clear, _Buynode)
+0x10A6F4F0 libs   std::vector::vector(size_type, const T&)
+0x10A6F5A0 libs   std::vector::resize(size_type, T)
+0x10A6F610 libs   std::vector<T>::assign(size_type, const T&)
+0x10A6F660 libs   stdext::_Hash constructor
+0x10A6F930 libs   a stdext::hash_map/hash_set instance's constructor (_Hash)
+0x10A6FC10 libs   std::_Hash::erase(iterator, iterator) instantiation (VC7.1 <xhash>)
+0x10A6FD10 libs   an STL hash container's erase(const key_type&)
+0x10A71030 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A71090 libs   std::list::erase(iterator)
+0x10A71A40 libs   std::vector::vector(size_type, const T&)
+0x10A71AF0 libs   std::vector<T>::vector(size_type, const T&) instantiation
+0x10A71B90 libs   std::list::_Insert(iterator, first, last)
+0x10A71C80 libs   std::vector::resize(size_type, T)
+0x10A71CF0 libs   std::vector::resize(size_type, T)
+0x10A71D60 libs   std::vector::insert
+0x10A71DB0 libs   stdext::_Hash::erase / std::list::clear / list node destructor / vector::assign instantiation
+0x10A71E00 libs   stdext::_Hash constructor
+0x10A71E80 libs   stdext::_Hash::_Copy (VC7.1 <xhash>; try/catch(...) and rethrow)
+0x10A72250 libs   std::_Hash::erase(iterator, iterator) instantiation (VC7.1 <xhash>)
+0x10A72700 libs   stdext::_Hash::erase(const key_type&) (equal_range, _Distance, erase(first, last); withdrawn)
+0x10A72D30 libs   stdext::_Hash::erase / std::list::clear / list node destructor / vector::assign instantiation
+0x10A72DB0 libs   std::list::_Tidy (clear, free the head node; unintegrated)
+0x10A72DD0 libs   std::list<T>::_Buynode instantiation
+0x10A72E60 libs   stdext::_Hash constructor (hash_map)
+0x10A73E80 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10A7DD20 engine FPlane::operator*=(FLOAT) (UnMath.h inline returning FPlane by value; out-of-line copy; withdrawn)
+0x10A89B70 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x10A8D940 libs   std::_Fill
+0x10A8F0B0 libs   std::vector<4-byte T>::_Buy and its _Xlen (vector<T> too long)
+0x10A8F100 libs   std::vector<unsigned int>::_Insert_n instantiation
+0x10AA32C0 engine TFieldIterator<UStructProperty>::IterateToNext, an instance of Epic's template
+0x10AA34A0 engine TFieldIterator<UStructProperty>::IterateToNext, an instance of Epic's template
+0x10AA5590 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10AB0330 libs   STL container internals (allocator::destroy, vector::_Tidy, list::_Buynode, list/tree node destructors)
+0x10AB0400 libs   std::list<int> member (~list, clear, _Buynode)
+0x10AB0A40 libs   std::vector::vector(size_type, const T&)
+0x10AB0C80 libs   std::vector::resize(size_type, T)
+0x10AB0CF0 libs   std::vector<T*>::assign instantiation
+0x10AB28D0 libs   std::_Hash::erase(iterator, iterator) instantiation (VC7.1 <xhash>)
+0x10AB57C0 engine Epic's engine code: not decompiled (CONTRIBUTING.md)
+0x10AB76B0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10ABCA00 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10ACF940 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10AD01A0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10AD4070 engine Epic's engine code: not decompiled or published
+0x10AF8490 engine Epic's engine code: not decompiled or published
+0x10AF9A30 engine Epic's engine code: not decompiled or published
+0x10AF9BA0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10AF9C00 engine Epic's engine code: not decompiled or published
+0x10AF9E20 engine Epic's engine code: not decompiled or published
+0x10AF9FB0 engine Epic's engine code: not decompiled or published
+0x10B12D20 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10B13120 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10B13180 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10B19D30 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10B7FD20 libs   std::uninitialized_copy instantiation (12-byte elements)
+0x10B7FD60 libs   matched from library objects or original sources, not by workers
+0x10B7FD90 libs   STL instantiation
+0x10B7FDC0 libs   std::_Uninitialized_fill_n / vector::_Ufill
+0x10B7FE00 libs   std::_Uninitialized_fill_n / vector::_Ufill
+0x10B7FE30 libs   std::copy (_Copy_opt) for an 8-byte element
+0x10B7FEE0 libs   std::vector<T>::~vector (trivial T)
+0x10B7FF10 libs   std::vector<12-byte T>::_Ufill (calls _Uninit_fill_n)
+0x10B80F80 libs   std::vector<T>::insert(iterator, const T&) instantiation
+0x10B80FF0 libs   std::vector<T>::push_back instantiation (12-byte T)
+0x10B92970 libs   a Havok hkArray destructor instance (deallocateChunk unless the capacity's sign bit says not to free)
+0x10BA1640 libs   std::less<FString>::operator() (an STL functor over FString's operator<)
+0x10BA18C0 libs   std::_Tree::_Erase
+0x10BA1900 libs   std::_Tree::_Erase
+0x10BA1F00 libs   std::_Tree::erase(first, last)
+0x10BA1FC0 libs   std::_Tree::erase(first, last)
+0x10BA22D0 libs   std::list<T>::_Tidy (head at +4, size at +8)
+0x10BA2300 libs   std::list<T>::~list (erase(begin, end), delete the head node, zero head and size)
+0x10BAEBA0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BBADF0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BDA230 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BDC9A0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BF7100 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BFCA40 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BFCAA0 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10BFE700 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10C02F70 libs   std::vector<unsigned int>::_Insert_n instantiation
+0x10C0BE30 libs   std::_Tree::_Min/_Max
+0x10C0C010 libs   std::_Tree::_Erase
+0x10C0C110 libs   std::_Tree::_Buynode
+0x10C0CED0 libs   std::_Tree::erase(first, last)
+0x10C0D740 libs   std::_Tree::insert instantiation (VC7.1 set/map)
+0x10C0E1E0 libs   std::list<T>::~list (erase(begin, end), delete the head node, zero head and size)
+0x10C17680 engine TArray<T>::~TArray, an instance of Epic's template (Remove(0, ArrayNum), then FArray::~FArray)
+0x10C35990 libs   std::vector<unsigned int>::_Insert_n instantiation
+0x10C3FFC0 libs   std::_Tree::_Min/_Max
+0x10C3FFE0 libs   std::_Tree::_Min/_Max
+0x10C40620 libs   std::_Tree::_Erase
+0x10C40740 libs   STL container internals (allocator::destroy, vector::_Tidy, list::_Buynode, list/tree node destructors)
+0x10C40C30 libs   std::list::_Buynode
+0x10C40C50 libs   std::_Tree::_Buynode instantiation
+0x10C40C90 libs   std::list<T>::_Buynode instantiation
+0x10C40D20 libs   std::_Tree::_Buynode instantiation
+0x10C40E10 libs   std::_Tree::_Buynode instantiation
+0x10C40EF0 libs   std::_Tree::_Buynode instantiation
+0x10C40F30 libs   std::_Tree::_Buynode instantiation
+0x10C40FC0 libs   std::_Tree::_Buynode instantiation
+0x10C41000 libs   stdext::_Hash::erase(first, last) / std::_Tree node constructor
+0x10C415D0 libs   std::list::clear (VC7.1 <list>, a list with a stateful allocator: _Myhead at +0x18; unintegrated)
+0x10C41610 libs   std::_Tree::_Buynode instantiation
+0x10C416A0 libs   std::_Tree::_Erase
+0x10C416E0 libs   std::_Tree::_Erase instantiation
+0x10C41970 libs   std::_Pop_heap_0 instantiation
+0x10C41FF0 libs   std::_Tree::_Erase
+0x10C42030 libs   std::_Tree (map/set) constructor instantiation
+0x10C420D0 libs   std::_Tree constructor (map/set) instantiation
+0x10C423F0 libs   std::list::_Tidy (clear, free the head node; unintegrated)
+0x10C42410 libs   std::vector<12-byte T>::_Destroy
+0x10C42440 libs   an implicit destructor whose body is std::vector<Class_10C56E40>::~vector (vector at this+4)
+0x10C42490 libs   std::vector<12-byte T>::_Ufill (fill through the allocator, returns First + Count)
+0x10C424C0 libs   STL instantiation
+0x10C424F0 libs   std::sort_heap<Elem*> (12-byte elements)
+0x10C43060 libs   std::vector<Class_10C56E40>::_Tidy
+0x10C43260 libs   std::_Tree::erase(iterator, iterator) instantiation
+0x10C441D0 libs   std::_Tree::insert instantiation (VC7.1 set/map)
+0x10C44940 libs   std::_Tree::insert (multimap/multiset) instantiation
+0x10C449B0 libs   std::_Tree::insert (multimap/multiset) instantiation
+0x10C44E80 libs   std::_Tree::erase(first, last)
+0x10C44F40 libs   std::_Tree::erase(iterator, iterator) instantiation
+0x10C455B0 libs   std::vector<T>::insert(iterator, const T&) instantiation
+0x10C45620 libs   an inlined std tree destructor (0x1C-byte comparator/allocator prefix, head at +0x1C)
+0x10C45650 libs   a std tree destructor instance (head at +0x1C)
+0x10C45680 libs   a std tree destructor instance (head at +0x1C)
+0x10C45B90 libs   std::vector<T>::push_back instantiation (12-byte T)
+0x10C45C10 libs   std::_Tree::_Tidy (erase(begin, end), delete the head node, zero head and size)
+0x10C45C40 libs   std::_Tree::_Tidy (erase(begin, end), delete the head node, zero head and size)
+0x10C47EF0 libs   iostream destructor with a virtual base
+0x10C48160 libs   std::codecvt<char,char,int>::codecvt(size_t)
+0x10C48220 libs   std::basic_streambuf / basic_fstream member
+0x10C48C80 libs   std::use_facet<Facet>(const locale&) (<xlocale>)
+0x10C48F50 libs   std::basic_filebuf<char>::sync (Dinkumware <fstream>)
+0x10C4A340 libs   STL instantiation
+0x10C4ACA0 libs   std::basic_string<char>::substr
+0x10C4C1C0 libs   std::basic_streambuf / basic_fstream member
+0x10C4ED50 libs   std::list::_Buynode
+0x10C4EE60 libs   STL container internals (allocator::destroy, vector::_Tidy, list::_Buynode, list/tree node destructors)
+0x10C50D40 libs   std::list<T>::clear instantiation
+0x10C516B0 libs   std::list<T>::~list instantiation
+0x10C55070 libs   std::list::_Buynode
+0x10C553A0 libs   std::list::clear (VC7.1 <list>, a list with a stateful allocator: _Myhead at +0x18; unintegrated)
+0x10C553E0 libs   std::list<T>::_Buynode instantiation
+0x10C55800 libs   std::list::_Tidy (clear, free the head node; unintegrated)
+0x10C55960 libs   std::list::push_back
+0x10C56D00 libs   std::_Tree::_Min/_Max
+0x10C58F90 libs   std::_Tree::_Buynode
+0x10C592A0 libs   std::_Tree node implicit destructor (_Erase 0x10C5A2C0 calls it on the node; unintegrated)
+0x10C5A2C0 libs   std::_Tree::_Erase
+0x10C5AC00 libs   std::_Tree destructor/_Tidy of a std::map/set instance
+0x10C5CBF0 libs   std::list node implicit destructor (list::clear 0x10C5CCD0 destroys each node with it; unintegrated)
+0x10C5CCD0 libs   std::list::clear (VC7.1 <list>, a list with a stateful allocator: _Myhead at +0x18; unintegrated)
+0x10C5CE70 libs   std::list::_Tidy (clear, free the head node; unintegrated)
+0x10C5CE90 libs   std::_Tree constructor (map/set) instantiation
+0x10C62E70 libs   std::operator!= for basic_string<char>
+0x10C66910 libs   std::vector<T>::_Ufill instantiation
+0x10C66C1A libs   tail fragment of a std::basic_ostream member
+0x10C67BA0 libs   std::vector<unsigned int>::_Insert_n instantiation
+0x10C67F60 libs   an STL _Destroy_range loop over 0x38-byte elements
+0x10C68670 libs   STL instantiation
+0x10C68BD0 libs   std::use_facet<Facet>(const locale&) (<xlocale>)
+0x10C68DF6 libs   tail chunk of an inlined std::basic_ostream operator<< (entered from 0x10C68CE0)
+0x10C695E0 libs   std::basic_istream<char>::getline
+0x10C69610 libs   STL instantiation
+0x10C69940 libs   std::_Copy_opt (std::string elements)
+0x10C69CC0 libs   std::istreambuf_iterator<char>::_Peek
+0x10C6B530 libs   std::fill over pair<string,string> (0x38-byte elements)
+0x10C6EBE0 libs   std::vector _Ufill instantiation (element: two std::string)
+0x10C6F050 libs   STL instantiation
+0x10C83450 engine Epic's engine code: not decompiled or published
+0x10C84070 engine Epic's engine code: not decompiled or published
+0x10C6A570 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(long&)
+0x10C6A690 libs   std::num_get<char, istreambuf_iterator<char> >::do_get(long&)

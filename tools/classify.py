@@ -28,6 +28,10 @@ evidence in T3Main.exe (orig/) and symbols.txt:
     hold a method of the latter.
   * Strings a function uses (LIB_STRINGS, ION_STRINGS, EPIC_STRINGS).
   * Libraries: from configure.py's LIBRARY_START on, except game evidence.
+  * instances.txt: library and engine code found by hand among Ion Storm's
+    functions while matching (STL and TArray instances, Epic's inlines
+    compiled out of line). Each takes its category without being evidence
+    for its neighbours: it sits inside the object of the code that uses it.
 
 The functions of one object file are contiguous, and so are the object files
 of one library, so the functions between two evidence points of one category
@@ -104,6 +108,7 @@ FILL_LIMIT = 0x4000
 LIBRARY_FILL = 0x20000
 # Virtual methods this small are not evidence (see evidence()).
 TRIVIAL = 16
+PLACEHOLDER_METHOD = re.compile(r"\?FUN_[0-9a-f]{8}@")
 
 # mov eax,[G]; test eax,eax; jne short; push "<Package>"; call <getter>; add esp,4; mov [G],eax; call <init>
 REGISTRATION = re.compile(rb"\xA1(.{4})\x85\xC0\x75.\x68(.{4})\xE8(.{4})\x83\xC4\x04\xA3(.{4})(?:\xE8(.{4}))?", re.S)
@@ -115,6 +120,7 @@ class Image:
         self.pe = PE((ROOT / "orig" / version / info["exe"]).read_bytes())
         self.base = self.pe.image_base
         config = ROOT / "config" / version
+        self.config = config
         symbols = configure.symbolslib.load(config / "symbols.txt")
         self.symbols = symbols
         self.functions = sorted((s for s in symbols if s.is_function and s.size > 0), key=lambda s: s.address)
@@ -301,9 +307,15 @@ def evidence(img: Image) -> Tuple[Dict[int, Set[str]], Dict[int, List[str]]]:
         for slot, fn in enumerate(tables.get(c["vtable"], [])):
             # The linker folds identical small bodies (return 0, {}) into one copy that sits in
             # whichever object came first: their vtables say nothing about where they are.
-            if img.at[fn].size > TRIVIAL:
+            # A library's function there (`__purecall` in a pure slot) is no game code either.
+            if img.at[fn].size > TRIVIAL and fn < configure.LIBRARY_START:
                 add(fn, c["category"], f"slot {slot} of {label}'s vtable 0x{c['vtable']:08X}")
+    folded = {s.address for s in img.symbols if s.type == "alias"}
     for f in img.functions:
+        if f.address in folded and f.size <= TRIVIAL or PLACEHOLDER_METHOD.match(f.name):
+            # The same: a small body the linker folded takes any of its users' names, and a placeholder
+            # method only says which class a worker gave it (`?FUN_10becee0@UCanvas@@...`), not whose it is.
+            continue
         if EPIC_NAMED.match(f.name):
             add(f.address, ENGINE, f"named {f.name}")
         elif ION_NAMED.match(f.name):
@@ -313,7 +325,7 @@ def evidence(img: Image) -> Tuple[Dict[int, Set[str]], Dict[int, List[str]]]:
         named = next((img.at[fn].name for fn in slots if ION_NAMED.match(img.at[fn].name)), None)
         if named:
             for slot, fn in enumerate(slots):
-                if img.at[fn].size > TRIVIAL:
+                if img.at[fn].size > TRIVIAL and fn < configure.LIBRARY_START:
                     add(fn, GAME, f"slot {slot} of vtable 0x{table:08X}, which holds {named}")
     from iced_x86 import OpKind
     funclets = configure.FUNCLETS
@@ -334,16 +346,36 @@ def evidence(img: Image) -> Tuple[Dict[int, Set[str]], Dict[int, List[str]]]:
     return cats, why
 
 
+def instances(img: Image) -> Dict[int, Tuple[str, str]]:
+    """address -> (category, what) from instances.txt: library and engine code found by hand among Ion Storm's
+    functions (template instances and inline copies its objects carry, Epic's methods in its files)."""
+    path = img.config / "instances.txt"
+    out = {}
+    for line in path.read_text(encoding="utf-8").splitlines() if path.is_file() else []:
+        m = re.match(r"(0x[0-9A-Fa-f]{8})\s+(libs|engine)\s+(.*)", line)
+        if m:
+            out[int(m.group(1), 16)] = (m.group(2), m.group(3).strip())
+    return out
+
+
 def classify(img: Image) -> Tuple[Dict[int, str], Dict[int, List[str]]]:
     """function -> category, for every function outside .text$x."""
     cats, why = evidence(img)
+    hand = instances(img)
     funclets = configure.FUNCLETS
     fns = [f for f in img.functions if not funclets[0] <= f.address < funclets[1]]
     out: Dict[int, str] = {}
     points: List[Tuple[int, str]] = []
     for f in fns:
         c = cats.get(f.address, set())
-        if len(c) == 1:
+        if f.address in hand:
+            # Found by hand: it takes its category, and like STL's helpers it sits inside the object of the
+            # code that uses it, so it is no evidence for its neighbours (unless its own evidence agrees).
+            out[f.address] = hand[f.address][0]
+            why[f.address].append(f"found by hand: {hand[f.address][1]} (instances.txt)")
+            if c == {out[f.address]}:
+                points.append((f.address, out[f.address]))
+        elif len(c) == 1:
             out[f.address] = next(iter(c))
             points.append((f.address, out[f.address]))
     # Library region: libs unless evidence says otherwise.

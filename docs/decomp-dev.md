@@ -83,9 +83,19 @@ from evidence in the exe, `explain <addr>` prints a function's evidence, and
 - Names in `symbols.txt` of Epic's classes, and strings a function uses:
   Ion Storm's file, ini and system names (`T3...`, Flesh, schemas,
   `cClass::` names, `.\Source\` paths), library errors and class names (STL,
-  LIPSinc, Havok), and messages only Epic's stock code prints.
+  LIPSinc, Havok), and messages only Epic's stock code prints. A name says
+  nothing when the linker folded a small body under it (any of its users'
+  names) or when it is a placeholder method (`?FUN_10becee0@UCanvas@@...`:
+  the class a worker gave it, not whose it is).
 - The library region from `LIBRARY_START` (`0x10CFBFB0`, where qhull and then
-  the C runtime begin).
+  the C runtime begin); a game class's vtable says nothing about a function
+  there (`__purecall` in a pure slot).
+- `config/<version>/instances.txt`: library and engine code found by hand
+  while matching among Ion Storm's functions (STL and `TArray` instances,
+  Epic's `UnMath.h` inlines compiled out of line, Epic's methods in Ion
+  Storm's files). Each takes its category without speaking for its
+  neighbours: it sits inside the object of the code that uses it. The lead's
+  exclusions add to it.
 
 A function between two pieces of evidence of one category takes it, when they
 are close enough: inside Epic's libraries only engine evidence fills long
