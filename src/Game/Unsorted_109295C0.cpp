@@ -46,6 +46,37 @@ public:
     virtual void FUN_10929d60(int A, int B, int C, Struct_10929D60* Out);
 };
 
+class Object_10929600
+{
+public:
+    virtual int __stdcall Virtual0();
+    virtual int __stdcall Virtual1();
+    virtual int __stdcall Virtual2();
+};
+
+struct Struct_10929600
+{
+    char Unknown00[0x30];
+    Object_10929600* Unknown30;
+};
+
+extern int DAT_10f31ad4;
+
+extern Struct_10929600** DAT_10f31adc;
+
+// FUNCTION: 0x10929600 ?FUN_10929600@@YAXXZ
+void FUN_10929600()
+{
+    for (int i = 0; i < DAT_10f31ad4; i++)
+    {
+        if (DAT_10f31adc[i]->Unknown30)
+        {
+            DAT_10f31adc[i]->Unknown30->Virtual2();
+            DAT_10f31adc[i]->Unknown30 = 0;
+        }
+    }
+}
+
 // FUNCTION: 0x10929D60 ?FUN_10929d60@Class_10E49B48@@UAEXHHHPAUStruct_10929D60@@@Z
 void Class_10E49B48::FUN_10929d60(int A, int B, int C, Struct_10929D60* Out)
 {

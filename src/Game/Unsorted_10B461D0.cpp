@@ -179,6 +179,173 @@ struct Struct_10B48890
 
 Struct_10B48890* __stdcall FUN_10b3af40(Struct_10B3AF40_Param* p1);
 
+class Class_10B46D40
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual void Virtual13();
+    virtual void Virtual14();
+    virtual void Virtual15();
+    virtual void Virtual16();
+    virtual void Virtual17();
+    virtual void Virtual18();
+    virtual void Virtual19();
+    virtual void Virtual20();
+    virtual void Virtual21();
+    virtual void Virtual22();
+    virtual void Virtual23();
+    virtual void Virtual24();
+    virtual void Virtual25();
+    virtual void Virtual26();
+    virtual void Virtual27();
+    virtual void Virtual28();
+    virtual void Virtual29();
+    virtual void Virtual30();
+    virtual void Virtual31();
+    virtual void Virtual32();
+    virtual void Virtual33();
+    virtual void Virtual34();
+    virtual void Virtual35();
+    virtual void Virtual36();
+    virtual void Virtual37();
+    virtual void Virtual38();
+    virtual void Virtual39();
+    virtual void Virtual40();
+    virtual void Virtual41();
+    virtual void Virtual42();
+    virtual void Virtual43();
+    virtual void Virtual44();
+    virtual void Virtual45();
+    virtual void Virtual46();
+    virtual void Virtual47();
+    virtual void Virtual48();
+    virtual void Virtual49();
+    virtual void Virtual50();
+    virtual void Virtual51();
+    virtual void Virtual52();
+    virtual void Virtual53();
+    virtual void Virtual54();
+    virtual void Virtual55();
+    virtual void Virtual56();
+    virtual void Virtual57();
+    virtual void Virtual58();
+    virtual void Virtual59();
+    virtual void Virtual60();
+    virtual void Virtual61();
+    virtual void Virtual62();
+    virtual void Virtual63();
+    virtual void Virtual64();
+    virtual void Virtual65();
+    virtual void Virtual66();
+    virtual void Virtual67();
+    virtual void Virtual68();
+    virtual void Virtual69();
+    virtual void Virtual70();
+    virtual void Virtual71();
+    virtual void Virtual72();
+    virtual void Virtual73();
+    virtual void Virtual74();
+    virtual void Virtual75();
+    virtual void Virtual76();
+    virtual void Virtual77();
+    virtual void Virtual78();
+    virtual void Virtual79();
+    virtual bool Virtual80();
+
+    bool FUN_10b46d40();
+
+    char Unknown04[0xB4];
+    int UnknownB8;
+    char UnknownBC[4];
+    Class_10B46D40** UnknownC0;
+};
+
+class Class_10AAB5C0
+{
+public:
+    int FUN_10aab5c0();
+};
+
+class Class_10B46F10
+{
+public:
+    bool FUN_10b46f10(int A);
+
+    char Unknown00[0x8];
+    Class_10AAB5C0* Unknown08;
+    Class_10AAB5C0* Unknown0C;
+    int Unknown10;
+    int Unknown14;
+};
+
+class Class_10C3E140
+{
+public:
+    unsigned char FUN_10c3e140();
+};
+
+class Class_10B7B110 : public Class_10C3E140
+{
+public:
+    void FUN_10b7b110(float A);
+};
+
+class Class_10B46F50
+{
+public:
+    void FUN_10b46f50(float A);
+
+    char Unknown00[8];
+    Class_10B7B110* Unknown08[2];
+    char Unknown10[0x24];
+    float Unknown34;
+};
+
+// FUNCTION: 0x10B46D40 ?FUN_10b46d40@Class_10B46D40@@QAE_NXZ
+bool Class_10B46D40::FUN_10b46d40()
+{
+    if (Virtual80())
+        return true;
+    for (int i = 0; i < UnknownB8; i++)
+    {
+        Class_10B46D40* Child = UnknownC0[i];
+        if (Child && Child->Virtual80())
+            return true;
+    }
+    return false;
+}
+
+// FUNCTION: 0x10B46F10 ?FUN_10b46f10@Class_10B46F10@@QAE_NH@Z
+bool Class_10B46F10::FUN_10b46f10(int A)
+{
+    if (Unknown08->FUN_10aab5c0() == A || Unknown0C->FUN_10aab5c0() == A || Unknown14 == A)
+        return true;
+    return false;
+}
+
+// FUNCTION: 0x10B46F50 ?FUN_10b46f50@Class_10B46F50@@QAEXM@Z
+void Class_10B46F50::FUN_10b46f50(float A)
+{
+    for (int i = 0; i < 2; i++)
+    {
+        if (Unknown08[i]->FUN_10c3e140())
+            Unknown08[i]->FUN_10b7b110(A);
+    }
+    Unknown34 = A;
+}
+
 // FUNCTION: 0x10B48890 ?FUN_10b48890@@YGXPAUStruct_10B3AF40_Param@@@Z
 void __stdcall FUN_10b48890(Struct_10B3AF40_Param* p1)
 {

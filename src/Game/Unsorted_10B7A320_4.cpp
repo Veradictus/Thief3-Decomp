@@ -72,3 +72,6 @@ Class_10E88900::Class_10E88900()
 {
     Unknown0E8 = 6;
 }
+
+// FUNCTION: 0x10B7A7B0 ??_GClass_10E88900@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B7A6F0's definition in this unit.

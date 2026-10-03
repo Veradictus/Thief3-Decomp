@@ -60,3 +60,6 @@ Class_10E6C68C::~Class_10E6C68C()
         Unknown0C = 0;
     }
 }
+
+// FUNCTION: 0x10A8BE50 ??_GClass_10E6C68C@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A8BDC0's definition in this unit.

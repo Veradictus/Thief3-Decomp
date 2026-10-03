@@ -38,6 +38,33 @@ public:
     void FUN_10b8dc70(int Item);
 };
 
+struct Struct_10B8C9B0
+{
+    char Unknown00[0x30];
+    int Unknown30;
+};
+
+class Class_10B8C9B0
+{
+public:
+    Struct_10B8C9B0* FUN_10b8c9b0(int Value);
+
+    int Unknown00;
+    int Unknown04;
+    Struct_10B8C9B0** Unknown08;
+};
+
+// FUNCTION: 0x10B8C9B0 ?FUN_10b8c9b0@Class_10B8C9B0@@QAEPAUStruct_10B8C9B0@@H@Z
+Struct_10B8C9B0* Class_10B8C9B0::FUN_10b8c9b0(int Value)
+{
+    for (int i = 0; i < Unknown00; i++)
+    {
+        if (Value == Unknown08[i]->Unknown30)
+            return Unknown08[i];
+    }
+    return 0;
+}
+
 // FUNCTION: 0x10B8CC60 ?FUN_10b8cc60@Class_10B8C7B0@@QAEXXZ
 void Class_10B8C7B0::FUN_10b8cc60()
 {

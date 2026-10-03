@@ -26,7 +26,7 @@ class Class_10E4938C
 public:
     Class_10E4938C(const Class_109081E0& A);
 
-    virtual void Virtual0();
+    virtual ~Class_10E4938C();
 
     Class_10BFBD70 Unknown04;
     Class_109081E0 Unknown10;
@@ -36,3 +36,6 @@ public:
 Class_10E4938C::Class_10E4938C(const Class_109081E0& A) : Unknown10(A)
 {
 }
+
+// FUNCTION: 0x10914510 ??_GClass_10E4938C@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x109141F0's definition in this unit.

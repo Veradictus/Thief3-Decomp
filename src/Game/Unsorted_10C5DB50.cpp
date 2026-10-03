@@ -33,6 +33,40 @@ public:
     void* Unknown08;
 };
 
+struct Struct_10C5DB50
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+};
+
+class Object_10C5DB50
+{
+public:
+    virtual int __stdcall Virtual0();
+    virtual int __stdcall Virtual1();
+    virtual int __stdcall Virtual2();
+    virtual int __stdcall Virtual3();
+    virtual int __stdcall Virtual4();
+    virtual int __stdcall Virtual5(Struct_10C5DB50* A, void* B, unsigned int* C);
+};
+
+// FUNCTION: 0x10C5DB50 ?FUN_10c5db50@@YG_NPAVObject_10C5DB50@@UStruct_10C5DB50@@PAX@Z
+bool __stdcall FUN_10c5db50(Object_10C5DB50* A, Struct_10C5DB50 B, void* C)
+{
+    bool Result = false;
+    if (A)
+    {
+        if (A->Virtual5(&B, C, (unsigned int*)&A) >= 0)
+        {
+            if (((unsigned int)A & 3) == 3)
+                Result = true;
+        }
+    }
+    return Result;
+}
+
 // FUNCTION: 0x10C5EE80 ?FUN_10c5ee80@Class_10C5EE80@@QAEXXZ
 void Class_10C5EE80::FUN_10c5ee80()
 {

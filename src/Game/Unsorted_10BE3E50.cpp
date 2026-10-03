@@ -95,6 +95,31 @@ public:
     float Unknown0C;
 };
 
+class Class_10E90D70
+{
+public:
+    ~Class_10E90D70();
+
+    virtual void Virtual0();
+};
+
+class Class_10E95F40 : public Class_10E90D70
+{
+public:
+    ~Class_10E95F40();
+};
+
+void FUN_10c07fe0();
+
+void FUN_10c25610();
+
+// FUNCTION: 0x10BE3F90 ??1Class_10E95F40@@QAE@XZ
+Class_10E95F40::~Class_10E95F40()
+{
+    FUN_10c07fe0();
+    FUN_10c25610();
+}
+
 // FUNCTION: 0x10BE3FF0 ?FUN_10be3ff0@Class_10BE3FF0@@QAEXXZ
 void Class_10BE3FF0::FUN_10be3ff0()
 {

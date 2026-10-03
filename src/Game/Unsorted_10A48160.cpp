@@ -56,6 +56,45 @@ public:
     Class_10BFBD70 Unknown10;
 };
 
+class Class_10A1FB50
+{
+public:
+    int FUN_10a1fad0(int A);
+};
+
+class Class_10A1F9D0
+{
+public:
+    int FUN_10a1f8a0(int A);
+};
+
+class Class_10A1F880
+{
+public:
+    char Unknown00[4];
+    int Unknown04;
+    char Unknown08[4];
+    int* Unknown0C;
+};
+
+Class_10A1F880* FUN_10a1fcf0();
+
+class Class_10B59F70
+{
+public:
+    int FUN_10b59f70();
+};
+
+// FUNCTION: 0x10A481F0 ?FUN_10a481f0@@YAHHH@Z
+int FUN_10a481f0(int A, int B)
+{
+    if (B >= 0)
+        return ((Class_10A1FB50*)FUN_10a1fcf0())->FUN_10a1fad0(B);
+    if (A)
+        return ((Class_10A1F9D0*)FUN_10a1fcf0())->FUN_10a1f8a0(A);
+    return ((Class_10B59F70*)FUN_10a1fcf0())->FUN_10b59f70();
+}
+
 // FUNCTION: 0x10A484D0 ??1Class_10E678F0@@UAE@XZ
 Class_10E678F0::~Class_10E678F0()
 {

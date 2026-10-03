@@ -25,6 +25,42 @@ public:
     void* Unknown08;
 };
 
+struct Struct_10E6BA88_Entry
+{
+    int Unknown00;
+    int Unknown04;
+};
+
+class Class_10E6BA88
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual bool FUN_10a70b40(int Key, int* Out);
+
+    int Unknown04;
+    char Unknown08[4];
+    Struct_10E6BA88_Entry* Unknown0C;
+};
+
+// FUNCTION: 0x10A70B40 ?FUN_10a70b40@Class_10E6BA88@@UAE_NHPAH@Z
+bool Class_10E6BA88::FUN_10a70b40(int Key, int* Out)
+{
+    *Out = 0;
+    for (int i = 0; i < Unknown04; i++)
+    {
+        Struct_10E6BA88_Entry* Item = &Unknown0C[i];
+        if (Item->Unknown00 == Key)
+        {
+            *Out = Item->Unknown04;
+            return true;
+        }
+    }
+    return false;
+}
+
 // FUNCTION: 0x10A70B80 ?FUN_10a70b80@Class_10A70B80@@QAEXXZ
 void Class_10A70B80::FUN_10a70b80()
 {
