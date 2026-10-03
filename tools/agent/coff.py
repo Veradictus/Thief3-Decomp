@@ -26,6 +26,22 @@ IMAGE_COMDAT_SELECT_NODUPLICATES = 1
 IMAGE_COMDAT_SELECT_ANY = 2
 _BIGOBJ_CLASS_ID = bytes.fromhex("c7a1bad1eebaa94baf20faf66aa4dcb8")
 
+# C++ exception tables. A function with an exception frame pushes its handler, `__ehhandler$F`
+# (`mov eax, offset FuncInfo; jmp ___CxxFrameHandler`). VC7.1 leaves the FuncInfo, its maps and the
+# unwind funclets static labels (`$T323`, `$L316`); later MSVCs name them after F as below, and so do
+# tools/cc.py and tools/split.py on both sides of a diff, so objdiff pairs them.
+EH_HANDLER = "__ehhandler$"
+EH_MAGIC = 0x19930520  # FuncInfo.magicNumber up to VC7.1 (later layouts add to the low two bits)
+
+
+def eh_funcinfo_name(function: str) -> str:
+    return f"__ehfuncinfo${function}"
+
+
+def eh_funclet_name(function: str, state: int) -> str:
+    """The unwind funclet that runs on leaving `state` (its index in the unwind map)."""
+    return f"__unwindfunclet${function}${state}"
+
 
 @dataclass
 class Relocation:
@@ -181,6 +197,57 @@ class Coff:
         """The addend i386 COFF keeps in the relocated field (MSVC stores 0 for a
         plain call or a reference to a symbol's start)."""
         return struct.unpack_from("<i", self.section(section).data, reloc.offset)[0]
+
+    def reference(self, section: int, offset: int) -> Optional[Tuple[Symbol, int]]:
+        """The symbol a DIR32 relocation at `offset` of `section` refers to, with the offset it denotes in
+        that symbol's section (its value plus the addend); None without such a relocation."""
+        for _, r in self.relocations(section, offset, offset + 1):
+            sym = self.slots[r.symbol] if r.type == IMAGE_REL_I386_DIR32 else None
+            if sym is not None:
+                sym = self.resolve(sym)
+                return sym, sym.value + self.addend(section, r)
+        return None
+
+    def eh_tables(self) -> Tuple[Dict[str, str], Set[str]]:
+        """The exception tables of the object's functions, followed from each `__ehhandler$F`: new names
+        for the FuncInfo and the unwind funclets (eh_funcinfo_name, eh_funclet_name), as {old: new}, and
+        the names of the catch blocks, labels inside F that fold into it as the split's code has them."""
+        rename: Dict[str, str] = {}
+        catches: Set[str] = set()
+        taken = {s.name for s in self.symbols}
+
+        def give(sym: Symbol, at: int, name: str) -> None:
+            if sym.defined and at == sym.value and sym.name not in rename and name not in taken:
+                rename[sym.name] = name
+                taken.add(name)
+
+        def words(sym: Symbol, at: int, count: int) -> Optional[Tuple[int, ...]]:
+            data = self.section(sym.section).data if sym.defined else b""
+            return struct.unpack_from(f"<{count}I", data, at) if 0 <= at <= len(data) - 4 * count else None
+
+        for h in self.symbols:
+            if not (h.defined and h.name.startswith(EH_HANDLER) and self.section(h.section).is_code):
+                continue
+            function = h.name[len(EH_HANDLER):]
+            info = self.reference(h.section, h.value + 1)  # mov eax, offset FuncInfo
+            head = words(*info, 5) if info is not None else None  # magic, states, unwind map, try blocks
+            if head is None or head[0] & ~3 != EH_MAGIC:
+                continue
+            give(info[0], info[1], eh_funcinfo_name(function))
+            unwind = self.reference(info[0].section, info[1] + 8)
+            for state in range(head[1] if unwind is not None and unwind[0].defined else 0):
+                funclet = self.reference(unwind[0].section, unwind[1] + 8 * state + 4)  # {toState, action}
+                if funclet is not None:
+                    give(funclet[0], funclet[1], eh_funclet_name(function, state))
+            blocks = self.reference(info[0].section, info[1] + 0x10)
+            for j in range(head[3] if blocks is not None and blocks[0].defined else 0):
+                entry = blocks[1] + 0x14 * j  # {tryLow, tryHigh, catchHigh, nCatches, pHandlerArray}
+                count, handlers = words(blocks[0], entry + 0xC, 1), self.reference(blocks[0].section, entry + 0x10)
+                for k in range(count[0] if count is not None and handlers is not None else 0):
+                    catch = self.reference(handlers[0].section, handlers[1] + 0x10 * k + 0xC)  # addressOfHandler
+                    if catch is not None and catch[0].defined and catch[1] == catch[0].value:
+                        catches.add(catch[0].name)
+        return rename, catches
 
     # -- editing -------------------------------------------------------------
     def fold_labels(self, is_label: Callable[[Symbol], bool]) -> Optional[bytes]:

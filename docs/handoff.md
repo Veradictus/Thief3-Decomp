@@ -310,7 +310,7 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 73 of the
+   - objdiff's report counts what the gate matched, but for 72 of the
      5,236 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
@@ -319,11 +319,8 @@ Later the same day, played by the user:
      a folded EH handler stub). A switch's tables no longer do: the
      labels are folded on both sides (`tools/cc.py`, `tools/split.py`).
      integrate.py names the vtables functions store (`??_7`), and
-     `tools/split.py` relocates `fs:[0]`. The report also counts the
-     unwind funclets and `__ehhandler$` stubs of the functions in `src/`
-     as unmatched game functions (244 and 203): give the compiler's `$L`
-     and `$T` labels the split's names in `tools/cc.py`, from the chain
-     the gate already follows by address.
+     `tools/split.py` relocates `fs:[0]`. Both name each function's
+     exception tables after it, so its handler stub and funclets pair.
    - About 210 library and 300 engine functions found inside game objects
      (STL and Epic template instantiations) are excluded from the queue
      but still count as game code in `categories.txt`: give

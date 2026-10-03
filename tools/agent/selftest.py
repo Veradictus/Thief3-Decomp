@@ -955,6 +955,35 @@ def test_fold_labels(base: Path) -> None:
 TESTS.append(test_fold_labels)
 
 
+def test_eh_tables(base: Path) -> None:
+    """tools/cc.py names a function's exception tables after it, as tools/split.py names the split's: the
+    FuncInfo its handler loads and the unwind funclet of each state; a catch block folds into the function."""
+    import cc
+    import coff
+    p = Project()
+    os.environ["T3_CC_NO_FOLD"] = "1"  # the compiler's own labels, as tools/cc.py receives them
+    try:
+        path = fixture.compile_reference(p, (
+            "struct Res { int n; Res(); ~Res(); };\nint Use(int);\n"
+            "int WithEh(int a)\n{\n    Res r1;\n    Res r2;\n    try { a = Use(a); } catch (...) { a = 0; }\n"
+            "    return Use(a + r1.n + r2.n);\n}\n"), base / "eh")
+    finally:
+        del os.environ["T3_CC_NO_FOLD"]
+    catches = cc.name_eh(path)
+    named = {s.name for s in coff.Coff.load(path).symbols if s.defined}
+    fn = "?WithEh@@YAHH@Z"
+    funclets = {n for n in named if n.startswith(coff.eh_funclet_name(fn, 0)[:-1])}
+    check(coff.eh_funcinfo_name(fn) in named and len(funclets) == 2,
+          f"the FuncInfo and the two destructors' funclets take the function's name: {sorted(named)}")
+    check(len(catches) == 1, f"the catch block is found: {catches}")
+    cc.fold(path, catches)
+    check(not any(s.defined and s.name in catches for s in coff.Coff.load(path).symbols),
+          "the catch block folds into the function")
+
+
+TESTS.append(test_eh_tables)
+
+
 def test_fold_into(base: Path) -> None:
     """A reference to a label inside a named data object (`&TEXT("AGarrett")[1]` as the split names it)
     becomes the object plus the offset, as the compiler writes it."""

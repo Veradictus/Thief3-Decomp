@@ -18,7 +18,7 @@ import struct
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 IMAGE_FILE_MACHINE_I386 = 0x14C
 IMAGE_SCN_CNT_CODE = 0x20
@@ -141,6 +141,66 @@ def fold_labels(path: Path) -> bool:
     return data is not None
 
 
+def eh_chains(exe: Path, symbols_txt: Path) -> Dict[str, Tuple[int, List[int]]]:
+    """For each exception handler symbols.txt names (`__ehhandler$F`): its address and, by state, the address
+    of its unwind funclet (0 for none), read from the exe through the FuncInfo the handler loads."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "agent"))
+    import coff
+    import pe
+    import symbols as symbolslib
+    image = pe.PE(exe.read_bytes())
+
+    def words(address: int, count: int) -> Tuple[int, ...]:
+        return struct.unpack(f"<{count}I", image.read_rva(address - image.image_base, 4 * count))
+
+    out = {}
+    for s in symbolslib.load(symbols_txt):
+        if not s.name.startswith(coff.EH_HANDLER):
+            continue
+        try:
+            if image.read_rva(s.address - image.image_base, 1) != b"\xB8":  # mov eax, offset FuncInfo
+                continue
+            magic, states, unwind = words(words(s.address + 1, 1)[0], 3)
+            if magic & ~3 != coff.EH_MAGIC or states > 0x1000:
+                continue
+            out[s.name] = (s.address, [words(unwind + 8 * k + 4, 1)[0] for k in range(states)])
+        except ValueError:  # an address outside the image
+            continue
+    return out
+
+
+def name_eh(path: Path, chains: Dict[str, Tuple[int, List[int]]]) -> bool:
+    """Give the object's exception tables the names tools/cc.py gives the compiler's (coff.Coff.eh_tables):
+    the FuncInfo each handler loads and the unwind funclets the object defines (Ghidra's `Unwind@<address>`
+    in symbols.txt). True when the object changed."""
+    import coff
+    obj = coff.Coff.load(path)
+    rename: Dict[str, str] = {}
+    taken = {s.name for s in obj.symbols}
+
+    def give(old: str, new: str) -> None:
+        if old not in rename and new not in taken:
+            rename[old] = new
+            taken.add(new)
+
+    for h in obj.symbols:
+        if not h.defined or h.name not in chains:
+            continue
+        function = h.name[len(coff.EH_HANDLER):]
+        info = obj.reference(h.section, h.value + 1)
+        if info is not None:
+            give(info[0].name, coff.eh_funcinfo_name(function))
+        for state, funclet in enumerate(chains[h.name][1]):
+            name = f"Unwind@{funclet:08x}"
+            if funclet and any(s.name == name and s.defined for s in obj.symbols):
+                give(name, coff.eh_funclet_name(function, state))
+    if not rename:
+        return False
+    path.write_bytes(obj.rewrite(rename=rename))
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--delink", type=Path, required=True)
@@ -170,10 +230,13 @@ def main() -> None:
     if args.symbols:
         resolve = interior_resolver(args.symbols)
         interior = sum(fold_interior(obj, resolve) for obj in sorted(args.outdir.rglob("*.obj")))
+        chains = eh_chains(args.exe, args.symbols)
+        eh = sum(name_eh(obj, chains) for obj in sorted(args.outdir.rglob("*.obj")))
     else:
-        interior = 0
+        interior = eh = 0
     print(f"{summary.group(0)}; {relocated} fs:[0] operands relocated against __except_list; "
-          f"switch labels folded in {folded} objects, interior labels in {interior}")
+          f"switch labels folded in {folded} objects, interior labels in {interior}, "
+          f"exception tables named in {eh}")
     args.stamp.write_text(summary.group(0) + "\n", encoding="utf-8")
 
 

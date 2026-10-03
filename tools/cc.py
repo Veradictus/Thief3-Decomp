@@ -13,7 +13,9 @@ symbols.txt and builds every object through this script; cl.exe's output (/showI
 
 It also folds the static labels MSVC gives a switch's cases and tables (`$L272`) into the function plus an
 offset (coff.fold_labels): objdiff would take them for the end of the function, and the split objects name
-the same places differently.
+the same places differently. A catch block's label folds the same way, and each function's exception tables
+(the FuncInfo its `__ehhandler$` loads, the unwind funclets) take the names tools/split.py gives the split's
+(coff.Coff.eh_tables): the report then pairs the funclets and the handler's reference.
 """
 
 import json
@@ -21,7 +23,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import AbstractSet, Dict, Set
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "agent"))
 
@@ -58,9 +60,19 @@ def is_label(sym: coff.Symbol) -> bool:
     return sym.storage == coff.IMAGE_SYM_CLASS_STATIC and sym.name.startswith("$L") and not sym.is_function
 
 
-def fold(path: Path) -> bool:
-    """Fold the object's labels into their functions; True when it changed."""
-    data = coff.Coff.load(path).fold_labels(is_label)
+def name_eh(path: Path) -> Set[str]:
+    """Name the object's exception tables after their functions; returns the catch blocks' labels."""
+    obj = coff.Coff.load(path)
+    rename, catches = obj.eh_tables()
+    if rename:
+        path.write_bytes(obj.rewrite(rename=rename))
+    return {name for name in catches if name.startswith("$")}
+
+
+def fold(path: Path, catches: AbstractSet[str] = frozenset()) -> bool:
+    """Fold the object's labels (and the catch blocks named) into their functions; True when it changed."""
+    data = coff.Coff.load(path).fold_labels(
+        lambda s: is_label(s) or (s.name in catches and s.storage == coff.IMAGE_SYM_CLASS_STATIC))
     if data is not None:
         path.write_bytes(data)
     return data is not None
@@ -82,7 +94,7 @@ def main() -> None:
         if aliases:
             normalize(Path(out), aliases)
     if out and Path(out).is_file() and not os.environ.get("T3_CC_NO_FOLD"):  # set by tests that need the labels
-        fold(Path(out))
+        fold(Path(out), name_eh(Path(out)))
 
 
 if __name__ == "__main__":

@@ -460,6 +460,16 @@ start of `"AGarrett"`) where the compiler writes the object plus an offset
 when `symbols.txt` names and sizes the object around it, the object plus the
 offset (`coff.Coff.fold_into`); an address `symbols.txt` names keeps its name.
 
+Nor do exception tables. VC7.1 leaves a function's FuncInfo, its maps and its
+unwind funclets static labels (`$T323`, `$L316`), where the split has Ghidra's
+`Unwind@<address>` and a `DAT_` FuncInfo. `tools/cc.py` follows each
+`__ehhandler$F` through the FuncInfo it loads (`coff.Coff.eh_tables`) and
+names them as later MSVCs do (`__ehfuncinfo$F`, `__unwindfunclet$F$<state>`),
+and `tools/split.py` reads the same chain from the exe and gives the split's
+the same names: objdiff's report then counts a funclet with its function and
+pairs the handler's reference to the FuncInfo. A catch block's label folds
+into its function like a switch's.
+
 ## /Od units
 
 A few functions were built without optimization: a frame (`push ebp; mov
