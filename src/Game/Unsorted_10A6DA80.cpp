@@ -58,6 +58,32 @@ public:
     void FUN_10a6e490(UObject* A, int B, int C, int Event, int Id);
 };
 
+class Class_1098E330
+{
+public:
+    int FUN_1098e330(int A, int* B);
+};
+
+class Class_10A67B70
+{
+public:
+    virtual ~Class_10A67B70();
+};
+
+class Class_10E6B610 : public Class_10A67B70
+{
+public:
+    Class_10E6B610(Class_1098E330* A);
+
+    int Unknown04;
+};
+
+// FUNCTION: 0x10A6DF60 ??0Class_10E6B610@@QAE@PAVClass_1098E330@@@Z
+Class_10E6B610::Class_10E6B610(Class_1098E330* A)
+{
+    A->FUN_1098e330(0x1003f4, &Unknown04);
+}
+
 // FUNCTION: 0x10A6E5E0 ?FUN_10a6e5e0@Class_10E6B9F8@@UAEXHPAVUObject@@HH@Z
 void Class_10E6B9F8::FUN_10a6e5e0(int Event, UObject* A, int B, int C)
 {

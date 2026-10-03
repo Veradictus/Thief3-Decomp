@@ -72,6 +72,67 @@ public:
     Struct_10ABA050 Unknown148;
 };
 
+class Class_10AF7F80
+{
+public:
+    const char* FUN_10af7f80();
+};
+
+struct Struct_10AB9D40
+{
+    char Unknown00[0x24];
+    Class_10AF7F80 Unknown24;
+    char Unknown25[0x1B];
+    int Unknown40;
+};
+
+extern char DAT_10e6b668[];
+
+int FUN_10af3690(const char* A, const char* B);
+
+class Class_10AB9D40
+{
+public:
+    void FUN_10ab9a60(int A, Struct_10AB9D40* B, int C);
+    void FUN_10ab9d40(int A, Struct_10AB9D40* B, int C);
+};
+
+class Object_10AB9FF0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+};
+
+class Class_10AB9FF0
+{
+public:
+    Class_10AB9FF0* FUN_10ab9ff0(Class_10AB9FF0* Other);
+
+    Object_10AB9FF0* Unknown00;
+};
+
+// FUNCTION: 0x10AB9D40 ?FUN_10ab9d40@Class_10AB9D40@@QAEXHPAUStruct_10AB9D40@@H@Z
+void Class_10AB9D40::FUN_10ab9d40(int A, Struct_10AB9D40* B, int C)
+{
+    Class_10AF7F80* Name = B->Unknown40 ? &B->Unknown24 : 0;
+    if (FUN_10af3690(Name->FUN_10af7f80(), DAT_10e6b668) == 0)
+        FUN_10ab9a60(A, B, C);
+}
+
+// FUNCTION: 0x10AB9FF0 ?FUN_10ab9ff0@Class_10AB9FF0@@QAEPAV1@PAV1@@Z
+Class_10AB9FF0* Class_10AB9FF0::FUN_10ab9ff0(Class_10AB9FF0* Other)
+{
+    Object_10AB9FF0* Old = Unknown00;
+    Unknown00 = Other->Unknown00;
+    if (Unknown00)
+        Unknown00->Virtual1();
+    if (Old)
+        Old->Virtual2();
+    return this;
+}
+
 // FUNCTION: 0x10ABA050 ??0Class_10E6F3F4@@QAE@XZ
 Class_10E6F3F4::Class_10E6F3F4()
     : UnknownD8(0), UnknownDC(0), UnknownE0(0), UnknownE4(0),

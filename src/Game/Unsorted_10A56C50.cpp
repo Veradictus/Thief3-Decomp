@@ -169,6 +169,119 @@ public:
     int Unknown1F4;
 };
 
+typedef float FLOAT;
+
+class FVector
+{
+public:
+    FVector() {}
+    FVector(FLOAT InX, FLOAT InY, FLOAT InZ) : X(InX), Y(InY), Z(InZ) {}
+
+    FVector operator+(const FVector& V) const { return FVector(X + V.X, Y + V.Y, Z + V.Z); }
+
+    FLOAT X, Y, Z;
+};
+
+class Class_10E68B10
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual FVector Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual void Virtual13();
+    virtual FVector FUN_10a56c50();
+
+    char Unknown04[0x30];
+    FLOAT Unknown34;
+    FLOAT Unknown38;
+    char Unknown3C[0x100];
+    FLOAT Unknown13C;
+};
+
+class Class_10BFBD70
+{
+public:
+    void FUN_10bfbd70(int NewCount);
+
+    int Unknown00;
+    int Unknown04;
+    int* Unknown08;
+};
+
+class Class_10E6AEA0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual void Virtual13();
+    virtual void Virtual14();
+    virtual void Virtual15();
+    virtual void Virtual16();
+    virtual void Virtual17();
+    virtual void Virtual18();
+    virtual void Virtual19();
+    virtual void Virtual20();
+    virtual void Virtual21();
+    virtual void Virtual22();
+    virtual void Virtual23();
+    virtual void Virtual24();
+    virtual void Virtual25();
+    virtual void Virtual26();
+    virtual void Virtual27();
+    virtual void Virtual28();
+    virtual void Virtual29();
+    virtual void Virtual30();
+    virtual void Virtual31();
+    virtual void Virtual32();
+    virtual void Virtual33();
+    virtual void Virtual34();
+    virtual void Virtual35();
+    virtual void Virtual36();
+    virtual void FUN_10a572c0(Class_10BFBD70* Array, int B);
+
+    char Unknown04[0x114];
+    int Unknown118;
+};
+
+// FUNCTION: 0x10A56C50 ?FUN_10a56c50@Class_10E68B10@@UAE?AVFVector@@XZ
+FVector Class_10E68B10::FUN_10a56c50()
+{
+    FVector Ext(Unknown13C, Unknown13C, 0.0f);
+    return Ext + Virtual6();
+}
+
+// FUNCTION: 0x10A572C0 ?FUN_10a572c0@Class_10E6AEA0@@UAEXPAVClass_10BFBD70@@H@Z
+void Class_10E6AEA0::FUN_10a572c0(Class_10BFBD70* Array, int B)
+{
+    if (Array && Unknown118)
+    {
+        int Index = Array->Unknown00;
+        Array->FUN_10bfbd70(Index + 1);
+        Array->Unknown08[Index] = Unknown118;
+    }
+}
+
 // FUNCTION: 0x10A57790 ??0Class_10E68D80@@QAE@XZ
 Class_10E68D80::Class_10E68D80()
 {

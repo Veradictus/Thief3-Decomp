@@ -110,6 +110,56 @@ public:
     virtual void FUN_10b9bda0();
 };
 
+// Ion Storm's placement new and its delete (0x10905C10; the delete folded into ::operator delete).
+void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D);
+
+void operator delete(void* Ptr, const int& Tag, int A, int B, int C, int D);
+
+struct Struct_10B98E00;
+
+class Class_10E90D70
+{
+public:
+    Class_10E90D70(int A, int B);
+
+    void** Unknown00;
+    int Unknown04[15];
+};
+
+class Class_10E93148 : public Class_10E90D70
+{
+public:
+    Class_10E93148(int A, int B, int C, bool D);
+
+    int Unknown40[3];
+    int Unknown4C;
+    int Unknown50;
+    bool Unknown54;
+    bool Unknown55;
+};
+
+class Class_10E4CCD0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual Class_10E93148* FUN_10b97d80(Struct_10B98E00* A, int B, bool C);
+};
+
+// FUNCTION: 0x10B97D80 ?FUN_10b97d80@Class_10E4CCD0@@UAEPAVClass_10E93148@@PAUStruct_10B98E00@@H_N@Z
+Class_10E93148* Class_10E4CCD0::FUN_10b97d80(Struct_10B98E00* A, int B, bool C)
+{
+    return new(0, 0, 0, 0, 0) Class_10E93148((int)A, (int)this, B, C);
+}
+
 // FUNCTION: 0x10B9BCA0 ?FUN_10b9bca0@Class_10B9BCA0@@QAE_NH@Z
 bool Class_10B9BCA0::FUN_10b9bca0(int A)
 {

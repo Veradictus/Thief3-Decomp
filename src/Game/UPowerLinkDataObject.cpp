@@ -1,36 +1,13 @@
 // Game/UPowerLinkDataObject.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-class Class_10E70A50
-{
-public:
-    virtual void Virtual0();
+#include "Engine/EngineClasses.h"
 
-    char Unknown04[0x28];
-};
+// FUNCTION: 0x109A0A90 ??_GUPowerLinkDataObject@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x109A0AB0's definition in this unit.
 
-class Class_10B7C000 : public Class_10E70A50
-{
-public:
-    void FUN_10ad5310();
-};
-
-class Class_10E55E78 : public Class_10B7C000
-{
-public:
-    ~Class_10E55E78();
-
-    virtual void Virtual0();
-};
-
-class UPowerLinkDataObject : public Class_10E55E78
-{
-public:
-    ~UPowerLinkDataObject();
-};
-
-// FUNCTION: 0x109A0AB0 ??1UPowerLinkDataObject@@QAE@XZ
+// FUNCTION: 0x109A0AB0 ??1UPowerLinkDataObject@@UAE@XZ
 UPowerLinkDataObject::~UPowerLinkDataObject()
 {
-    FUN_10ad5310();
+    ConditionalDestroy();
 }

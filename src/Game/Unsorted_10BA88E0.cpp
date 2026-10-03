@@ -150,14 +150,6 @@ public:
     Class_10E99370 Unknown00;
 };
 
-class Class_10BB7C00
-{
-public:
-    void FUN_10bb7c00();
-
-    FString Unknown00;
-};
-
 class Class_10BB7D50
 {
 public:
@@ -550,12 +542,6 @@ int FUN_10bb0b00()
 // FUNCTION: 0x10BB7BE0 ??1Class_10BB7BE0@@QAE@XZ
 Class_10BB7BE0::~Class_10BB7BE0()
 {
-}
-
-// FUNCTION: 0x10BB7C00 ?FUN_10bb7c00@Class_10BB7C00@@QAEXXZ
-void Class_10BB7C00::FUN_10bb7c00()
-{
-    Unknown00.~FString();
 }
 
 // FUNCTION: 0x10BB7D50 ?FUN_10bb7d50@Class_10BB7D50@@QAEXXZ

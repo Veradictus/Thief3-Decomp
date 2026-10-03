@@ -1,40 +1,13 @@
 // Game/AAIMovementModel.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-class Class_10E70A50
-{
-public:
-    virtual void FUN_10adb3a0();
+#include "AICore/AICoreClasses.h"
 
-    char Unknown04[0x28];
-};
-
-class Class_10B7C000 : public Class_10E70A50
-{
-public:
-    void FUN_10ad5310();
-};
-
-class Class_10993EC0 : public Class_10B7C000
-{
-public:
-    virtual void FUN_10adb3a0();
-};
-
-class AAIModel : public Class_10993EC0
-{
-public:
-    ~AAIModel();
-};
-
-class AAIMovementModel : public AAIModel
-{
-public:
-    ~AAIMovementModel();
-};
-
-// FUNCTION: 0x10962A90 ??1AAIMovementModel@@QAE@XZ
+// FUNCTION: 0x10962A90 ??1AAIMovementModel@@UAE@XZ
 AAIMovementModel::~AAIMovementModel()
 {
-    FUN_10ad5310();
+    ConditionalDestroy();
 }
+
+// FUNCTION: 0x10962B00 ??_GAAIMovementModel@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10962A90's definition in this unit.

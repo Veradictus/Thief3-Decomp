@@ -125,6 +125,31 @@ public:
     Class_10AF4B90 Unknown04;
 };
 
+class InnerClass_10A4EB40
+{
+public:
+    void FUN_10a4e3d0(void* A, int B, int C);
+    void FUN_10a4e6f0(void* A, int B);
+    void FUN_10a4e7e0(void* A, int B);
+};
+
+class Class_10A4EB60
+{
+public:
+    char Unknown00[0x1c];
+    InnerClass_10A4EB40 Field1c;
+
+    void FUN_10a4eb60(void* A, int B);
+};
+
+// FUNCTION: 0x10A4EB60 ?FUN_10a4eb60@Class_10A4EB60@@QAEXPAXH@Z
+void Class_10A4EB60::FUN_10a4eb60(void* A, int B)
+{
+    Field1c.FUN_10a4e3d0(A, 0x40, 0);
+    Field1c.FUN_10a4e6f0(A, B);
+    Field1c.FUN_10a4e7e0(A, B);
+}
+
 // FUNCTION: 0x10A4FD00 ?FUN_10a4fd00@Class_10A4FD00@@QAEPAV1@XZ
 Class_10A4FD00* Class_10A4FD00::FUN_10a4fd00()
 {

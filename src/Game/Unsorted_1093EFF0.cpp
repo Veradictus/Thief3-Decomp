@@ -27,6 +27,46 @@ public:
     void FUN_1093ffe0(int Width, int Height, Struct_1093FFE0* Out);
 };
 
+class Class_109081E0
+{
+public:
+    Class_109081E0& operator=(const Class_109081E0& Other);
+
+    void* Unknown00;
+};
+
+struct Item_1093F140
+{
+    Class_109081E0 Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+};
+
+class Class_1093EFB0
+{
+public:
+    int FUN_1093f140(const Item_1093F140* Item);
+    void FUN_1093ee90(int A);
+
+    int Unknown00;
+    int Unknown04;
+    Item_1093F140* Unknown08;
+};
+
+// FUNCTION: 0x1093F140 ?FUN_1093f140@Class_1093EFB0@@QAEHPBUItem_1093F140@@@Z
+int Class_1093EFB0::FUN_1093f140(const Item_1093F140* Item)
+{
+    int Index = Unknown00;
+    FUN_1093ee90(Index + 1);
+    Item_1093F140* Dest = &Unknown08[Index];
+    Dest->Unknown00 = Item->Unknown00;
+    Dest->Unknown04 = Item->Unknown04;
+    Dest->Unknown08 = Item->Unknown08;
+    Dest->Unknown0C = Item->Unknown0C;
+    return Index;
+}
+
 // FUNCTION: 0x1093FFE0 ?FUN_1093ffe0@Class_10940970@@QAEXHHPAUStruct_1093FFE0@@@Z
 void Class_10940970::FUN_1093ffe0(int Width, int Height, Struct_1093FFE0* Out)
 {

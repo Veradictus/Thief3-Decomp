@@ -31,6 +31,45 @@ public:
     void FUN_10af3aa0(const char* Format, ...);
 };
 
+class Class_1098E330
+{
+public:
+    int FUN_1098e330(int Id, int* Out);
+};
+
+class Class_10c7d570
+{
+public:
+    void* FUN_10c7d570();
+};
+
+class Class_10FF667C
+{
+public:
+    char Unknown00[0xA0];
+    float UnknownA0;
+};
+
+extern Class_10FF667C* DAT_10ff667c;
+
+class Class_10C29F10
+{
+public:
+    float FUN_10c29f10();
+
+    char Unknown00[4];
+    Class_10c7d570* Unknown04;
+};
+
+// FUNCTION: 0x10C29F10 ?FUN_10c29f10@Class_10C29F10@@QAEMXZ
+float Class_10C29F10::FUN_10c29f10()
+{
+    float Value = 0.0f;
+    if (!((Class_1098E330*)Unknown04->FUN_10c7d570())->FUN_1098e330(0x40100303, (int*)&Value))
+        return DAT_10ff667c->UnknownA0;
+    return Value * DAT_10ff667c->UnknownA0;
+}
+
 // FUNCTION: 0x10C2A290 ?FUN_10c2a290@@YAXPAVClass_10AF3AA0@@PBD@Z
 void FUN_10c2a290(Class_10AF3AA0* Log, const char* Format)
 {

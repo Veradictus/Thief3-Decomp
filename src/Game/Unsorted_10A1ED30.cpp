@@ -37,6 +37,44 @@ public:
     int* Unknown0C;
 };
 
+class Class_10905A90_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(int* Obj);
+};
+
+Class_10905A90_Member* FUN_10905aa0();
+
+class Class_10E65558
+{
+public:
+    virtual ~Class_10E65558() {}
+};
+
+class Class_10E65574 : public Class_10E65558
+{
+public:
+    virtual ~Class_10E65574();
+
+    int* Unknown04;
+};
+
+// FUNCTION: 0x10A1ED50 ??1Class_10E65574@@UAE@XZ
+Class_10E65574::~Class_10E65574()
+{
+    if (Unknown04)
+    {
+        int* Obj = Unknown04 - 1;
+        FUN_10905aa0()->Virtual5(Obj);
+        Unknown04 = 0;
+    }
+}
+
 // FUNCTION: 0x10A1EDC0 ?FUN_10a1edc0@Class_10A1EDC0@@QAEXXZ
 void Class_10A1EDC0::FUN_10a1edc0()
 {

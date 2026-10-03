@@ -75,6 +75,34 @@ public:
     int Unknown190;
 };
 
+class Class_10B6BE30
+{
+public:
+    bool FUN_10b6be30(int Value);
+
+    // The index of the first element equal to Value, else -1.
+    int FindIndex(int Value)
+    {
+        for (int i = 0; i < Unknown120; i++)
+        {
+            if (Unknown128[i] == Value)
+                return i;
+        }
+        return -1;
+    }
+
+    char Unknown00[0x120];
+    int Unknown120;
+    char Unknown124[4];
+    int* Unknown128;
+};
+
+// FUNCTION: 0x10B6BE30 ?FUN_10b6be30@Class_10B6BE30@@QAE_NH@Z
+bool Class_10B6BE30::FUN_10b6be30(int Value)
+{
+    return FindIndex(Value) != -1;
+}
+
 // FUNCTION: 0x10B6D970 ?FUN_10b6d970@Class_10E86A28@@QAEPAV1@XZ
 Class_10E86A28* Class_10E86A28::FUN_10b6d970()
 {

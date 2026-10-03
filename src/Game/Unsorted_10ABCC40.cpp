@@ -113,6 +113,39 @@ public:
     void FUN_10abcfe0(int Handle, int B);
 };
 
+class Class_1098E330
+{
+public:
+    int FUN_1098e330(int A, int* B);
+};
+
+struct Struct_10ABCD90
+{
+    char Unknown00[0xE8];
+    Class_1098E330* UnknownE8;
+};
+
+class Class_10A1F880
+{
+public:
+    int FUN_10a1f880(int A);
+};
+
+Class_10A1F880* FUN_10a1fcf0();
+
+// FUNCTION: 0x10ABCD90 ?FUN_10abcd90@@YAHH@Z
+int FUN_10abcd90(int A)
+{
+    Struct_10ABCD90* Obj = (Struct_10ABCD90*)FUN_10a1fcf0()->FUN_10a1f880(A);
+    if (Obj)
+    {
+        int Value = 0;
+        Obj->UnknownE8->FUN_1098e330(0x80062b, &Value);
+        return Value;
+    }
+    return 0;
+}
+
 // FUNCTION: 0x10ABCFE0 ?FUN_10abcfe0@Class_10ABCFE0@@QAEXHH@Z
 void Class_10ABCFE0::FUN_10abcfe0(int Handle, int B)
 {

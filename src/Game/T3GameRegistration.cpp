@@ -27,6 +27,9 @@ void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D
 
 void operator delete(void* Ptr, const int& Tag, int A, int B, int C, int D);
 
+// FUNCTION: 0x10AB4020 ??_GASpellProjectile@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10AB4050's definition in this unit.
+
 // FUNCTION: 0x10AB4050 ??1ASpellProjectile@@UAE@XZ
 ASpellProjectile::~ASpellProjectile()
 {

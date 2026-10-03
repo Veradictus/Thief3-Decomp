@@ -27,11 +27,17 @@ void* operator new(unsigned int Size, const int& Tag, int A, int B, int C, int D
 
 void operator delete(void* Ptr, const int& Tag, int A, int B, int C, int D);
 
+// FUNCTION: 0x10B938D0 ??_GAAddAIPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93900's definition in this unit.
+
 // FUNCTION: 0x10B93900 ??1AAddAIPoint@@UAE@XZ
 AAddAIPoint::~AAddAIPoint()
 {
     ConditionalDestroy();
 }
+
+// FUNCTION: 0x10B93970 ??_GAChangeDirectionPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B939A0's definition in this unit.
 
 // FUNCTION: 0x10B939A0 ??1AChangeDirectionPoint@@UAE@XZ
 AChangeDirectionPoint::~AChangeDirectionPoint()
@@ -39,17 +45,26 @@ AChangeDirectionPoint::~AChangeDirectionPoint()
     ConditionalDestroy();
 }
 
+// FUNCTION: 0x10B93A10 ??_GAFormationPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93A40's definition in this unit.
+
 // FUNCTION: 0x10B93A40 ??1AFormationPoint@@UAE@XZ
 AFormationPoint::~AFormationPoint()
 {
     ConditionalDestroy();
 }
 
+// FUNCTION: 0x10B93AB0 ??_GAFormationPointAbsolute@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93AE0's definition in this unit.
+
 // FUNCTION: 0x10B93AE0 ??1AFormationPointAbsolute@@UAE@XZ
 AFormationPointAbsolute::~AFormationPointAbsolute()
 {
     ConditionalDestroy();
 }
+
+// FUNCTION: 0x10B93B50 ??_GAHeadTurnPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93B80's definition in this unit.
 
 // FUNCTION: 0x10B93B80 ??1AHeadTurnPoint@@UAE@XZ
 AHeadTurnPoint::~AHeadTurnPoint()
@@ -63,11 +78,20 @@ ALookPoint::~ALookPoint()
     ConditionalDestroy();
 }
 
+// FUNCTION: 0x10B93C20 ??_GALookPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93BD0's definition in this unit.
+
+// FUNCTION: 0x10B93C90 ??_GAPlayAnimPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93CC0's definition in this unit.
+
 // FUNCTION: 0x10B93CC0 ??1APlayAnimPoint@@UAE@XZ
 APlayAnimPoint::~APlayAnimPoint()
 {
     ConditionalDestroy();
 }
+
+// FUNCTION: 0x10B93D30 ??_GAPlayBarkPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93D60's definition in this unit.
 
 // FUNCTION: 0x10B93D60 ??1APlayBarkPoint@@UAE@XZ
 APlayBarkPoint::~APlayBarkPoint()
@@ -81,11 +105,20 @@ APatrolPoint::~APatrolPoint()
     ConditionalDestroy();
 }
 
+// FUNCTION: 0x10B93E00 ??_GAPatrolPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93DB0's definition in this unit.
+
+// FUNCTION: 0x10B93E70 ??_GACityPopPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93EA0's definition in this unit.
+
 // FUNCTION: 0x10B93EA0 ??1ACityPopPoint@@UAE@XZ
 ACityPopPoint::~ACityPopPoint()
 {
     ConditionalDestroy();
 }
+
+// FUNCTION: 0x10B93F10 ??_GAWanderPoint@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B93F40's definition in this unit.
 
 // FUNCTION: 0x10B93F40 ??1AWanderPoint@@UAE@XZ
 AWanderPoint::~AWanderPoint()
@@ -836,6 +869,9 @@ void AHeadTurnPoint::InitializePrivateStaticClassAHeadTurnPoint()
     if (GetInitialized() && PrivateStaticClass->GetClass() == PrivateStaticClass->StaticClass())
         PrivateStaticClass->Register();
 }
+
+// FUNCTION: 0x10B97680 ??_GAAIPawn@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B976B0's definition in this unit.
 
 // FUNCTION: 0x10B976B0 ??1AAIPawn@@UAE@XZ
 AAIPawn::~AAIPawn()

@@ -1,30 +1,13 @@
 // Game/UDoorLinkDataObject_2.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-class Class_10B7C000
-{
-public:
-    virtual void Virtual0();
+#include "Engine/EngineClasses.h"
 
-    void FUN_10ad5310();
-};
+// FUNCTION: 0x1099FAB0 ??_GUDoorLinkDataObject@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x1099FAD0's definition in this unit.
 
-class Class_10E55E78 : public Class_10B7C000
-{
-public:
-    ~Class_10E55E78();
-
-    virtual void Virtual0();
-};
-
-class UDoorLinkDataObject : public Class_10E55E78
-{
-public:
-    ~UDoorLinkDataObject();
-};
-
-// FUNCTION: 0x1099FAD0 ??1UDoorLinkDataObject@@QAE@XZ
+// FUNCTION: 0x1099FAD0 ??1UDoorLinkDataObject@@UAE@XZ
 UDoorLinkDataObject::~UDoorLinkDataObject()
 {
-    FUN_10ad5310();
+    ConditionalDestroy();
 }

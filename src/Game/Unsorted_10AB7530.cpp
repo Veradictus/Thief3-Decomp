@@ -25,6 +25,39 @@ public:
     void* Unknown08;
 };
 
+struct Struct_10AB86C0
+{
+    int Unknown00;
+    char Unknown04[0x2C];
+};
+
+class Class_10AB86C0
+{
+public:
+    int FUN_10ab86c0(int Value);
+
+    int FindIndex(int Value)
+    {
+        for (int i = 0; i < Unknown04; i++)
+        {
+            if (Value == Unknown0C[i].Unknown00)
+                return i;
+        }
+        return -1;
+    }
+
+    char Unknown00[4];
+    int Unknown04;
+    char Unknown08[4];
+    Struct_10AB86C0* Unknown0C;
+};
+
+// FUNCTION: 0x10AB86C0 ?FUN_10ab86c0@Class_10AB86C0@@QAEHH@Z
+int Class_10AB86C0::FUN_10ab86c0(int Value)
+{
+    return FindIndex(Value) >= 0;
+}
+
 // FUNCTION: 0x10AB90F0 ?FUN_10ab90f0@Class_10AB90F0@@QAEXXZ
 void Class_10AB90F0::FUN_10ab90f0()
 {

@@ -1,30 +1,13 @@
 // Game/UHighlightEventLinkDataObject_2.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-class Class_10B7C000
-{
-public:
-    virtual void Virtual0();
+#include "Engine/EngineClasses.h"
 
-    void FUN_10ad5310();
-};
+// FUNCTION: 0x109A0520 ??_GUHighlightEventLinkDataObject@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x109A0540's definition in this unit.
 
-class Class_10E55E78 : public Class_10B7C000
-{
-public:
-    ~Class_10E55E78();
-
-    virtual void Virtual0();
-};
-
-class UHighlightEventLinkDataObject : public Class_10E55E78
-{
-public:
-    ~UHighlightEventLinkDataObject();
-};
-
-// FUNCTION: 0x109A0540 ??1UHighlightEventLinkDataObject@@QAE@XZ
+// FUNCTION: 0x109A0540 ??1UHighlightEventLinkDataObject@@UAE@XZ
 UHighlightEventLinkDataObject::~UHighlightEventLinkDataObject()
 {
-    FUN_10ad5310();
+    ConditionalDestroy();
 }

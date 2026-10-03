@@ -18,6 +18,47 @@ public:
     Class_10A48140* FUN_10a48140();
 };
 
+typedef float FLOAT;
+
+class FVector
+{
+public:
+    FVector() {}
+    FVector(FLOAT InX, FLOAT InY, FLOAT InZ) : X(InX), Y(InY), Z(InZ) {}
+
+    FLOAT X, Y, Z;
+};
+
+class FCoords
+{
+public:
+    FCoords(const FVector& InOrigin) : Origin(InOrigin), XAxis(1, 0, 0), YAxis(0, 1, 0), ZAxis(0, 0, 1) {}
+
+    FVector Origin;
+    FVector XAxis;
+    FVector YAxis;
+    FVector ZAxis;
+};
+
+class Class_10A480F0
+{
+public:
+    Class_10A480F0* FUN_10a480f0();
+
+    int Unknown00;
+    int Unknown04;
+    FCoords Unknown08;
+};
+
+// FUNCTION: 0x10A480F0 ?FUN_10a480f0@Class_10A480F0@@QAEPAV1@XZ
+Class_10A480F0* Class_10A480F0::FUN_10a480f0()
+{
+    Unknown00 = 0;
+    Unknown04 = 0;
+    Unknown08.FCoords::FCoords(FVector(0, 0, 0));
+    return this;
+}
+
 // FUNCTION: 0x10A48140 ?FUN_10a48140@Class_10A48140@@QAEPAV1@XZ
 Class_10A48140* Class_10A48140::FUN_10a48140()
 {

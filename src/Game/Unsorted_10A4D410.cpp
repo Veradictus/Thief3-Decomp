@@ -31,6 +31,37 @@ public:
     Class_10A4E2A0 Unknown1C;
 };
 
+struct Struct_10A4DD60
+{
+    char Unknown00[0x328];
+    int Unknown328[6];
+};
+
+class Class_10A4DD60
+{
+public:
+    int FUN_10a4dd60(int Index);
+
+    char Unknown00[4];
+    int Unknown04;
+    char Unknown08[4];
+    Struct_10A4DD60** Unknown0C;
+    char Unknown10[0x330];
+    int Unknown340[6];
+};
+
+// FUNCTION: 0x10A4DD60 ?FUN_10a4dd60@Class_10A4DD60@@QAEHH@Z
+int Class_10A4DD60::FUN_10a4dd60(int Index)
+{
+    for (int i = 0; i < Unknown04; i++)
+    {
+        int Value = Unknown0C[i]->Unknown328[Index];
+        if (Value != 0x40)
+            return Value;
+    }
+    return Unknown340[Index];
+}
+
 // FUNCTION: 0x10A4DDA0 ?FUN_10a4dda0@Class_10A4DDA0@@QAEXXZ
 void Class_10A4DDA0::FUN_10a4dda0()
 {

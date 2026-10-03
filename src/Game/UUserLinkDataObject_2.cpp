@@ -1,36 +1,13 @@
 // Game/UUserLinkDataObject_2.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
 
-class Class_10E70A50
-{
-public:
-    virtual void Virtual0();
+#include "Engine/EngineClasses.h"
 
-    char Unknown04[0x28];
-};
+// FUNCTION: 0x109A1380 ??_GUUserLinkDataObject@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x109A13A0's definition in this unit.
 
-class Class_10B7C000 : public Class_10E70A50
-{
-public:
-    void FUN_10ad5310();
-};
-
-class Class_10E55E78 : public Class_10B7C000
-{
-public:
-    ~Class_10E55E78();
-
-    virtual void Virtual0();
-};
-
-class UUserLinkDataObject : public Class_10E55E78
-{
-public:
-    ~UUserLinkDataObject();
-};
-
-// FUNCTION: 0x109A13A0 ??1UUserLinkDataObject@@QAE@XZ
+// FUNCTION: 0x109A13A0 ??1UUserLinkDataObject@@UAE@XZ
 UUserLinkDataObject::~UUserLinkDataObject()
 {
-    FUN_10ad5310();
+    ConditionalDestroy();
 }

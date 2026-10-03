@@ -42,6 +42,24 @@ void FUN_109672e0(const Struct_10B1DCA0& Coords, const FVector& V, FVector& Out)
 
 FVector FUN_10b1f490(Struct_10B1DCA0_Param* A);
 
+class Class_10A18FA0
+{
+public:
+    bool FUN_10a18fa0(int Index);
+};
+
+class Object_10A18FC0 : public Class_10A18FA0
+{
+};
+
+Object_10A18FC0* FUN_10a18fc0();
+
+// FUNCTION: 0x10B1DC70 ?FUN_10b1dc70@@YA_NXZ
+bool FUN_10b1dc70()
+{
+    return FUN_10a18fc0()->FUN_10a18fa0(6) || FUN_10a18fc0()->FUN_10a18fa0(5);
+}
+
 // FUNCTION: 0x10B1DE50 ?FUN_10b1de50@@YA?AVFVector@@PAUStruct_10B1DD70_Param@@@Z
 FVector FUN_10b1de50(Struct_10B1DD70_Param* A)
 {
