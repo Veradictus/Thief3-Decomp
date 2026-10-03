@@ -74,6 +74,24 @@ public:
     Class_10A250D0_Field18 Unknown18;
 };
 
+class Class_10A24540
+{
+public:
+    void FUN_10a24540(char Old, char New);
+
+    char* Unknown00;
+};
+
+// FUNCTION: 0x10A24540 ?FUN_10a24540@Class_10A24540@@QAEXDD@Z
+void Class_10A24540::FUN_10a24540(char Old, char New)
+{
+    for (int i = 0; i < (Unknown00 == 0 ? 0 : ((int*)Unknown00)[-1]); i++)
+    {
+        if (Unknown00[i] == Old)
+            Unknown00[i] = New;
+    }
+}
+
 // FUNCTION: 0x10A24580 ?FUN_10a24580@Class_10A243F0@@QAEXXZ
 void Class_10A243F0::FUN_10a24580()
 {

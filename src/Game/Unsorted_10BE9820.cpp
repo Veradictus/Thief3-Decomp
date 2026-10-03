@@ -41,6 +41,20 @@ public:
     bool Unknown6D;
 };
 
+struct Struct_10BE9820
+{
+    char Unknown00[0x14];
+    float Unknown14;
+};
+
+// FUNCTION: 0x10BE9820 ?FUN_10be9820@@YAHPAPAUStruct_10BE9820@@0@Z
+int FUN_10be9820(Struct_10BE9820** A, Struct_10BE9820** B)
+{
+    if ((*A)->Unknown14 == (*B)->Unknown14)
+        return 0;
+    return (*A)->Unknown14 < (*B)->Unknown14 ? -1 : 1;
+}
+
 // FUNCTION: 0x10BE9860 ?FUN_10be9860@Class_10E975A0@@QAEXH@Z
 void Class_10E975A0::FUN_10be9860(int A)
 {

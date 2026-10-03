@@ -36,6 +36,40 @@ public:
 
 extern Class_10C19FD0* DAT_10ff7088;
 
+struct Struct_10C17BC0
+{
+    char Unknown00[0xC];
+};
+
+void FUN_10c17bc0(void* A, Struct_10C17BC0* B);
+
+class Class_10E98CA4
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void FUN_10c17c10(void* A);
+
+    char Unknown04[0xC];
+    Struct_10C17BC0 Unknown10;
+    Struct_10C17BC0 Unknown1C;
+    Struct_10C17BC0 Unknown28;
+    char Unknown34[0x70];
+    void* UnknownA4;
+};
+
+// FUNCTION: 0x10C17C10 ?FUN_10c17c10@Class_10E98CA4@@UAEXPAX@Z
+void Class_10E98CA4::FUN_10c17c10(void* A)
+{
+    FUN_10c17bc0(A, &Unknown10);
+    FUN_10c17bc0(A, &Unknown1C);
+    FUN_10c17bc0(A, &Unknown28);
+    if (UnknownA4 == A)
+        UnknownA4 = 0;
+}
+
 // FUNCTION: 0x10C184F0 ?FUN_10c184f0@Class_10C184F0@@QAEXXZ
 void Class_10C184F0::FUN_10c184f0()
 {

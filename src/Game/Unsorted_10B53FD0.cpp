@@ -87,6 +87,46 @@ public:
     Class_10B54050_Element** Unknown10;
 };
 
+class FVector
+{
+public:
+    float X;
+    float Y;
+    float Z;
+};
+
+class Class_10B54760_Unknown18
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(FVector* A);
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual FVector* Virtual8();
+};
+
+class Class_10B54760
+{
+public:
+    void FUN_10b53fd0();
+
+    int Unknown00;
+    char Unknown04[0x14];
+    Class_10B54760_Unknown18* Unknown18;
+};
+
+// FUNCTION: 0x10B53FD0 ?FUN_10b53fd0@Class_10B54760@@QAEXXZ
+void Class_10B54760::FUN_10b53fd0()
+{
+    FVector Location = *Unknown18->Virtual8();
+    Location.X = Location.X + 10.0f - Unknown00 * 6;
+    Unknown18->Virtual5(&Location);
+}
+
 // FUNCTION: 0x10B54050 ?FUN_10b54050@Class_10B54050@@QAEXXZ
 void Class_10B54050::FUN_10b54050()
 {

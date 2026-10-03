@@ -96,6 +96,9 @@ public:
     int Unknown18;
 };
 
+// FUNCTION: 0x10A59030 ??_GClass_10E69050@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A59050's definition in this unit.
+
 // FUNCTION: 0x10A59050 ??1Class_10E69050@@UAE@XZ
 Class_10E69050::~Class_10E69050()
 {

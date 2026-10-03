@@ -78,6 +78,39 @@ public:
     int Unknown04;
 };
 
+class Class_10E6B978;
+
+class Class_10F46DA0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1(Class_10E6B978* A, int B, int C, int D);
+};
+
+extern Class_10F46DA0* DAT_10f46da0;
+
+class Class_10E6B978
+{
+public:
+    virtual void FUN_10a6dc50(int Msg, int A, int B, int C);
+
+    void FUN_10a6db10(int A, int B, int C);
+};
+
+// FUNCTION: 0x10A6DC50 ?FUN_10a6dc50@Class_10E6B978@@UAEXHHHH@Z
+void Class_10E6B978::FUN_10a6dc50(int Msg, int A, int B, int C)
+{
+    switch (Msg)
+    {
+    case 0x26:
+        FUN_10a6db10(A, B, C);
+        break;
+    case 3:
+        DAT_10f46da0->Virtual1(this, 0x26, A, -1);
+        break;
+    }
+}
+
 // FUNCTION: 0x10A6DF60 ??0Class_10E6B610@@QAE@PAVClass_1098E330@@@Z
 Class_10E6B610::Class_10E6B610(Class_1098E330* A)
 {

@@ -68,3 +68,6 @@ int Class_10B228A0::FUN_10b228a0()
         return 1;
     return 0;
 }
+
+// FUNCTION: 0x10B22B70 ??_GClass_10E7A768@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10B22790's definition in this unit.

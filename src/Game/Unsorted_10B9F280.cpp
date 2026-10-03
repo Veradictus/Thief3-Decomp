@@ -37,6 +37,27 @@ public:
     Class_10B9F2F0** Unknown20;
 };
 
+class Object_10B9F420
+{
+public:
+    virtual ~Object_10B9F420();
+};
+
+struct Struct_10B9F420
+{
+    int Unknown00;
+    int Unknown04;
+    Object_10B9F420** Unknown08;
+};
+
+// FUNCTION: 0x10B9F420 ?FUN_10b9f420@@YAXPAUStruct_10B9F420@@@Z
+void FUN_10b9f420(Struct_10B9F420* List)
+{
+    for (int i = 0; i < List->Unknown00; i++)
+        delete List->Unknown08[i];
+    List->Unknown00 = 0;
+}
+
 // FUNCTION: 0x10B9F450 ?FUN_10b9f450@Class_10B9F450@@QAEXAAVFArchive@@@Z
 void Class_10B9F450::FUN_10b9f450(FArchive& Ar)
 {

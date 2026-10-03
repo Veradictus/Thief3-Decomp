@@ -86,6 +86,43 @@ public:
     void FUN_10a5e900(List_10A5E900* List);
 };
 
+class Class_109081E0
+{
+public:
+    Class_109081E0& operator=(const Class_109081E0& Other);
+
+    void* Unknown00;
+};
+
+struct Struct_10A5DF10
+{
+    int Unknown00;
+    int Unknown04;
+    int Unknown08;
+    int Unknown0C;
+};
+
+class Class_10A5DF10
+{
+public:
+    Class_10A5DF10* FUN_10a5df10(const Class_10A5DF10& Other);
+
+    Struct_10A5DF10 Unknown00;
+    Struct_10A5DF10 Unknown10;
+    int Unknown20;
+    Class_109081E0 Unknown24;
+};
+
+// FUNCTION: 0x10A5DF10 ?FUN_10a5df10@Class_10A5DF10@@QAEPAV1@ABV1@@Z
+Class_10A5DF10* Class_10A5DF10::FUN_10a5df10(const Class_10A5DF10& Other)
+{
+    Unknown00 = Other.Unknown00;
+    Unknown10 = Other.Unknown10;
+    Unknown20 = Other.Unknown20;
+    Unknown24 = Other.Unknown24;
+    return this;
+}
+
 // FUNCTION: 0x10A5E8A0 ?FUN_10a5e8a0@Class_10A5E8A0@@QAEXPAD@Z
 void Class_10A5E8A0::FUN_10a5e8a0(char* Text)
 {

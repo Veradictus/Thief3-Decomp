@@ -38,3 +38,6 @@ Class_10E984BC::~Class_10E984BC()
         Unknown04 = 0;
     }
 }
+
+// FUNCTION: 0x10C12BC0 ??_GClass_10E984BC@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10C12A00's definition in this unit.

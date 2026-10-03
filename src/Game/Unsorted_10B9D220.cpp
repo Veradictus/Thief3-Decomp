@@ -77,6 +77,104 @@ public:
     Class_10B9E410_Member* Unknown38;
 };
 
+class Class_10905A90_Member
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5(void* Block);
+};
+
+Class_10905A90_Member* FUN_10905aa0();
+
+class Class_109081E0
+{
+public:
+    Class_109081E0(const char* In);
+    ~Class_109081E0()
+    {
+        if (Unknown00)
+        {
+            char* Block = Unknown00 - 4;
+            FUN_10905aa0()->Virtual5(Block);
+        }
+    }
+
+    char* Unknown00;
+};
+
+class Class_10BB8300
+{
+public:
+    bool FUN_10bb8c00();
+};
+
+class Object_10B9CAC0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual void Virtual6();
+    virtual void Virtual7();
+    virtual void Virtual8();
+    virtual void Virtual9();
+    virtual void Virtual10();
+    virtual void Virtual11();
+    virtual void Virtual12();
+    virtual void Virtual13();
+    virtual void Virtual14();
+    virtual void Virtual15();
+    virtual void Virtual16();
+    virtual void Virtual17();
+    virtual void Virtual18();
+    virtual void Virtual19();
+    virtual void Virtual20();
+    virtual void Virtual21();
+    virtual void Virtual22();
+    virtual void Virtual23();
+    virtual void Virtual24();
+    virtual void Virtual25();
+    virtual void Virtual26();
+    virtual void Virtual27();
+    virtual void Virtual28();
+    virtual void Virtual29();
+    virtual void Virtual30();
+    virtual void Virtual31();
+    virtual void Virtual32();
+    virtual void Virtual33();
+    virtual void Virtual34();
+    virtual void Virtual35(const Class_109081E0& A, int B);
+};
+
+class Class_10B9CAC0
+{
+public:
+    void FUN_10b9d330(int A);
+
+    char Unknown00[0xC];
+    Class_10BB8300* Unknown0C;
+    int Unknown10;
+    char Unknown14[4];
+    Object_10B9CAC0** Unknown18;
+};
+
+// FUNCTION: 0x10B9D330 ?FUN_10b9d330@Class_10B9CAC0@@QAEXH@Z
+void Class_10B9CAC0::FUN_10b9d330(int A)
+{
+    if (Unknown0C->FUN_10bb8c00())
+    {
+        Class_109081E0 Name("+combatwitness:ally_killed");
+        (Unknown10 == 0 ? 0 : Unknown18[Unknown10 - 1])->Virtual35(Name, 1);
+    }
+}
+
 // FUNCTION: 0x10B9DC80 ?FUN_10b9dc80@Class_10B9E410@@QAEXH@Z
 void Class_10B9E410::FUN_10b9dc80(int A)
 {

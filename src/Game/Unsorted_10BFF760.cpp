@@ -5,6 +5,23 @@ extern float DAT_10eafbdc;
 
 float FUN_10c05bc0(int A, int B, int C, float D);
 
+// FUNCTION: 0x10C00280 ?FUN_10c00280@@YAHHHH@Z
+int FUN_10c00280(int A, int B, int C)
+{
+    int Result = A + B;
+    if (B > 0)
+    {
+        while (Result >= C)
+            Result -= C;
+    }
+    else
+    {
+        while (Result < 0)
+            Result += C;
+    }
+    return Result;
+}
+
 // FUNCTION: 0x10C003A0 ?FUN_10c003a0@@YAHHHH@Z
 int FUN_10c003a0(int A, int B, int C)
 {

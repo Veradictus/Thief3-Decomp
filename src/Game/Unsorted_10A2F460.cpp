@@ -30,3 +30,6 @@ Class_10E66320::Class_10E66320()
 {
     Unknown10 = 0;
 }
+
+// FUNCTION: 0x10A2FB80 ??_GClass_10E66320@@UAEPAXI@Z
+// Compiler-generated: emitted with the class's vtable by 0x10A2F4C0's definition in this unit.

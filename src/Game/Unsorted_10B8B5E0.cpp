@@ -107,6 +107,43 @@ public:
     virtual FCoords Virtual44();
 };
 
+struct Struct_10C09A10
+{
+    char Unknown00[4];
+    int Unknown04;
+};
+
+class Class_10B8B660_Unknown0B0
+{
+public:
+    virtual void Virtual0();
+    virtual void Virtual1();
+    virtual void Virtual2();
+    virtual void Virtual3();
+    virtual void Virtual4();
+    virtual void Virtual5();
+    virtual Struct_10C09A10* Virtual6();
+};
+
+struct Struct_10B8B660
+{
+    char Unknown00[0xB0];
+    Class_10B8B660_Unknown0B0* Unknown0B0;
+};
+
+// FUNCTION: 0x10B8B660 ?FUN_10b8b660@@YAPAUStruct_10C09A10@@H@Z
+Struct_10C09A10* FUN_10b8b660(int A)
+{
+    Struct_10B8B660* Obj = (Struct_10B8B660*)A;
+    Class_10B8B660_Unknown0B0* Slot = Obj->Unknown0B0;
+    if (Slot && Slot->Virtual6())
+    {
+        Struct_10C09A10* Item = Obj->Unknown0B0->Virtual6();
+        return Item->Unknown04 == 3 ? Item : 0;
+    }
+    return 0;
+}
+
 // FUNCTION: 0x10B8B6A0 ?FUN_10b8b6a0@@YA?AVFVector@@PAVObject_10B8B6A0@@@Z
 FVector FUN_10b8b6a0(Object_10B8B6A0* A)
 {
