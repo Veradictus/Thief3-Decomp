@@ -43,6 +43,40 @@ from verify import TargetImage, target_listing, target_symbol
 CHEATSHEET = ROOT / ".claude" / "skills" / "t3-match" / "CHEATSHEET.md"
 
 
+def switch_tables(image, address: int, code_end: int, region_end: int) -> List[dict]:
+    """The tables after a function's code, in order: jump tables (addresses inside the function, shown from
+    its start) and MSVC's byte index tables (case value - base -> jump table slot). An aligned word that points
+    into the function starts a jump table; index bytes are small, never such an address."""
+    view = image.view(code_end, region_end - code_end)
+    if view is None:
+        return []
+    data, out, i = bytes(view.data), [], 0
+
+    def jump_at(k: int):
+        if (code_end + k) % 4 or k + 4 > len(data):
+            return None
+        target = struct.unpack_from("<I", data, k)[0]
+        return target - address if address <= target < code_end else None
+
+    while i < len(data):
+        if jump_at(i) is not None:
+            jumps = []
+            while jump_at(i) is not None:
+                jumps.append(f"{jump_at(i):#x}")
+                i += 4
+            out.append({"jump": jumps})
+            continue
+        index = []
+        while i < len(data) and jump_at(i) is None:
+            index.append(data[i])
+            i += 1
+        while index and index[-1] == 0xCC:  # padding up to the next function
+            index.pop()
+        if index:
+            out.append({"index": index})
+    return out
+
+
 def string_at(image, address: int, limit: int = 120):
     """The NUL-terminated printable ASCII string at `address`, if that is what is there."""
     view = image.view(address, limit)
@@ -319,6 +353,10 @@ def packet(p: Project, address: int, n_similar: int) -> dict:
         "unit": unit.name if unit else None, "status": status,
         **({"claimed_by": claim["agent"]} if claim else {}),
     }
+    if region_end > code_end:
+        tables = switch_tables(TargetImage(p), address, code_end, region_end)
+        if tables:
+            out["function"]["switch_tables"] = tables
     workdir = p.state / "tmp" / f"context-{addr_key(address)}"
     try:
         listing = target_listing(p, address, workdir)
@@ -406,6 +444,11 @@ def print_packet(pk: dict) -> None:
         print(f"   {f['demangled']}")
     if f.get("tables"):
         print(f"   code {f['code']:#x} bytes, then {f['tables']:#x} bytes of switch tables")
+        for table in f.get("switch_tables", []):
+            if "jump" in table:
+                print(f"   jump table (targets from the function's start): {' '.join(table['jump'])}")
+            else:
+                print(f"   byte index table (case - base -> jump slot): {' '.join(map(str, table['index']))}")
     if "target" in pk:
         print("\n== target")
         print("\n".join(pk["target"]))
