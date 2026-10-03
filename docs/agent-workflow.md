@@ -152,6 +152,28 @@ not included.
 | 3 | main | Sonnet | 21 | 162 (81%) | 90K |
 | 3 | big | Opus | 6 | 24 (67%) | 205K |
 
+### Batch w7 (2026-10-02 to 03)
+
+A swarm without drains: 8 workers at once, then 12 (Sonnet on the main band,
+32 to 79 bytes, and the upper band, 80 to 159; Opus from 160 bytes), with a
+checkpoint every 16 to 20 finished workers while the others ran (naming pass,
+deleting destructors, integration, library scan, report). 105 workers:
+
+| Band | Model | Workers | Matched |
+|---|---|---|---|
+| main, 32 to 79 bytes | Sonnet | 43 | 343 (90%) |
+| upper, 80 to 159 bytes | Sonnet | 37 | 141 (79%) |
+| big, 160 bytes and more | Opus | 25 | 68 (68%) |
+
+Most deferrals were library code (33), tiebreaks (25) and name conflicts
+(24). The Opus workers' constructors and destructors at 96 to 99% mostly
+waited on a callee's name, which the next naming pass gave (20 of 34 blocked
+functions matched at one checkpoint). Checking the families and callees of
+every library exclusion, not only the new ones, found ten STL and Epic
+template members in `src/` that workers, stamps and retries had matched as
+plain code (`std::list`'s `clear` and `_Tidy`, list and tree node
+destructors, a `TArray<T>::Remove`).
+
 The lead adds what needs no model between swarms: a naming pass over the
 name-blocked deferrals (each blocked function's candidate names its callee;
 the old guess stays as an alias, so callers in `src/` keep matching), 66
