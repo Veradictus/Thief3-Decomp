@@ -134,6 +134,10 @@ gate is the proof.
 The report can still under-count: objdiff scores a few functions the gate
 matched just below 100% (a static local's guard, a reference into a named
 array at an offset; see [matching.md](matching.md), "objdiff's report and
-the gate"): 65 of the 5,069 in `src/`.
+the gate"): 73 of the 5,236 in `src/`.
 Functions with an exception frame no longer do: `tools/split.py` gives the
-split objects the `__except_list` relocations the exe dropped.
+split objects the `__except_list` relocations the exe dropped. Their unwind
+funclets and `__ehhandler$` stubs still do (244 and 203 in the game units):
+the compiler names the funclets and EH tables with local labels (`$L319`,
+`$T323`) that the split's names (`Unwind@<address>`) do not pair with, though
+the gate checks the whole chain by address.
