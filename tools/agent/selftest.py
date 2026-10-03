@@ -688,8 +688,12 @@ def test_vtables(base: Path) -> None:
     check(vtables.placeholder_name("??1Class_10E56A28@@QAE@XZ") and not vtables.placeholder_name("??1AActor@@UAE@XZ"),
           "a method of a class known by its address is a placeholder")
     check(vtables.slot_name("AActor", 2) == "??_GAActor@@UAEPAXI@Z"
-          and vtables.slot_name("AActor", 6) == "?Unknown18@AActor@@UAEXXZ"
+          and vtables.slot_name("AActor", 6) == "?Modify@AActor@@UAEXXZ"
+          and vtables.slot_name("AActor", 8) == "?Serialize@AActor@@UAEXAAVFArchive@@@Z"
+          and vtables.slot_name("AActor", 15) == "?Unknown3C@AActor@@UAEXXZ"
           and vtables.slot_name("AActor", 19) == "?Register@AActor@@UAEXXZ", "slots named as Core.h declares them")
+    check(vtables.slot_name("UObject", 18).endswith("PAV1@@Z") and vtables.slot_declaration("AActor", 2)
+          == "virtual ~AActor();", "UObject's own signature back-references itself; slot 2 is the destructor")
 
 
 def test_sweep(base: Path) -> None:

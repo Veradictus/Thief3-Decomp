@@ -42,16 +42,49 @@ from common import Project, fmt_addr, is_placeholder, read_json  # noqa: E402
 
 SLOTS = 20  # the virtual functions Core.h declares for UObject
 
+# UObject's virtuals as Core.h declares them: stock Unreal Engine 2's, in Ion Storm's order (Destroy
+# first, as ConditionalDestroy calls slot 0; the destructor in slot 2), each slot's argument bytes the
+# same in every native class's table (ret N). {slot: (declaration, decorated name, {c} the class)};
+# the other slots are Unknown<offset>().
+SLOT_DECLS = {
+    0: ("virtual void Destroy();", "?Destroy@{c}@@UAEXXZ"),
+    3: ("virtual void ProcessEvent(UFunction* Function, void* Parms, void* Result);",
+        "?ProcessEvent@{c}@@UAEXPAVUFunction@@PAX1@Z"),
+    4: ("virtual void ProcessState(FLOAT DeltaSeconds);", "?ProcessState@{c}@@UAEXM@Z"),
+    5: ("virtual UBOOL ProcessRemoteFunction(UFunction* Function, void* Parms, FFrame* Stack);",
+        "?ProcessRemoteFunction@{c}@@UAEHPAVUFunction@@PAXPAVFFrame@@@Z"),
+    6: ("virtual void Modify();", "?Modify@{c}@@UAEXXZ"),
+    7: ("virtual void PostLoad();", "?PostLoad@{c}@@UAEXXZ"),
+    8: ("virtual void Serialize(FArchive& Ar);", "?Serialize@{c}@@UAEXAAVFArchive@@@Z"),
+    9: ("virtual UBOOL IsPendingKill();", "?IsPendingKill@{c}@@UAEHXZ"),
+    10: ("virtual EGotoState GotoState(FName State);", "?GotoState@{c}@@UAE?AW4EGotoState@@VFName@@@Z"),
+    11: ("virtual INT GotoLabel(FName Label);", "?GotoLabel@{c}@@UAEHVFName@@@Z"),
+    12: ("virtual void InitExecution();", "?InitExecution@{c}@@UAEXXZ"),
+    13: ("virtual void ShutdownAfterError();", "?ShutdownAfterError@{c}@@UAEXXZ"),
+    14: ("virtual void PostEditChange();", "?PostEditChange@{c}@@UAEXXZ"),
+    17: ("virtual void CallFunction(FFrame& Stack, RESULT_DECL, UFunction* Function);",
+         "?CallFunction@{c}@@UAEXAAVFFrame@@QAXPAVUFunction@@@Z"),
+    18: ("virtual UBOOL ScriptConsoleExec(const TCHAR* Cmd, FOutputDevice& Ar, UObject* Executor);",
+         "?ScriptConsoleExec@{c}@@UAEHPBDAAVFOutputDevice@@PAVUObject@@@Z"),
+    19: ("virtual void Register();", "?Register@{c}@@UAEXXZ"),
+}
+
 
 def slot_name(cls: str, slot: int) -> str:
     """The decorated name of a class's override of UObject's virtual in `slot`, as Core.h declares it."""
     if slot == 2:
         return f"??_G{cls}@@UAEPAXI@Z"  # the scalar deleting destructor, ~UObject's slot
-    if slot == 17:
-        return f"?CallFunction@{cls}@@UAEXAAVFFrame@@QAXPAVUFunction@@@Z"
-    if slot == 19:
-        return f"?Register@{cls}@@UAEXXZ"
+    if slot in SLOT_DECLS:
+        name = SLOT_DECLS[slot][1].format(c=cls)
+        # UObject's own: a class already named in the signature is a back-reference
+        return name.replace("PAVUObject@@@Z", "PAV1@@Z") if cls == "UObject" else name
     return f"?Unknown{4 * slot:02X}@{cls}@@UAEXXZ"
+
+
+def slot_declaration(cls: str, slot: int) -> str:
+    if slot == 2:
+        return f"virtual ~{cls}();"
+    return SLOT_DECLS[slot][0] if slot in SLOT_DECLS else f"virtual void Unknown{4 * slot:02X}();"
 
 
 def effective_tables(supers: Dict[str, str], tables: Dict[str, Optional[List[int]]]) -> Dict[str, List[Optional[int]]]:
@@ -188,14 +221,7 @@ def declarations(p: Project) -> Dict[str, List[str]]:
     slots under the names symbols.txt gives them."""
     out: Dict[str, List[str]] = defaultdict(list)
     for f, c, k in sorted(introductions(p), key=lambda x: (x[1], x[2])):
-        if k == 2:
-            decl = f"virtual ~{c}();"
-        elif k == 17:
-            decl = "virtual void CallFunction(FFrame& Stack, RESULT_DECL, UFunction* Function);"
-        elif k == 19:
-            decl = "virtual void Register();"
-        else:
-            decl = f"virtual void Unknown{4 * k:02X}();"
+        decl = slot_declaration(c, k)
         out[c].append(f"{decl:<40}// slot {k}: 0x{f:08X}")
     return out
 
