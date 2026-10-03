@@ -231,6 +231,9 @@ def spec_prepare(p: Project, spec: dict) -> None:
         unit = integrated.get(binder)
         if unit:
             path = p.src_dir / unit
+            saved = p.state_dir("spec-units") / unit.replace("/", "__")
+            if saved not in writes:  # the unit as it was: spec-accept restores it if the patch breaks a function
+                writes[saved] = path.read_text(encoding="utf-8")
             unit_text = writes.get(path) or path.read_text(encoding="utf-8")
             for old, new in patch.get("unit_replace", patch["replace"]):
                 if old not in unit_text and new not in unit_text:
@@ -245,8 +248,24 @@ def spec_prepare(p: Project, spec: dict) -> None:
     print(f"{len(writes)} files written. Next: python configure.py && ninja, then fixnames.py spec-accept")
 
 
+def unit_failures(p: Project, unit: str, text: str) -> set:
+    """The functions of src/`unit`, as `text` declares and defines them, that do not match (integrate.py's
+    check of a whole unit)."""
+    import tempfile
+    import integrate
+    from verify import Verifier
+    head, blocks = integrate.parse_unit(text)
+    symbols = {a: (integrate.FUNCTION_MARKER.search(b).group(2).strip() or None) for a, b in blocks.items()}
+    cflags = p.configure.UNITS.get(unit, {}).get("cflags", p.configure.CFLAGS)
+    workdir = Path(tempfile.mkdtemp(prefix="spec-unit-", dir=p.state_dir("tmp")))
+    _, failures = integrate.build_unit(p, Verifier(p), unit, integrate.items(head), blocks, symbols, workdir,
+                                       cflags)
+    return set(failures)
+
+
 def spec_accept(p: Project, spec: dict) -> None:
     rejected = p.state_dir("rejected")
+    integrated = p.integrated()
     for patch in spec.get("patches", []):
         binder = p.parse_addr(patch["binder"])
         moved = []
@@ -258,6 +277,21 @@ def spec_accept(p: Project, spec: dict) -> None:
         if proc.returncode:
             for f in moved:  # the caller stays as it was accepted
                 (rejected / f.name).replace(f)
+    # A patched declaration also compiles the unit's other functions: one that matched before and no
+    # longer does (a class given a virtual destructor reorders an inlined constructor's stores) puts the
+    # unit back as it was.
+    for unit in sorted({integrated[p.parse_addr(x["binder"])] for x in spec.get("patches", [])
+                        if p.parse_addr(x["binder"]) in integrated}):
+        saved = p.state / "spec-units" / unit.replace("/", "__")
+        if not saved.is_file():
+            continue
+        original = saved.read_text(encoding="utf-8")
+        after = unit_failures(p, unit, (p.src_dir / unit).read_text(encoding="utf-8"))
+        broken = after - unit_failures(p, unit, original) if after else set()
+        if broken:
+            atomic_write(p.src_dir / unit, original)
+            print(f"src/{unit}: the patch breaks {', '.join(fmt_addr(a) for a in sorted(broken))}; restored")
+        saved.unlink()
     blocked = list(dict.fromkeys(spec.get("blocked", []) + list(spec.get("candidates", {}))))
     if blocked:
         proc = tool(p, "retry.py", *blocked)

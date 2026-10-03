@@ -164,10 +164,15 @@ def plan(p: Project) -> dict:
             continue
         cls = pairs[0][1]
         gname, dname = f"??_G{cls}@@UAEPAXI@Z", f"??1{cls}@@UAE@XZ"
-        if p.by_addr[x].name != gname:
+        old = p.by_addr[x].name
+        if old != gname:
             spec["renames"][fmt_addr(x)] = gname
+        # one deleting destructor the linker folded for several classes; and the slot's old name (Virtual0),
+        # which sources in src/ still declare
         others = sorted({f"??_G{c}@@UAEPAXI@Z" for _, c in pairs[1:]} - {gname})
-        if others:  # one deleting destructor the linker folded for several classes
+        if old != gname and not is_placeholder(old) and old not in others:
+            others.append(old)
+        if others:
             spec["aliases"][fmt_addr(x)] = others
         current = p.by_addr[dtor].name if dtor in p.by_addr else ""
         if current and current != dname:
