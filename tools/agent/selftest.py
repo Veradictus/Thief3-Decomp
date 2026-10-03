@@ -661,15 +661,20 @@ def test_stamp_derive(base: Path) -> None:
 
 def test_vtables(base: Path) -> None:
     """vtables.py names each slot function after the class whose table first holds it: inherited slots
-    are left to the super, a class whose own table is not known takes what its subclasses agree on."""
+    are left to the super, a class whose own table is not known takes what its subclasses agree on, and
+    a class's own table holds its own deleting destructor (slot 2) unless the linker folded it."""
     import vtables
     supers = {"UObject": "", "AActor": "UObject", "ALink": "UObject", "AKid1": "ALink", "AKid2": "ALink",
-              "APawn": "AActor"}
-    tables = {"UObject": [1, 2, 3], "AActor": [1, 20, 3], "ALink": None, "AKid1": [1, 2, 30], "AKid2": [1, 2, 31],
-              "APawn": [1, 20, 300]}
+              "AKid3": "ALink", "APawn": "AActor"}
+    tables = {"UObject": [1, 2, 3], "AActor": [1, 20, 3], "ALink": None, "AKid1": [1, 40, 30], "AKid2": [1, 41, 31],
+              "AKid3": [1, 2, 3], "APawn": [1, 20, 300]}
     got = vtables.attribute(supers, tables, slots=3)
-    check(got == [(1, "UObject", 0), (2, "UObject", 1), (3, "UObject", 2), (20, "AActor", 1), (300, "APawn", 2)],
-          f"the root's slots, then each override; a slot under an unknown table is left alone: {got}")
+    check(got == [(1, "UObject", 0), (2, "UObject", 1), (3, "UObject", 2), (20, "AActor", 1), (30, "AKid1", 2),
+                  (31, "AKid2", 2), (300, "APawn", 2)],
+          f"the root's slots, then each override; under an unknown table only a deleting destructor not folded "
+          f"with an ancestor's: {got}")
+    check(vtables.placeholder_name("??1Class_10E56A28@@QAE@XZ") and not vtables.placeholder_name("??1AActor@@UAE@XZ"),
+          "a method of a class known by its address is a placeholder")
     check(vtables.slot_name("AActor", 2) == "??_GAActor@@UAEPAXI@Z"
           and vtables.slot_name("AActor", 6) == "?Unknown18@AActor@@UAEXXZ"
           and vtables.slot_name("AActor", 19) == "?Register@AActor@@UAEXXZ", "slots named as Core.h declares them")

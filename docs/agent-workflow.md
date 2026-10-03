@@ -387,7 +387,11 @@ patterns that need no judgement:
   declares the same overrides and destructors in the generated class
   headers, so a source that includes them gets the exe's vtable: each
   `C::~C() { ConditionalDestroy(); }` is three lines there. The first run
-  named 252 slot functions and 147 destructors.
+  named 252 slot functions and 147 destructors. A class's own table always
+  holds its own deleting destructor, even where its super's table is not
+  known (ULinkDataObject's subclasses: classes.txt records UObject's table
+  for it), unless the linker folded it with an ancestor's; with that, a
+  second run named 164 more.
 - `fixnames.py constants` finds every queued function whose whole code is
   `mov eax, imm; ret` (or `xor eax, eax; ret`), writes `int FUN_x() { return
   imm; }` for it, and excludes it from the queue until `fixnames.py accept`

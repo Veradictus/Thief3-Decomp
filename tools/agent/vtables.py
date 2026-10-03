@@ -16,7 +16,8 @@ the class's own, and gets the name the class would declare (`?Unknown18@AAIPathP
 `??1AFormationPoint@@UAE@XZ` for the destructor that one calls first). A class whose recorded
 vtable is its super's (several classes share UObject's InternalConstructor, which gave
 classes.txt UObject's table for them) takes the slots its subclasses all agree on; a slot no
-table settles is left alone.
+table settles is left alone, except the deleting destructor: a class's own table holds its own,
+unless the linker folded it with an ancestor's.
 
 A function known only by a placeholder (FUN_, a caller's guessed signature, a Virtual<N> or
 Unknown<off> of another class) is renamed and keeps the old name as an alias; a function with a
@@ -90,6 +91,15 @@ def attribute(supers: Dict[str, str], tables: Dict[str, Optional[List[int]]],
             depth[c] = 0 if not supers.get(c) else level(supers[c]) + 1
         return depth[c]
 
+    def ancestors_slot(c: str, k: int) -> set:
+        out, s = set(), supers.get(c)
+        while s:
+            t = eff.get(s, [])
+            if k < len(t) and t[k] is not None:
+                out.add(t[k])
+            s = supers.get(s)
+        return out
+
     out = []
     for c in sorted(supers, key=lambda c: (level(c), c)):
         mine, base = eff.get(c, []), eff.get(supers.get(c, ""), None) if supers.get(c) else None
@@ -97,10 +107,13 @@ def attribute(supers: Dict[str, str], tables: Dict[str, Optional[List[int]]],
             f = mine[k]
             if f is None:
                 continue
+            # A class's own table holds its own deleting destructor (slot 2) even where its super's is not
+            # known, unless the linker folded it with an ancestor's.
+            own_dtor = k == 2 and tables.get(c) is not None and f not in ancestors_slot(c, k)
             if base is not None:
-                if k >= len(base) or base[k] is None or base[k] == f:
+                if (k >= len(base) or base[k] is None or base[k] == f) and not own_dtor:
                     continue  # inherited, or the super's slot is not known
-            elif supers.get(c):
+            elif supers.get(c) and not own_dtor:
                 continue  # the super's table is not known at all
             out.append((f, c, k))
     return out
@@ -123,10 +136,15 @@ def read_table(pe_image, vtable: int, slots: int, code: Tuple[int, int]) -> List
 SLOT_PLACEHOLDER = re.compile(r"^\?(?:Virtual\d+|Unknown[0-9A-F]{2})@")
 
 
+# A member of a class known only by an address (`??1Class_10E56A28@@QAE@XZ`).
+PLACEHOLDER_CLASS = re.compile(r"(?:^\?\?[0-9A-Z_]{1,2}|@)(?:Class|Struct)_[0-9A-Fa-f]{8}@@")
+
+
 def placeholder_name(name: str) -> bool:
-    """A name that says nothing about the function: FUN_, a guessed signature on one, or a slot name."""
+    """A name that says nothing about the function: FUN_, a guessed signature on one, a slot name, or a
+    member of a class known only by an address."""
     return is_placeholder(name) or bool(re.match(r"\?\??(?:FUN|DAT)_[0-9A-Fa-f]{8}@", name)) \
-        or bool(SLOT_PLACEHOLDER.match(name))
+        or bool(SLOT_PLACEHOLDER.match(name)) or bool(PLACEHOLDER_CLASS.search(name))
 
 
 def destructor_called(pe_image, deleting: int) -> Optional[int]:
