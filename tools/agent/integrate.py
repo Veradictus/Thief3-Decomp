@@ -293,7 +293,7 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
     warnings: List[str] = []
     taken = {s.name: s.address for s in p.symbols}
 
-    def want(address: int, name: str, kind: str, size: int = 0, compatible_with: str = "") -> None:
+    def want(address: int, name: str, kind: str, size: int = 0, compatible_with: str = "", own: bool = False) -> None:
         if not name or name.startswith("$") or taken.get(name) == address:
             return
         if taken.get(name, address) != address:
@@ -311,7 +311,7 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
                     symbolslib.Symbol(name, current.section, address, "alias", 0))))
                 taken[name] = address
                 return
-            guess = guessed_name(current.name, address) and guessed_name(name, address)
+            guess = own and guessed_name(current.name, address)  # the function's own match, not a caller's
             if not is_placeholder(current.name) and current.name != compatible_with and not guess:
                 warnings.append(f"{fmt_addr(address)} is named {current.name} in symbols.txt; not renamed to {name}")
                 return
@@ -329,7 +329,7 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
 
     for rec in records:
         address = int(rec["addr"], 16)
-        want(address, rec["symbol"], "function", compatible_with=rec.get("qualified", ""))
+        want(address, rec["symbol"], "function", compatible_with=rec.get("qualified", ""), own=True)
         for b in rec.get("bindings", []):
             a = int(b["addr"], 16)
             if b["status"] in ("provisional", "compatible") and b["kind"] in ("function", "data"):

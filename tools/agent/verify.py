@@ -676,8 +676,8 @@ class _Check:
                                      f"{fmt_addr(other[0])}")
         target = self.res.target
         # A caller's guess at this function's signature (?FUN_<addr>@@YAXXZ from a jmp thunk) gives way to
-        # the function's own match on the same placeholder; integrate.py keeps the guess as an alias.
-        guess = guessed_name(target, self.address) and guessed_name(name, self.address)
+        # the function's own match; integrate.py keeps the guess as an alias.
+        guess = guessed_name(target, self.address)
         if (not is_placeholder(target) and not guess and target != name
                 and qualified_name(name, self.dem.get(name, "")) != target):
             self.res.problems.append(f"the target is named {target}; the candidate defines {name}")
