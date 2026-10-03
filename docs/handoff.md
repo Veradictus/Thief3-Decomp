@@ -49,12 +49,12 @@ decompilation** worked mostly by Claude agents under the strict gate in
   compiles against. Matching runs as the [agent
   workflow](agent-workflow.md): a swarm of 8 to 12 sub-agents at a time
   (Sonnet on functions under 80 bytes, one or two Opus workers on bigger
-  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 4,320
-  matched functions in 1,789 units, one per auto unit of the split
+  ones), from the one-file protocol `tools/agent/worker.md`. `src/Game` holds 4,655
+  matched functions in 1,961 units, one per auto unit of the split
   (`Unsorted_<start>.cpp`, chunks of up to 64 KB; `_2`, `_3`, ... hold
   functions whose classes clash with their unit's). decomp.dev shows the
   committed report `progress/PC_20040610/report.json`, whose headline is the
-  game code (4,245 of 12,248 functions at 100%, 7.3% of its bytes; hidden from decomp.dev's list
+  game code (4,613 of 12,359 functions at 100%, 8.2% of its bytes; hidden from decomp.dev's list
   below 0.5% matched): regenerate it after integrating, see next step 2.
 - The 266 native classes are in `config/PC_20040610/classes.txt` (size,
   super class, flags, vtable; `tools/classify.py write`), and the 64 classes
@@ -208,7 +208,7 @@ Later the same day, played by the user:
      script, families stamped between workers. Drain it for a checkpoint
      (sweep, review, naming pass, `integrate.py`, `dtors.py`,
      `progress_report.py write`, commit). Integration and `retry.py` check
-     in parallel, so a checkpoint takes minutes. About 6,700 game functions are
+     in parallel, so a checkpoint takes minutes. About 6,500 game functions are
      still queued, most of them 80 bytes and more.
    - First run on the real split after the 2026-10-02 changes
      ([research/ue2-decomps.md](research/ue2-decomps.md), section 3): build
@@ -249,12 +249,13 @@ Later the same day, played by the user:
      classes by hand with placeholder chains (`Class_10B7C000` for
      `UObject`); rewrite them against the generated headers, and their
      constructors too. Classes outside `classes.txt` (placeholders named by
-     vtable) still need their slots named the same way, and `dtors.py`
-     has not run since these names.
-   - Library code in `src/`: two STL members integrated in earlier batches
-     were found and taken out (`basic_string::assign`, a `hash_map`
-     constructor); look for more among functions whose callees are STL
-     instances the workers excluded.
+     vtable) still need their slots named the same way. `vtables.py` also
+     names each native class's own vtable `??_7C@@6B@`, which objdiff's
+     report pairs by name.
+   - Library code in `src/`: three STL members integrated in earlier
+     batches were found and taken out (`basic_string::assign`, a
+     `hash_map` constructor, `_Tree::_Buynode`); look for more among
+     functions whose callees are STL instances the workers excluded.
    - Naming passes ([agent-workflow.md](agent-workflow.md), "Name
      conflicts"): a blocked function's candidate names its callee, and
      the old guess stays as an alias (`type:alias`) so callers in `src/`
@@ -272,10 +273,16 @@ Later the same day, played by the user:
      far; about 600 are excluded until their class's constructor or
      destructor is matched). Left by hand: classes whose deleting destructor
      inlines the destructor (it needs the destructor's definition in the
-     same unit) and classes matched with a non-virtual destructor. The 116
-     that call `operator delete` with a size need the class that declares
-     that operator: `UObject`'s is an alias of `::operator delete` already
-     (`??3UObject@@SAXPAXI@Z`), another class's would be one more.
+     same unit) and classes matched with a non-virtual destructor.
+     `dtors.py native` does native classes, whose deleting destructors
+     call `UObject::operator delete` with the size (Core.h): 108 are in
+     `src/`. Left: 11 classes whose destructor is more than
+     `ConditionalDestroy()` (members to destroy, `AGarrett`, `APlayerPawn`)
+     and about 40 accepted functions that declare native classes by hand
+     and clash with the generated headers in every unit (rewrite them).
+   - An implicit constructor or destructor is accepted only with the game's
+     function that emits it (`--with`): one made-up constructor was caught
+     at review (`0x10AB0180`, excluded until `0x10AB0050` matches).
    - One address can carry several names (`type:alias` in symbols.txt,
      `tools/cc.py`): give a folded function's other callers' names as
      aliases instead of rewriting them.
@@ -298,8 +305,8 @@ Later the same day, played by the user:
      of stock UE2 files, non-UObject vtables) moves it to a side; the 117
      functions taken out of `src/` as unclassified can come back once it is
      game code.
-   - objdiff's report counts what the gate matched, but for 75 of the
-     4,320 functions in `src/`: a static local's guard and `$E` destructor
+   - objdiff's report counts what the gate matched, but for 42 of the
+     4,655 functions in `src/`: a static local's guard and `$E` destructor
      stub keep names only their object file knows, one global is read
      through the second half of an 8-byte symbol, `0x10C68010` starts
      inside `FUN_10c67f90` in `symbols.txt`, and some constructors and
