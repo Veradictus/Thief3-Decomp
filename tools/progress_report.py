@@ -57,6 +57,7 @@ EXTRA_UNITS = {"__shared_data"}
 DATA_MEASURES = ("total_data", "matched_data", "matched_data_percent", "complete_data", "complete_data_percent")
 # Compiled with their parent function, and named after it: no `// FUNCTION:` line.
 COMPANIONS = ("Unwind@", "__ehhandler$")
+FUNCLETS = ("Unwind@", "__unwindfunclet$")
 FUNCTION_LINE = re.compile(r"^// FUNCTION: 0x([0-9A-Fa-f]{8})\b", re.M)
 
 
@@ -67,8 +68,10 @@ def report_path(version: str) -> Path:
 def planned_units(version: str) -> Dict[str, Set[int]]:
     """Each unit configure.py plans, with the addresses of its functions."""
     config_dir = ROOT / "config" / version
+    # Unwind funclets: the report counts them with their function once their handler is named (tools/split.py)
     functions = sorted((s for s in configure.symbolslib.load(config_dir / "symbols.txt")
-                        if s.is_function and s.size > 0), key=lambda s: s.address)
+                        if s.is_function and s.size > 0 and not s.name.startswith(FUNCLETS)),
+                       key=lambda s: s.address)
     starts = [f.address for f in functions]
     units = {}
     for unit in configure.plan_units(config_dir):
@@ -109,7 +112,7 @@ def problems(report: dict, version: str) -> List[str]:
     for name in sorted(set(reported) - set(planned) - EXTRA_UNITS):
         out.append(f"unit {name} is in the report but no longer planned")
     for name in sorted(set(planned) & set(reported)):
-        have = {address_of(f) for f in reported[name].get("functions", [])}
+        have = {address_of(f) for f in reported[name].get("functions", []) if not f["name"].startswith(FUNCLETS)}
         if have != planned[name]:
             out.append(f"unit {name}: {len(planned[name] - have)} function(s) missing from the report, "
                        f"{len(have - planned[name])} no longer in the unit")
