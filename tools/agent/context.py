@@ -43,6 +43,18 @@ from verify import TargetImage, target_listing, target_symbol
 CHEATSHEET = ROOT / ".claude" / "skills" / "t3-match" / "CHEATSHEET.md"
 
 
+def string_at(image, address: int, limit: int = 120):
+    """The NUL-terminated printable ASCII string at `address`, if that is what is there."""
+    view = image.view(address, limit)
+    if view is None:
+        return None
+    data = bytes(view.data)
+    end = data.find(b"\0")
+    if end < 2 or any(not (32 <= c < 127 or c in (9, 10, 13)) for c in data[:end]):
+        return None
+    return data[:end].decode("ascii")
+
+
 def references(p: Project, address: int) -> List[dict]:
     """What the target function references, from its split object's relocations."""
     path = p.target_object(address)
@@ -92,6 +104,11 @@ def references(p: Project, address: int) -> List[dict]:
                 sec = image.pe.section_for_rva(base - image.pe.image_base) if image.pe else None
                 if sec is not None and sec.writable:
                     entry["value"] = "initially " + entry["value"]  # a variable, not a constant
+        elif kind == "data" and base is not None:
+            image = image or TargetImage(p)
+            text = string_at(image, base)
+            if text is not None:
+                entry["string"] = text  # what a literal the function pushes says
         out.append(entry)
     dem = demangle(p, [e["name"] for e in out])
     for e in out:
@@ -402,6 +419,8 @@ def print_packet(pk: dict) -> None:
                 note += f"  ({r['vtable_of']}'s vtable)"
             if r.get("value"):
                 note += f"  {'' if r['value'].startswith('initially') else '= '}{r['value']}"
+            if r.get("string") is not None:
+                note += f"  = {json.dumps(r['string'])}"
             print(f"{r['kind']:<5} {r['addr'] or '?':<11} {r['name']}{note}")
             if r.get("demangled"):
                 print(f"                  {r['demangled']}")
