@@ -410,6 +410,26 @@ def test_integrate_skips_excluded(base: Path) -> None:
     check(status["integrated"] == 1, f"only the other function is integrated: {status}")
 
 
+def test_integrate_generated_follows_emitter(base: Path) -> None:
+    """A deleting destructor accepted with the destructor whose unit emits it (--with) is integrated there,
+    though the queue excludes it: the exclusion keeps workers from matching it by hand."""
+    gen, body = "struct Gen { virtual ~Gen(); int n; };\n", "Gen::~Gen() { Helper(n); }"
+    e = Env(base, "integrate-generated", reference=REFERENCE + gen + body + "\n")
+    dtor, deleting = "??1Gen@@UAE@XZ", "??_GGen@@UAEPAXI@Z"
+    proc = e.run("accept.py", e.addr(dtor), e.candidate(dtor, body, extra=gen))
+    check(proc.returncode == 0, "accept the destructor", proc)
+    proc = e.run("accept.py", e.addr(deleting), e.candidate(deleting, body, extra=gen), "--symbol", deleting,
+                 "--with", e.addr(dtor))
+    check(proc.returncode == 0, "accept the deleting destructor with it", proc)
+    (e.root / "build/agent/excluded.json").write_text(json.dumps({e.addr(deleting): "compiler-generated"}))
+    proc = e.run("integrate.py")
+    check(proc.returncode == 0 and "is excluded" not in proc.stdout, "nothing is skipped as excluded", proc)
+    status = json.loads(e.run("next.py", "status").stdout)
+    check(status["integrated"] == 2, f"both are integrated, in one run: {status}")
+    text = (e.root / "src/Game/Gen.cpp").read_text()
+    check(f"// FUNCTION: {e.addr(deleting)} {deleting}" in text, f"the deleting destructor's marker: {text}")
+
+
 def test_integrate_keeps_distinct_includes(base: Path) -> None:
     """Declarations that differ only inside a string literal, such as two #include lines, are both kept."""
     import integrate
@@ -820,7 +840,8 @@ TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
     test_wrong_callee_rejected, test_self_call,
     test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_lint, test_duplicates_and_cap,
-    test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_keeps_distinct_includes,
+    test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_generated_follows_emitter,
+    test_integrate_keeps_distinct_includes,
     test_integrate_drops_what_breaks,
     test_context_and_queue, test_base_slot, test_claim_by_class, test_families, test_stamp_derive, test_vtables,
     test_sweep, test_guard,

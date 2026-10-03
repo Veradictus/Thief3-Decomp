@@ -79,8 +79,17 @@ def build(ref: Path, root: Path, named: Set[str] = frozenset(), extra_symbols: O
     ext_fn, ext_data = EXTERN_FN, EXTERN_DATA
     cursor = {"xdata": XDATA, "rdata": RDATA, "data": DATA, "textx": TEXT_X}
     section_base: Dict[int, int] = {}
+    # A COMDAT the object both references and defines (a deleting destructor its vtable names) has an
+    # undefined entry too: the definition wins.
+    defined = {s.name for s in obj.symbols if s.defined}
+    # A weak external (a vtable's `??_E`) stands for its default's definition (`??_G`): the exe's table
+    # holds that address, so references to it go there.
+    weak = {s.index: obj.resolve(s).index for s in obj.symbols
+            if not s.defined and not s.is_section and obj.resolve(s) is not s and obj.resolve(s).defined}
     for sym in obj.symbols:
         if sym.is_section or sym.section < 0 or sym.name.startswith("@"):
+            continue
+        if not sym.defined and (sym.name in defined or sym.index in weak):
             continue
         if not sym.defined:
             if sym.name in ("__except_list", "__tls_array", "__fltused"):
@@ -123,7 +132,7 @@ def build(ref: Path, root: Path, named: Set[str] = frozenset(), extra_symbols: O
     # Fold $ labels of each function into function+offset, as delink references switch tables.
     retarget, patch, labels = {}, {}, []
     for fn in obj.symbols:
-        if fn.name not in t.sizes:
+        if fn.name not in t.sizes or not fn.defined:
             continue
         sec = obj.section(fn.section)
         local = {s.index: s for s in obj.symbols if s.section == fn.section and s.name.startswith("$")}
@@ -133,12 +142,14 @@ def build(ref: Path, root: Path, named: Set[str] = frozenset(), extra_symbols: O
                 retarget[(sec.index, i)] = fn.index
                 patch[(sec.index, r.offset)] = struct.pack("<i", obj.addend(sec.index, r) + local[r.symbol].value
                                                            - fn.value)
+    retarget.update({(sec.index, i): weak[r.symbol] for sec in obj.sections
+                     for i, r in enumerate(sec.relocations) if r.symbol in weak})
     drop = [(sec.index, i) for sec in obj.sections for i, r in enumerate(sec.relocations)
             if obj.slots[r.symbol].name == "__except_list"]
     # A function's calls to itself: delink resolves them in the unit, so the split holds the displacement
     # and no relocation.
     for fn in obj.symbols:
-        if fn.name not in t.sizes:
+        if fn.name not in t.sizes or not fn.defined:
             continue
         sec = obj.section(fn.section)
         for i, r in enumerate(sec.relocations):

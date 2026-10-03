@@ -183,7 +183,10 @@ compiler emit it (the class's constructor or destructor, with the class
 declaring `virtual ~C();` at slot 0), with the `// FUNCTION:` line moved to
 the deleting destructor's address, accepted with `--symbol ??_GC@@UAEPAXI@Z`.
 The record says `generated` and names that function (`with`, or `--with`);
-integrate.py puts only the marker in that function's unit, which emits it.
+integrate.py puts only the marker in that function's unit, which emits it
+(in the same run when that function goes in then). The queue excludes
+deleting destructors, so that workers leave them alone; that does not keep
+an accepted one out of `src/`.
 In a vtable, the vector deleting destructor `??_E` is a weak external that
 stands for `??_G`; the rulers follow it.
 

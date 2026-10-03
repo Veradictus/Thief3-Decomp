@@ -442,15 +442,18 @@ def integrate(p: Project, args) -> dict:
     categories: Dict[str, str] = {}
     summary: dict = {"units": [], "dropped": [], "warnings": [], "renamed": [], "added_symbols": []}
     excluded = read_json(p.state / "excluded.json", {}) or {}  # the lead's: library code a worker accepted
+    with_emitter = []  # compiler-generated functions whose emitter is not in src/ yet
     for a in wanted:
         if a in integrated:
             continue
         skip = skipped(p, accepted[a], args)
-        if not skip and fmt_addr(a) in excluded:
+        # a compiler-generated function follows the function whose unit emits it (the exclusion keeps it
+        # out of the queue only)
+        if not skip and fmt_addr(a) in excluded and not accepted[a].get("generated"):
             skip = f"is excluded (build/agent/excluded.json: {excluded[fmt_addr(a)]}); skipped"
         if not skip and accepted[a].get("generated") and int(accepted[a]["with"], 16) not in integrated:
-            skip = (f"is compiler-generated with {accepted[a]['with']}, which is not in src/ yet; skipped until "
-                    f"it is")
+            with_emitter.append(a)
+            continue
         if skip:
             summary["warnings"].append(f"{fmt_addr(a)} {skip}")
             continue
@@ -458,6 +461,14 @@ def integrate(p: Project, args) -> dict:
         source = plan.get(a, source)
         groups.setdefault(source, []).append(a)
         categories.setdefault(source, category)
+    placed = {x: source for source, xs in groups.items() for x in xs}
+    for a in with_emitter:  # into its emitter's unit when that goes in now, else later
+        emitter = int(accepted[a]["with"], 16)
+        if emitter in placed:
+            groups[placed[emitter]].append(a)
+        else:
+            summary["warnings"].append(f"{fmt_addr(a)} is compiler-generated with {accepted[a]['with']}, which "
+                                       f"is not in src/ yet; skipped until it is")
 
     verifier = Verifier(p)
     workdir = Path(tempfile.mkdtemp(prefix="integrate-", dir=p.state_dir("tmp")))
