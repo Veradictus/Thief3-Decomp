@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import coff
-from common import Project, demangle, fmt_addr, is_placeholder, qualified_name
+from common import Project, demangle, fmt_addr, guessed_name, is_placeholder, qualified_name
 
 # Absolute symbols MSVC relocates against where the linked exe holds a plain value.
 ABSOLUTE = {"__except_list": 0, "__tls_array": 0x2C}
@@ -675,7 +675,11 @@ class _Check:
             self.res.problems.append(f"the candidate defines {name}, which accepted {other[1]} binds to "
                                      f"{fmt_addr(other[0])}")
         target = self.res.target
-        if not is_placeholder(target) and target != name and qualified_name(name, self.dem.get(name, "")) != target:
+        # A caller's guess at this function's signature (?FUN_<addr>@@YAXXZ from a jmp thunk) gives way to
+        # the function's own match on the same placeholder; integrate.py keeps the guess as an alias.
+        guess = guessed_name(target, self.address) and guessed_name(name, self.address)
+        if (not is_placeholder(target) and not guess and target != name
+                and qualified_name(name, self.dem.get(name, "")) != target):
             self.res.problems.append(f"the target is named {target}; the candidate defines {name}")
 
     def codegen(self, length: int) -> str:

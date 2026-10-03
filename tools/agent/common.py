@@ -76,6 +76,12 @@ def is_placeholder(name: str) -> bool:
     return placeholder_address(name) is not None
 
 
+def guessed_name(name: str, address: int) -> bool:
+    """A decorated name on the placeholder FUN_<address> (`?FUN_10b760b0@@YAXXZ`): a signature a caller
+    guessed (a jmp thunk constrains none), which the function's own match may correct."""
+    return re.match(r"\?FUN_%08x@" % address, name, re.I) is not None
+
+
 def emit(obj) -> None:
     print(json.dumps(obj, indent=1))
 

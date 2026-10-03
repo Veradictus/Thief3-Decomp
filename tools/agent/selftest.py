@@ -294,6 +294,16 @@ def test_wrong_literal_rejected(base: Path) -> None:
     print(f"    note: objdiff functionRelocDiffs=data_value scores the wrong float at {pct}%")
 
 
+def test_guessed_names(base: Path) -> None:
+    """A caller's guess at a function's signature (a decorated name on its FUN_ placeholder) is not a real
+    name: the function's own match on the same placeholder replaces it."""
+    from common import guessed_name
+    check(guessed_name("?FUN_10b760b0@@YAXXZ", 0x10B760B0) and guessed_name("?FUN_10B760B0@C@@QAEXH@Z", 0x10B760B0),
+          "a decorated name on the address's own placeholder is a guess")
+    check(not guessed_name("?Foo@C@@QAEXXZ", 0x10B760B0) and not guessed_name("?FUN_10b760c0@@YAXXZ", 0x10B760B0)
+          and not guessed_name("FUN_10b760b0", 0x10B760B0), "a real name, another address's, a bare placeholder")
+
+
 def test_implicit_needs_emitter(base: Path) -> None:
     """An implicit destructor's marker on a constructor's definition is a stand-in unless --with names the
     game's function that emits it: accept.py tells the two apart."""
@@ -860,7 +870,8 @@ def test_categories_and_except_list(base: Path) -> None:
 TESTS = [
     test_exact_match_accepted, test_different_expression_rejected, test_labelled_switch_table, test_sidebyside,
     test_wrong_callee_rejected, test_self_call,
-    test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_implicit_needs_emitter,
+    test_class_method_names, test_qualified_names, test_wrong_literal_rejected, test_guessed_names,
+    test_implicit_needs_emitter,
     test_lint, test_duplicates_and_cap,
     test_claims_concurrency, test_integrate, test_integrate_skips_excluded, test_integrate_generated_follows_emitter,
     test_integrate_keeps_distinct_includes,

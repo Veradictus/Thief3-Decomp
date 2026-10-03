@@ -54,8 +54,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import lint as linter
-from common import (FUNCTION_MARKER, Lock, Project, addr_key, atomic_write, fmt_addr, is_placeholder, read_json,
-                    splitslib, symbolslib)
+from common import (FUNCTION_MARKER, Lock, Project, addr_key, atomic_write, fmt_addr, guessed_name, is_placeholder,
+                    read_json, splitslib, symbolslib)
 from verify import Verifier
 
 CATEGORY_DIRS = {"game": "Game", "engine": "Engine", "libs": "Libs"}  # configure.py's unit categories
@@ -311,10 +311,14 @@ def symbol_changes(p: Project, records: List[dict]) -> Tuple[Dict[int, Tuple[str
                     symbolslib.Symbol(name, current.section, address, "alias", 0))))
                 taken[name] = address
                 return
-            if not is_placeholder(current.name) and current.name != compatible_with:
+            guess = guessed_name(current.name, address) and guessed_name(name, address)
+            if not is_placeholder(current.name) and current.name != compatible_with and not guess:
                 warnings.append(f"{fmt_addr(address)} is named {current.name} in symbols.txt; not renamed to {name}")
                 return
             renames[address] = (current.name, name)
+            if guess:  # a caller's guess at the signature: sources in src/ still name it so
+                aliases.append((address, symbolslib.format_symbol(
+                    symbolslib.Symbol(current.name, current.section, address, "alias", 0))))
         elif kind in ("data", "literal"):
             section = section_of(p, address, kind)
             added[address] = symbolslib.format_symbol(symbolslib.Symbol(name, section, address, "object", size))
