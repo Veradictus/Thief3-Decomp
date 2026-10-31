@@ -904,3 +904,833 @@ with the earlier group above):
 | `0x10BEA3B0` | `Class_10BEA3B0::FUN_10bea3b0` | [0x10BEBC70](../src/Game/State_Flee_8.cpp) |
 | `0x10BEB6C0` | `Class_10BEB6C0::FUN_10beb6c0` | [0x10BEBC70](../src/Game/State_Flee_8.cpp) |
 | `0x10F35488` | `USkeletalMeshInstance::PrivateStaticClass` | [0x10BAA580](../src/Game/Class_10BAA580_2.cpp) |
+
+### AI-pawn nearest-actor orientation
+
+The 289-byte PC_20040610 body at `0x10BC2FF0`,
+[`AAIPawn::FUN_10bc2ff0`](../src/Game/AIActorOrientation.cpp), walks the
+wrapper's actor list at `+0x2C8` through nodes linked at `+0xCC`. It rejects
+null actors, actors rejected by slot 34 and a nonzero relationship predicate,
+then keeps the nearest eligible actor below an initial squared-distance limit
+of `1000000.0f`. It converts the direction to a rotator, clears pitch and roll,
+and submits it through actor-wrapper slot 41. The meaning of the relationship
+predicate is not yet named.
+
+The original PC call from `0x10B9C060` in
+[`Unsorted_10B9C060_2.cpp`](../src/Game/Unsorted_10B9C060_2.cpp), the native
+`AICore.AIPawn` class registration and the matched body establish this game
+implementation. The local `Level*` getter declaration uses an existing alias
+at `0x10974340`; it adds no callable name or implementation. The slot-41
+receiver/argument view is independently used by that caller. Nearby unmatched
+state and movement helpers are not part of this contribution.
+
+| Target address | Referenced declaration | PC call-site evidence |
+|---|---|---|
+| `0x10BAA6B0` | `FUN_10baa6b0` | Context lookup from the pawn; cdecl, one argument |
+| `0x1096D780` | `Class_1096D780::Get` | Actor-wrapper lookup; thiscall, no arguments |
+| `0x10974340` | `Class_10974340::FUN_10974340` | Existing pointer-return alias for the list owner |
+| `0x10BAAC90` | `Class_10BAC050::FUN_10baac90` | Relationship filter; one argument, zero admits the actor |
+| `0x10B056C0` | `Class_10B056C0::FUN_10b056c0` | Direction receiver and output `FRotator&` |
+
+All entries above are existing declarations called by the new matched body;
+their implementations and any engine code receive no new contribution credit.
+
+### Timed danger speech and rope displacement
+
+The 196-byte PC_20040610 body at `0x10BC9F40`,
+[`cAISpeech::FUN_10bc9f40`](../src/Game/AISpeechTimedDanger.cpp), checks the
+timer attached through `+0x04`. When expired, it dispatches `+busy:danger`
+with flags/count `10, 0` and a true final argument. Both temporary name/text
+objects leave scope before the timer restarts. The existing integer-return
+timer declaration is retained: its PC implementation returns full `0` or
+`1`, and this caller tests the low byte. The parent's two-state cleanup table
+is folded with `CheckDeathGrunt` at `0x10E27800`; the additional handler alias
+records that shared code and does not count as a recovered function.
+
+The 330-byte body at `0x10B49640`,
+[`cRopeMotion::FUN_10b49640`](../src/Game/RopeTraversalDisplacement.cpp), is
+called by the existing rope-motion update at `0x10B499B3` in
+[`cRopeMotion_4.cpp`](../src/Game/cRopeMotion_4.cpp). It saves the body's vector
+at `+0x14`, obtains a normalized horizontal direction, scales it by `-1.0f`
+and `20.0f`, and offsets the anchor's location. It preserves the player's Z
+coordinate and adds the resulting displacement to the saved body vector.
+When the existing body predicate returns true it restores the saved vector,
+subtracts the rope's integer adjustment from the player's `+0x404` field and
+copied yaw, then submits that rotation through wrapper slot 41. Otherwise
+it stores the proposed body vector. The predicate's broader meaning is not
+named here.
+
+| Address | Existing declaration / evidence |
+|---|---|
+| `0x10BB84A0` | `Class_10BB84A0::IsExpired`, full integer `0/1`; caller tests AL |
+| `0x10BC7D70` | Existing speech dispatcher, five explicit arguments |
+| `0x10BB84D0` | `Class_10BB84D0::StartTimeout`, called after temporary cleanup |
+| `0x10B3AF40` | Existing body getter, explicit player argument and `ret 4`; incoming ECX is unused |
+| `0x10B1DE50` | Existing cdecl `FVector` return by value, with hidden output and caller cleanup |
+| `0x10B83EE0` | Existing body predicate, vector pointer and integer zero |
+| `0x1096D780` | Existing wrapper getter; slot-41 argument shape is also used by `AIActorOrientation.cpp` |
+
+The rope unit keeps a local partial field view because the generated shared
+base declarations disagree with the observed `this + 0x14` access. Its opaque
+prefix and integer field come directly from the PC instructions; it makes no
+inheritance-size claim and changes no shared header. All listed callees remain
+declarations. These two ordinary game bodies contribute 526 bytes; shared EH,
+aliases, engine code and callee implementations receive no additional credit.
+The rope body passes the strict address/data check at 100%, but the raw
+objdiff report is 99.81481%: its four float multiply references use compiler
+literal names where the original constants already have `DAT_` names.
+Their original values and addresses are verified. Existing names are retained,
+so the progress report credits only the 196-byte speech body as a new 100%
+match until that naming difference is reviewed.
+
+### AI state allocation, singleton game time and entry removal
+
+The 136-byte PC_20040610 body at `0x10B988F0`,
+[`Class_10E4CCD0::FUN_10b988f0`](../src/Game/AIPlayingPossumFactory.cpp), is
+the original factory vtable's slot 50. It allocates `0x54` bytes with the
+existing tagged allocator and constructs `State_PlayingPossum` with the two
+explicit arguments around the factory receiver. Its matched same-class
+`CreateMunchCorpseState` sibling at `0x10B98B30` supplies the source idiom.
+The original `State_PlayingPossum` constructor at `0x10BCE920` stores its
+vtable and final field at `+0x50`; it is declared, not reimplemented here.
+The parent shares the existing one-state placement-delete cleanup handler
+at `0x10E24DE9`; the additional factory handler name is an alias, not a new
+ordinary function.
+
+The 158-byte [`TimeManager::Instance`](../src/Game/GameTimeSingleton.cpp) body
+at `0x10D3EBE0` returns the game-time singleton. On first use it locks through
+allocator slot 8, allocates `0x44` bytes, calls the existing constructor,
+stores the singleton, unlocks through slot 9 and returns it. Existing callers
+include the player controller, `CadenceManager` and `State_PlayingPossum`.
+The local allocation-only class view is supported by both the original
+allocation size and the constructor's final store at `+0x40`. It does not
+claim the full packing/layout of the incomplete shared header. The original
+singleton global at `0x10FFCC8C` lies in PE virtual zero-fill, not raw file
+data. Its qualified global and constructor identities are retained through
+normal decorated names. The parent's one-state failed-construction cleanup
+is verified with it and receives no independent contribution credit.
+
+The 253-byte [`Class_10C49740::FUN_10c49ab0`](../src/Game/GameTableKeyRemoval.cpp)
+body at `0x10C49AB0` removes an opaque key from the game's custom table. It
+may shrink a nonfixed table below 5% occupancy when its current bucket count
+exceeds 64, hashes the bytes supplied by key-trait slot 0, searches through
+12-byte nodes using comparator slot 1, unlinks/deletes a found node and
+returns a bool. Its canonical argument is `const int&`; this records the
+existing 32-bit key view, without assigning stronger key semantics. The
+matched `Class_10A85940::Remove` body at `0x10A86390` supplies the same source
+pattern. The original call at `0x10C49A60` in `Class_10E9BBC0::RemoveEntry`,
+and existing dispatch/motion table users, establish the game entry context.
+
+| PC address | Existing contract used by these bodies |
+|---|---|
+| `0x10905C10` | Tagged cdecl allocation: size, tag reference and four integers |
+| `0x10AD1DC0` | Existing ordinary/placement-delete aliases; no implementation added |
+| `0x10BCE920` | `State_PlayingPossum` constructor, three integers, thiscall `ret 0xC` |
+| `0x10D3EB80` | `TimeManager` constructor, no explicit arguments, `this` returned |
+| `0x10905AA0` | Existing allocator getter and declared lock/unlock virtual slots |
+| `0x10C48400` | Existing table rehash method, one integer, thiscall `ret 4` |
+| `0x1090E9B0` | Existing cdecl `HashBytes(const void*, int)` |
+
+These three ordinary game bodies total 547 bytes. Their callees, aliases,
+generated cleanup and engine/library implementations add no ordinary-function
+credit. The existing rope float-name report limitation remains unchanged.
+
+## Stats listener and concrete game-object lifecycles (PC_20040610)
+
+Four ordinary game bodies add 397 matched bytes. These supporting lifecycle
+functions do not by themselves change City population or runtime gameplay.
+
+- `0x10A172D0` is `Class_10E5D654::Class_10E5D654()`: the original parent
+  constructor `0x10A178B0` constructs this subobject at `+0x30`. Its own
+  callback table `0x10E5D654` has slot 0 at `0x10A173E0`, distinct from the
+  matched sibling's table `0x10E5D650`. It initializes a custom table at
+  `+4` and iterator at `+0x20`, then subscribes through the game dispatcher
+  to event `0x5A`. The parent belongs to the `GetStats` service used by the
+  AI difficulty, senses and combat multiplier code; "stats listener" is a
+  descriptive inference, so the address-based class identity is retained.
+- `0x1099FF10` is the ordinary `UHardpointLinkDataObject` destructor. Its
+  concrete table `0x10E56A28` slot 2 holds deleting wrapper `0x1099FFC0`,
+  whose call at `0x1099FFC3` reaches this body. Four matched game-derived
+  destructors also call it. It destroys the parent-bone string at `+0x50`
+  and the `ULinkDataObject` base. The existing native declaration is
+  `0x5C` bytes. Engine package placement does not make this Ion Storm
+  link-object extension an Epic implementation.
+- `0x109A0ED0` is the ordinary `USkeletalFireEffectLinkDataObject`
+  destructor, with its own concrete table `0x10E576E8`: slot 2 holds
+  wrapper `0x109A0EB0`, which calls the body at `0x109A0EB3`. Its matched
+  constructor and native declaration establish the same `0x5C` extent and
+  parent-bone string at `+0x50`. Sharing cleanup with other link classes
+  does not imply that their ordinary destructor bodies share ownership.
+- `0x10AB3D00` is the ordinary `UT3GameRegistrar` destructor. Its T3Game
+  table `0x10E6E1F8` slot 2 holds wrapper `0x10AB3CE0`, which calls the
+  body at `0x10AB3CE3`. Slot 19 is the game-specific `Register` override
+  `0x10ABD7D0`. The existing native class has no extra data members beyond
+  its `0x2C`-byte `UTriggerRegistrar` base. The base's abstract-class table
+  fallback does not replace this concrete PC owner evidence.
+
+The listener's complete local view retains the PC table fields and key-traits
+object at table `+0x18`, followed by iterator Current/Container/Index at owner
+`+0x20/+0x24/+0x28`. The original parent's next field at `+0x5C` supports the
+subobject's `0x2C` extent. Existing shared headers omit part of this layout;
+they are not changed. Its constructor uses the verified source pattern of
+`0x10A170F0`. The three typed destructors use the same expression as their
+matched siblings: call `ConditionalDestroy()`, with member/base destruction
+performed by ordinary C++ rules. All four are thiscall with no explicit
+arguments or hidden result buffer; ordinary destructors return with `ret 0`,
+and the constructor returns `this` in EAX.
+
+| Existing reference | PC contract used here |
+|---|---|
+| `0x10A15FF0` | Custom-table `Rehash(int)`, thiscall `ret 4` |
+| `0x10A165C0` | Custom-table clear/reset with one integer, thiscall `ret 4` |
+| `0x10BA12F0` | Iterator initialization, thiscall, no explicit arguments |
+| `0x10F46DA0` | Game dispatcher pointer; slot 1 receives listener, event, two filter integers |
+| `0x10AD5310` | `UObject::ConditionalDestroy()`, ignored integer result; declaration only |
+| `0x10AF83B0` | `FString` destructor, thiscall, no explicit arguments; declaration only |
+| `0x10BB7C00` | Existing five-byte `FStringNoInit` unwind destructor thunk to `0x10AF83B0` |
+| `0x1099F1B0` | Existing `ULinkDataObject` base destructor |
+| `0x10AB3C50` | Existing `UTriggerRegistrar` base destructor |
+
+Parent EH `0x10E0DBBB` has one listener-member cleanup at `this+4` into
+`0x10A16BF0`. Link destructors share two-state parent `0x10E09143`: unwind
+destroys `FStringNoInit` at `this+0x50` and then the base. Core.h documents
+the implicit normal string destruction versus its out-of-line unwind copy.
+The registrar's one-state parent `0x10E17F68` cleans the same base as the
+ordinary body. Generated parent aliases are ordinary integration metadata;
+EH handlers, deleting wrappers and existing engine/library callees receive
+no new ordinary-function credit or new implementations.
+
+## Stats owner member cleanup (PC_20040610)
+
+`0x10A174E0` is the ordinary, nonvirtual `Class_10A174E0` destructor
+(77 bytes). The matched global cleanup at `0x10A18E20` calls it directly;
+the matched `GetStats()` at `0x10A18230` allocates this type with a
+`0x60`-byte extent. The original parent construction at `0x10A178B0`
+places `Class_10E5D650` at `+4` and `Class_10E5D654` at `+0x30`, each
+`0x2C` bytes, followed by a byte flag at `+0x5C` and alignment padding.
+The service is used by the AI stats consumers described above; this
+cleanup match adds supporting source evidence, with no runtime change.
+
+The destructor body uses ordinary C++ member destruction: second member
+first, then first member. Its concrete external calls are
+`Class_10E5D654::~Class_10E5D654()` at `0x10A17360`, followed by
+`Class_10E5D650::~Class_10E5D650()` at `0x10A17180`. Both are existing
+thiscall functions with no explicit arguments and `ret 0`. The owner
+destructor likewise takes no deleting flag or hidden result parameter.
+Its single EH state has handler `0x10E0DBDB`, FuncInfo `0x10ECE704`, and
+cleanup action `0x10E0DBD0`: if destroying the second member unwinds,
+destroy the first member at `this+4`.
+
+The complete primary table at `0x10E5D688` has not been typed. This
+destructor neither reads nor emits that table. Its local PC member view
+keeps the pointer and unused child fields opaque, declares only the
+observed external child destructors, and makes no claim about the
+owner's unresolved virtual slots. Shared headers are unchanged. This
+body does not establish a complete constructor or virtual interface.
+
+## Three AI state allocation factories (PC_20040610)
+
+Three ordinary methods of `Class_10E4CCD0` add 437 matched bytes. The actual
+PC factory table is `0x10E4CCD0`; these methods occupy slots 13, 25 and 26.
+Matched owner methods at `0x10B988F0` (slot 50) and `0x10B98B30` (slot 55)
+support that identity. No direct original callers were found for the new
+methods; virtual dispatch is established by the actual table entries, not
+by a claimed matched direct caller.
+
+| Factory | Bytes | Slot / pointer location | Allocated state / extent | External constructor |
+|---|---:|---|---|---|
+| `0x10B99530` | 175 | 13 / `0x10E4CD04` | `State_Patrol` / `0x84` | `0x10BED440`, two integer-representation context arguments |
+| `0x10B97E10` | 131 | 25 / `0x10E4CD34` | `Class_10E935F0` / `0x58` | `0x10BD3020`, two integer-representation context arguments |
+| `0x10B97EA0` | 131 | 26 / `0x10E4CD38` | `Class_10E933B8` / `0x44` | `0x10BD1E70`, existing canonical constructor identity |
+
+Each method is virtual thiscall, takes one incoming context, returns the
+allocated pointer in EAX or null, and returns with `ret 4`. The constructor
+takes the incoming context followed by the factory pointer represented as
+an integer, uses thiscall with the allocated object in ECX, and returns
+with `ret 8`. The original allocation sizes agree with the matched
+constructors' final field writes. Local allocation-sized declarations
+keep unused fields opaque and declare those existing external constructors;
+they emit no speculative child or factory vtable. The two address-based
+state classes retain their existing identities.
+
+The patrol factory first calls the no-argument integer Id getter at
+`0x10BECFF0`. Its context has an owner pointer at `+8`; that object's
+no-argument getter at `0x10DBD510` returns the property list from `+0x38`
+with `ret 0`. `Class_10BBDB40::GetFloat(int)` at `0x10BBDB40` consumes the
+Id with `ret 4` and returns through x87 ST0. The Id pushed before the
+no-argument property getter belongs to this later float call. Existing
+legacy caller declarations distribute those arguments differently, so the
+original return/pop contracts and current canonical identities govern this
+source. No old source or shared header is changed. The factory allocates
+only when the Id is nonzero and the value is greater than the existing
+float `DAT_10eafbdc` at `0x10EAFBDC` (`0.0`); equal, lower and unordered
+comparisons return null.
+
+All three use the existing tagged allocation at `0x10905C10` and existing
+tagged placement-delete alias at `0x10AD1DC0`, each with caller cleanup of
+24 bytes. Their one-state allocation cleanup is shared with matched factory
+`0x10B98E00`: handler `0x10E24DE9`, FuncInfo `0x10EE60B0`, and unwind action
+`0x10E24DD0`. The normal integrator records structural handler aliases for
+the new methods while retaining the already-owned shared EH range. These
+aliases and generated support add no ordinary-function credit.
+
+The factory declaration retains existing unused slots to position the three
+known methods. Its unused neighbor types use the existing classmap names
+`cCombatBase` and `cYellowAlert`, as the matched sibling declaration does;
+no neighboring method is called, emitted or retyped to force code generation.
+The original compiler, flags, helper identities and shared headers remain
+unchanged. These matching source additions supply AI allocation/guard-state
+evidence and do not deploy a runtime gameplay change.
+
+## Base AI state event dispatch (PC_20040610)
+
+`Class_10E8BE68::FUN_10bc45d0(int)` at `0x10BC45D0` adds 264 matched
+ordinary bytes. The actual base table `0x10E8BE68` points to it at slot 9
+(`0x10E8BE8C`); child state tables inherit that same physical method.
+The matched base constructor installs this table, and its parent stores
+the incoming context at `+4` and factory pointer at `+8`.
+
+The method is virtual thiscall, accepts one event integer, returns void
+with `ret 4`, and has no hidden result or local exception-cleanup state.
+Events 8, 22, 23, 25, 26, 28 and 51 invoke factory slots 12, 23, 24, 25,
+26, 27 and 35 respectively. Slot 12 receives context, a value obtained
+through the existing current-object helpers, and two zeros; the other
+slots receive one context pointer or its existing integer representation.
+A nonnull result is forwarded unchanged to the existing request helper
+at `0x10BC4240`, with its force argument false.
+
+The normal C++ switch reproduces the original code and its embedded
+eight-entry jump table and 44-byte case-index table. Those tables are
+part of the 264-byte original function extent, not extra functions.
+Limited local declarations use only observed fields and known call
+interfaces; they emit no child or factory vtable and require no shared
+header or ordinary callee-alias changes. Original-only caller evidence
+and the actual base-table entry establish the interface; no matched
+direct caller or exhaustive virtual-call coverage is claimed.
+
+## AI context scalar update (PC_20040610)
+
+`Class_10BBB410::FUN_10bb8ae0()` at `0x10BB8AE0` adds 102 matched
+ordinary bytes. The existing `Class_10BBB410::Update` calls it directly
+at `0x10BBD163` with the same context pointer and no arguments.
+The method is nonvirtual thiscall, returns void, and has no hidden
+result, allocation, or local exception-cleanup state.
+
+It preserves the old float at context offset `+0x260` across the calls,
+subtracts property `0x001004B7` multiplied by `GetFrameDeltaTime()`, and
+clamps values less than or equal to the existing zero scalar
+`DAT_10eafbdc` to zero. An unordered comparison retains the result.
+The property comes from the existing no-argument getter `0x10DBD510`
+on the pointer at context offset `+8`, then `GetFloat(int)` at
+`0x10BBDB40`. The identifier is an observed token; its semantic name
+is not established here.
+
+A limited local declaration expresses only the observed offsets, with
+a minimum observed extent of `0x264`. It does not assert the complete
+class size or repair the generated shared hierarchy. The source uses
+natural arithmetic and control flow, existing canonical call/data names,
+and no new aliases, header changes, or emitted vtable.
+
+## AI alert-state versioned serialization (PC_20040610)
+
+The ordinary 173-byte body at `0x10BE4EF0` keeps its existing canonical
+caller-facing name `Class_10E960D8::FUN_10be4ef0(Object_10BE58C0*)` and
+nonvirtual `Serialize` alias. Physical parent table `0x10E95F40` slot 64
+references this body; derived table `0x10E960D8` slot 64 references the
+separate delegate at `0x10BE58C0`. This is one matched body, not two owners
+or a recovered complete parent/derived source declaration.
+
+The method calls the existing `Class_10E8BE68::Serialize(FArchive&)` on
+the unchanged receiver, then archives five four-byte fields at offsets
+`+0x40` through `+0x50`, followed by twelve bytes at `+0x54` through the
+existing `FUN_10b052a0(FArchive&, void*)` helper. A signed archive version
+at `+0x0C` below `0x55` selects a twelve-byte legacy POD temporary and one
+legacy byte; newer versions select the four-byte member at `+0x60` and
+one byte at `+0x64`. Field semantic names and numeric types remain unknown.
+
+Existing `Object_10BE58C0` and `FArchive` declarations describe the same
+observed archive dispatch: virtual slot 1 takes pointer/count and cleans
+eight argument bytes. Explicit zero-offset views retain existing canonical
+base/helper declarations without adding a hierarchy or signature alias.
+The local field view asserts only the observed prefix, not complete size.
+Ordinary uninitialized POD locals reproduce the original legacy stack
+reuse naturally; no argument-home address or allocation trick is used.
+There is no target allocation, destructible local or exception-cleanup
+frame; called functions may propagate exceptions directly.
+
+## Cadence receiver contracts (PC_20040610, static)
+
+The cadence body at `0x10C5DC60` calls `GetItemCount`
+(`0x10C40590`) and `GetItem` (`0x10C41530`) with the unadjusted pointer
+returned by `GetSoundBufferPool`. Same-address aliases expose those two
+methods on the existing `Class_10C41420` return view while retaining their
+old canonical names and aliases. `GetItem` returns the existing `cRefPtr`
+by value through a hidden output address plus the explicit item index.
+
+The returned object is the unchanged receiver for the bool predicates at
+`0x10C63D50` and `0x10C63DC0`, followed conditionally by the void method at
+`0x10C63F40`. Three same-address aliases expose these nonvirtual calls on
+`Object_10AB5B20`; existing bool canonical names and historical void aliases
+remain intact. No virtual slot or object data member changes. The existing
+`cRefPtr` representation, copy/AddRef and destructor/Release stay unchanged.
+
+`Game/CadenceReceiverView.h` provides an isolated observational view: guard
+byte at `+0x0D`, four flag bytes at `+0x38`, and selected index at `+0x3C`.
+Its `0x40` extent describes the observed prefix, not the complete original
+class size or inheritance. It must not be included alongside the independent
+shared `Class_10C80360` declaration in one translation unit. Existing caller
+views and the rejected `Class_10C41420`/`Class_10E9B83C` merge remain intact.
+
+The exact parent unwind action passes the managed local to the existing
+`cRefPtr` destructor alias at `0x10C56E40`; the action delegates rather than
+implementing the release itself. A private original-compiler declaration
+probe confirms the five external names, hidden-output call shape and field
+offsets. These declarations provide static evidence; the separately matched
+body is described below. They are not runtime verification. Alias and
+declaration changes earn no additional ordinary function or byte coverage.
+
+## Cadence managed update (PC_20040610)
+
+`Class_10C80360::FUN_10c5dc60(float)` at `0x10C5DC60` reconstructs one
+ordinary 173-byte game body. Its existing float argument is unused. When
+the guard byte at `+0x0D` is set, it marks each of four flag bytes at
+`+0x38..+0x3B` except the selected index at `+0x3C`, then traverses the
+existing sound-buffer pool backwards from count minus one.
+
+Each item is returned through the existing `cRefPtr` value contract. For
+a nonnull object, a false result from `0x10C63D50` followed by a true result
+from `0x10C63DC0` selects the call at `0x10C63F40`. Their semantic names
+remain unknown. Natural scope exit releases the managed item through the
+existing destructor; no destructor/helper implementation is copied into
+the reconstruction. The exact parent unwind action selects that same
+destructor at `0x10C56E40` for its four-byte local. The generated unwind
+action and handler are support, not extra ordinary function coverage.
+
+Strict original-compiler scratch and normal checks both score 100 with
+zero provisional references and identical function bytes and destinations.
+The initial raw report was 99.91071 while the generated handler still had
+the placeholder name `FUN_10e2fdd8`. Standard normal integration names that
+verified companion after its parent, allowing the report to recognize it
+as generated support; the final raw score is also 100. The body never
+changed, and no alias or ordinary callee name was added. All eleven
+relocations, including the three existing synthetic exception-chain zero
+references, retain their addends and exact destinations. The five
+prerequisite aliases and ordinary canonical names remain unchanged.
+
+The isolated receiver view describes the observed prefix only and does
+not repair the independent shared hierarchy or establish original full
+size. The body emits no object vtable, uses no cast, register/stack trick,
+forced argument-home write or additional alias, and preserves the original
+void/float thiscall ABI. This is static PC reconstruction, not a runtime
+verification or gameplay-fix claim.
+
+### Existing vector support binding
+
+The existing scalar-left `FVector` multiplication operator is also bound to `0x10968D30` by a same-address alias. Its original-toolchain COFF body equals the complete 37-byte helper with no relocations. This records a supported ABI binding for existing source; it adds no ordinary game function or matched-byte credit.
+
+## DeathState parameter block
+
+The constructor's local parameter block uses `FLOAT` at +0x00 and `FVector` at
++0x04, consistent with the scalar-left vector operation. Its 0x24-byte layout,
+existing assignments, 271-byte constructor and physical exception-handling
+destinations are preserved. MSVC also emits two empty three-byte SELECT_ANY
+constructors for the vector member and its containing block. This support type
+correction adds no matched game function; other DeathState helper and lifetime
+contracts remain unresolved.
+
+## AI model replacement, rope-climb update and grid candidate helpers
+
+This group reconstructs seven PC_20040610 Game bodies (1,881 bytes). The local
+views below describe only the observed fields and call shapes. Names such as
+`PawnModelWorld`, `Class_10C06940` and `cGridCandidateArray` do not assert a
+recovered complete original class definition.
+
+### Paired AI model replacement
+
+[`PawnModelReplacement.cpp`](../src/Game/PawnModelReplacement.cpp) implements
+four 232-byte methods on the existing `Class_10BBDB40` receiver view:
+
+| Body | Model | Owner field | AAIPawn field |
+| --- | --- | --- | --- |
+| `0x10BBD370` | `AAISensoryModel*` | `+0x04` | `+0x210` |
+| `0x10BBD460` | `AAICombatModel*` | `+0x10` | `+0x228` |
+| `0x10BBD550` | `AAIBehaviorModel*` | `+0x08` | `+0x218` |
+| `0x10BBD640` | `AAIFactionModel*` | `+0x14` | `+0x230` |
+
+Each checks the class word and pawn, then tests
+`UObject::IsA(AAIPawn::StaticClass())`. The class registration/global names
+and the fields already exist in the AICore declarations. The four matched
+command callers at `0x10BB12A0`, `0x10BB1370`, `0x10BB13D0` and
+`0x10BB1430` establish the original receiver/method bindings. Their existing
+`(int,int)` symbols remain; same-address `(int,AAIPawn*)` overload aliases
+make the pawn argument explicit in the new definitions.
+
+The wrapper returned by `Class_1096D780::Get()` (`0x1096D780`) uses these
+observed slots:
+
+| Slot | Byte offset | Used call shape |
+| --- | --- | --- |
+| 44 | `0xB0` | `void(void* Model, int Flag)` |
+| 46 | `0xB8` | `void*(int ModelClass, four-byte name value, FVector, FRotator, nine trailing words)` |
+
+Existing [`PawnModelFactory.cpp`](../src/Game/PawnModelFactory.cpp) and
+[`PawnModelInitialization.cpp`](../src/Game/PawnModelInitialization.cpp)
+provide independent source witnesses for these same slot shapes. The
+four-byte name value retains `Struct_10C37D30`'s default/copy ABI; its original
+type name and the semantic names of the trailing flags remain unknown.
+
+These replacements pass the pawn's `Location` (`+0x2C`) and `Rotation`
+(`+0x38`), followed by `0,0,0,0,0,0,1,0,0`. A failed creation leaves the
+old model unchanged. On success, an existing model is destroyed through slot
+44 with flag zero, both paired fields are cleared, and both receive the new
+model pointer.
+
+Supporting existing identities are:
+
+| Address | Binding used |
+| --- | --- |
+| `0x10FF6650` | `AAIPawn::PrivateStaticClass` |
+| `0x10B97B50` | `AAIPawn::GetPrivateStaticClassAAIPawn(const char*)` |
+| `0x10B945B0` | `AAIPawn::InitializePrivateStaticClassAAIPawn()` |
+| `0x10AD1EE0` | `UObject::IsA(UClass*) const` |
+| `0x10E47600` | the existing `AICore` package literal |
+
+### Rope-climb state update
+
+The 276-byte body at `0x10B49520` is recorded in
+[`RopeClimbUpdate.cpp`](../src/Game/RopeClimbUpdate.cpp). The original table
+at `0x10E7E610` supplies slot 1 for this update and slot 4 for the retained
+state-result call. The source preserves the existing single-word player
+binding; no complete original owner type is inferred from that word.
+
+The native upward-query path gets a height offset, starts at the pawn's
+location plus that offset, and queries a second point 32 units higher. It
+preserves the five-argument query binding, initialized hit record, flag 15
+and low-byte result test. A query hit invokes the existing linked-object
+operation before the slot-4 call. The other path calls `ApplyAnimMotion`;
+a false result invokes the same linked-object operation, followed by slot 4.
+
+| Address | Existing binding |
+| --- | --- |
+| `0x10A18FC0` | control-source getter |
+| `0x10A18E80` | single-integer float-returning control query |
+| `0x10EAFBDC` | existing float comparison datum |
+| `0x10991FF0` | no-argument height-offset getter |
+| `0x10D9DCB0` | query-provider getter |
+| `0x10D9D640` | existing five-argument point query |
+| `0x10AA82D0` | `GetLinkedObject()` |
+| `0x10B39700` | linked-object operation |
+| `0x10B3AF60` | `GState::ApplyAnimMotion(int)` |
+| `0x10E5D35C` | `32.0f` literal, `__real@42000000` |
+
+The two point addresses retain the existing query's integer-carrier API.
+This group does not globally replace that declaration with a speculative
+new query type.
+
+### Grid candidate lookup and coordinates
+
+[`GridCandidateLookup.cpp`](../src/Game/GridCandidateLookup.cpp) implements
+the 544-byte provider at `0x10C06940`. It tests both signed cell indices,
+retains the first matching candidate, and allocates temporary pointer
+storage only when another match exists. Among multiple matches, the first
+entry seeds the result unconditionally; a later entry replaces it only if
+its third origin component is above the requested height and below the
+current result's component. This preserves the native selection rule; it
+does not establish a globally nearest-above-height API.
+
+The provider uses these same-address source bindings without changing the
+other canonical users:
+
+| Address | Candidate/list view | Retained canonical binding |
+| --- | --- | --- |
+| `0x10AFCF40` | `Class_10C06540::FUN_10afcf40() -> int` | `Class_10AFCF40::FUN_10afcf40() -> int` |
+| `0x10DBD520` | `Class_10C06540::FUN_10dbd520() -> int` | `Class_10C299C0_Unknown04::FUN_10dbd520() -> void*` |
+| `0x10BFBD70` | `cGridCandidateArray::SetCount(int)` | `cIntArray::SetCount(int)` |
+
+Independent callers `0x10C06B60` and `0x10C06D30` use both getters on the
+same candidate with signed comparisons. The latter also uses the same
+candidate's origin getter at `0x10C06540` and coordinate helper at
+`0x10C06560`. Serialization and construction witnesses at `0x10BA00C0`
+and `0x10BA0310` corroborate the record layout. This supports a local
+candidate view, without merging unrelated native owner classes.
+
+[`GridCandidateArray.h`](../include/Game/GridCandidateArray.h) is a
+non-owning list of four-byte candidate pointers, using the existing resize
+routine. The routine manages buffer capacity and allocation only.
+Destroying the temporary list releases its storage and never deletes the
+candidate objects. The allocator getter, tagged allocation and ordinary
+delete retain their existing identities at `0x10905AA0`, `0x10905C10`
+and `0x10AD1DC0`.
+
+The 133-byte coordinate body in
+[`GridCandidateCoordinates.cpp`](../src/Game/GridCandidateCoordinates.cpp)
+reads the two float32 origin components at candidate `+0x48/+0x4C`,
+subtracts 96, scales the position deltas by `1/24`, converts to signed
+integers and clamps each output to `[0,7]`. Conversion follows the native
+truncation behavior rather than mathematical floor. The first output uses
+the X delta and the second uses Y; the parameter names are reconstructed.
+
+The first two words in `Struct_10C06540` are consequently declared float32.
+The third word was already a float in the inherited local baseline. The
+getter's existing three-word return ABI remains unchanged.
+
+| Address | Literal/helper |
+| --- | --- |
+| `0x10E81500` | `96.0f`, `__real@42c00000` |
+| `0x10E5BBDC` | float32 `1/24`, `__real@3d2aaaab` |
+| `0x10D20E3C` | existing `__ftol2` conversion helper |
+
+This is static PC reconstruction, not whole-game runtime verification or a
+completed grid-search subsystem. Supporting aliases and declarations add no
+separate function or byte credit.
+
+## Planner intervals, target weighting and grid traversal
+
+The planner's periodic effect at `0x10BB88A0` passes a temporary `FVector`, two
+floating-point durations and an integer mode to the existing engine helper at
+`0x10A03780`. That helper copies the vector before returning. Its payload
+consumers at `0x10A030F0` and `0x10A03130` independently identify the duration,
+integer-limit and vector fields. Only a declaration and an alias are added for
+the engine helper. The existing getter at `0x10AA82E0` returns the borrowed
+member at offset `0x14`; its pointer-return alias preserves the original name.
+
+The cooldown update at `0x10BBB8D0` uses the existing current-command validation
+and cancellation path. The handle resolver at `0x10BFF2A0` checks the resolved
+object's runtime type and returns the same borrowed pointer. The existing
+interaction check at `0x10BAA9D0` independently calls integer-return virtual slot
+`0x88` on that target, supporting the structural interface used here.
+
+The target selector at `0x10BFD220` groups positive weights by resolved target
+pointer and returns the target with the greatest aggregate weight. Its two
+temporary arrays own their allocation buffers, not the target objects. Typed
+pointer and float views describe the observed four-byte elements; array
+allocation and cleanup follow the existing `cIntArray` implementation, including
+its exception cleanup. The returned pointer remains borrowed.
+
+The segment traversal at `0x10C25640` samples successive grid cells and reports
+the first cell at or below the requested value. Its position lookup uses the
+existing `0x10C06F30` implementation through a typed reference alias. The
+three-word cell handle is non-owning. A local double scale retains the observed
+x87 intermediate precision; the public vector layout and operations are unchanged.
+
+The rope-state transition at `0x10B493A0` compares the current and remembered
+states initialized by `0x10B492F0`, selects the linked object's transition action,
+and then records the new state. These are static PC reconstructions; no game
+execution or whole-game behavior claim is made. Supporting aliases, declarations
+and generated cleanup bodies receive no separate contribution credit.
+
+## Grid caching, linked motion and faction properties
+
+The cache builder at `0x10C06B60` allocates row and cell containers, then places
+borrowed grid-candidate pointers into the corresponding cells. The two typed
+`SetCount` aliases at `0x10BFBD70` operate on four-byte pointer slots. These bodies
+do not infer destruction of the row/cell containers or ownership of candidates.
+
+The selector at `0x10C06D30` uses the cached cell and candidate height, then calls
+the existing coordinate clamp. Its output bounds are three-float vectors, as
+independently consumed by this caller. The `0x10BCC290` scalar getter reads the
+same float without using its receiver. Typed aliases describe these uses while
+preserving existing canonical names, including the selector name used by the
+65-byte position wrapper at `0x10C06F30`.
+
+The linked-motion chain comprises the two-handler disable operation at
+`0x10B47090`, indexed linked-object wrapper at `0x10B398C0`, and handler value
+query at `0x10B39750`. The query's reconstructed name is `QueryHandlerValue`;
+it is not claimed as a recovered original identifier. The selectors at
+`0x10B4CAD0` and `0x10B4C840` use those actual implementations. Their controller
+view records the observed field at `0x90` and integer-return virtual slot
+`0x10`; its small accessor preserves the observed receiver evaluation.
+
+The faction transfer at `0x10BC3670` copies 22 one-byte properties from a borrowed
+faction model to a borrowed property-setter interface. Native calls to the
+existing getter/setter pair `0x10971570` and `0x1098E3D0` establish that the first
+argument is an object pointer. The typed alias preserves the old canonical
+spelling; no integer arithmetic or ownership transfer is involved.
+
+The object callback at `0x10BDC6D0` belongs to the existing `Class_10E94B20`
+view: `0x10BDBBC0` installs that vtable and slot 72 identifies this function.
+Its observed virtual calls and borrowed object parameters are declared as
+structural interfaces. Its local string owns its buffer and uses the existing
+normal and exception cleanup. One call uses the folded empty body at
+`0x10D660B0`, which remains classified as library code. The three-argument
+cdecl alias reflects the observed call and caller cleanup; no library body is
+implemented or counted.
+
+These are static PC reconstructions. Supporting aliases, declarations, and
+compiler-generated cleanup do not receive separate Game contribution credit.
+
+## Faction collection and grid edge spans
+
+The collector at `0x10BAC100` queries nearby actors with faction filters, or
+collects a temporary nearby list and appends actors whose relation is 3 or 4.
+Both output and temporary lists hold borrowed actor pointers. Only the temporary
+array buffer is owned and released by this function. Its stack filter objects
+borrow their model and linked-filter pointers. The pointer-slot view retains the
+existing array growth, allocator brackets and exception cleanup.
+
+The native getter at `0x10C1A160` returns the four-byte counter allocation
+created by the existing `AddRefCounter` implementation. Its typed pointer alias
+and the receiver-preserving query alias at `0x10C1A310` leave the established
+canonical names unchanged. The query body does not read its receiver. Two
+filter-constructor aliases describe independently observed pointer fields;
+another alias describes the actor pointer passed to the existing relation
+lookup at `0x10BAAC90`.
+
+The context getter at `0x10BB80D0` returns the actor from its embedded handle at
+offset `0x2A0`, through the existing handle implementation. It transfers no
+ownership.
+
+The geometry helper at `0x10C061C0` reads a borrowed point and a contiguous array
+of 36-byte edge records. Each record contains start and end vectors followed by
+12 bytes whose meaning remains unknown. It stops after the first two strict Y
+crossings and tests whether the point's X lies strictly between their computed
+intersections. This is the observed edge-span test, not a claim that the helper
+implements general polygon containment. The array's unused second header word
+also remains unnamed. The helper has no external calls or global references.
+
+Its region-query caller at `0x10C21340` examines borrowed 36-byte region records.
+For type 1 it uses the edge-span helper, returns the mean of all edge endpoints,
+and writes radius 16. For type 0 it compares squared distance with the square of
+the stored radius plus the observed signed integer context field; it returns
+the stored center and radius on success. Its manager-lookup fallback returns a
+null comparison without writing those outputs. The owner pointer and the two
+typed lookup/distance aliases retain their existing canonical identities.
+
+
+## Owned string conversion used by grid commands
+
+Engine declaration `0x10AF5210` (31 bytes) converts a borrowed `const char*`
+to an owned four-byte `cString` value. Its entry stack has the hidden output
+pointer at `+4` and input pointer at `+8`; it calls the existing `cString`
+constructor at `0x109081E0` with the output as receiver, returns that output in
+EAX, and uses a plain return. The declaration is
+`cString FUN_10af5210(const char*)`; its typed symbol retains the bare-name alias.
+[GridCommandAdd](../src/Game/GridCommandAdd.cpp) (`0x10C2A330`, 308 bytes) and
+[GridCommandRemove](../src/Game/GridCommandRemove.cpp) (`0x10C2A470`, 295 bytes)
+corroborate the contract: each consumes the temporary string and releases its
+buffer on both normal and exception cleanup paths. The input remains borrowed.
+This adds a declaration and symbol identity, not an Engine implementation or
+Engine body credit.
+
+## Verified ordinary Game function inventory
+
+The following 105 ordinary Game functions add 34,602 bytes relative to the
+previously merged source baseline. Each passed static strict matching and
+ordinary reference-object verification at 100%, with zero provisional bindings.
+Generated support contributes zero functions and zero bytes to these totals.
+These checks do not establish runtime behavior, and no game execution is claimed.
+
+Raw object reports use a different name-based comparison and are not uniformly
+100%. In particular, the UI window-type function retains two equivalent string
+literal names (`Window` and `Menu`); its code bytes and all 48 relocation
+destinations agree. Strict verification checks those literal values. Existing
+generated-support, exception-label and source-unit identity transitions are
+excluded from ordinary function credit.
+
+| Address | Bytes | Ordinary source |
+| --- | ---: | --- |
+| `0x10907870` | 105 | [StringBufferAllocate.cpp](../src/Game/StringBufferAllocate.cpp) |
+| `0x109362D0` | 1226 | [ShaderNameInitialization.cpp](../src/Game/ShaderNameInitialization.cpp) |
+| `0x109377D0` | 1169 | [RenderStateInitialization.cpp](../src/Game/RenderStateInitialization.cpp) |
+| `0x10937C70` | 902 | [D3DStateReset.cpp](../src/Game/D3DStateReset.cpp) |
+| `0x1094DBF0` | 775 | [MaterialTextureAndShaderInitialization.cpp](../src/Game/MaterialTextureAndShaderInitialization.cpp) |
+| `0x1099FF10` | 92 | [HardpointLinkLifetime.cpp](../src/Game/HardpointLinkLifetime.cpp) |
+| `0x109A0ED0` | 92 | [SkeletalFireLinkLifetime.cpp](../src/Game/SkeletalFireLinkLifetime.cpp) |
+| `0x109E3A10` | 545 | [BuiltinWindowType.cpp](../src/Game/BuiltinWindowType.cpp) |
+| `0x10A13190` | 354 | [InteractionRegistryUpdate.cpp](../src/Game/InteractionRegistryUpdate.cpp) |
+| `0x10A13300` | 375 | [ActorInteractionEvent.cpp](../src/Game/ActorInteractionEvent.cpp) |
+| `0x10A172D0` | 134 | [StatsListenerInitialization.cpp](../src/Game/StatsListenerInitialization.cpp) |
+| `0x10A174E0` | 77 | [StatsOwnerLifetime.cpp](../src/Game/StatsOwnerLifetime.cpp) |
+| `0x10A49DA0` | 347 | [SpatialQueryObjectFilter.cpp](../src/Game/SpatialQueryObjectFilter.cpp) |
+| `0x10A80E90` | 334 | [TriggerStringArrayResize.cpp](../src/Game/TriggerStringArrayResize.cpp) |
+| `0x10AA9C70` | 272 | [StatsConditionalRecordCopy.cpp](../src/Game/StatsConditionalRecordCopy.cpp) |
+| `0x10AB3D00` | 79 | [T3GameRegistrarLifetime.cpp](../src/Game/T3GameRegistrarLifetime.cpp) |
+| `0x10AB61A0` | 369 | [OptionsApplyVideo.cpp](../src/Game/OptionsApplyVideo.cpp) |
+| `0x10AB9D90` | 561 | [WaterEventHandling.cpp](../src/Game/WaterEventHandling.cpp) |
+| `0x10ABC7F0` | 255 | [LinkedPawnStatus.cpp](../src/Game/LinkedPawnStatus.cpp) |
+| `0x10ABDAE0` | 304 | [StringRecordResize.cpp](../src/Game/StringRecordResize.cpp) |
+| `0x10AC8310` | 405 | [ObjectEventRouter.cpp](../src/Game/ObjectEventRouter.cpp) |
+| `0x10ACB630` | 356 | [EventRecordMove.cpp](../src/Game/EventRecordMove.cpp) |
+| `0x10ACF440` | 581 | [LockPickSoundLinks.cpp](../src/Game/LockPickSoundLinks.cpp) |
+| `0x10ACF770` | 449 | [NearestLinkedActor.cpp](../src/Game/NearestLinkedActor.cpp) |
+| `0x10B1F550` | 333 | [ObjectRangeEligibility.cpp](../src/Game/ObjectRangeEligibility.cpp) |
+| `0x10B2A8A0` | 302 | [SubtitleStringRecordResize.cpp](../src/Game/SubtitleStringRecordResize.cpp) |
+| `0x10B39750` | 39 | [HandlerAnimationTime.cpp](../src/Game/HandlerAnimationTime.cpp) |
+| `0x10B398C0` | 16 | [LinkedMotionDisable.cpp](../src/Game/LinkedMotionDisable.cpp) |
+| `0x10B3EF20` | 177 | [LockPickControllerDestructor.cpp](../src/Game/LockPickControllerDestructor.cpp) |
+| `0x10B3F070` | 175 | [LockPickPinSelection.cpp](../src/Game/LockPickPinSelection.cpp) |
+| `0x10B3F3C0` | 467 | [LockPickPinPositions.cpp](../src/Game/LockPickPinPositions.cpp) |
+| `0x10B3F670` | 443 | [LockPickStageComplete.cpp](../src/Game/LockPickStageComplete.cpp) |
+| `0x10B426A0` | 480 | [LineRecordResize.cpp](../src/Game/LineRecordResize.cpp) |
+| `0x10B47090` | 34 | [MotionPairDisable.cpp](../src/Game/MotionPairDisable.cpp) |
+| `0x10B493A0` | 127 | [RopeStateTransition.cpp](../src/Game/RopeStateTransition.cpp) |
+| `0x10B49520` | 276 | [RopeClimbUpdate.cpp](../src/Game/RopeClimbUpdate.cpp) |
+| `0x10B49640` | 330 | [RopeTraversalDisplacement.cpp](../src/Game/RopeTraversalDisplacement.cpp) |
+| `0x10B4C840` | 517 | [WeaponMotionTransition.cpp](../src/Game/WeaponMotionTransition.cpp) |
+| `0x10B4CAD0` | 403 | [WeaponMotionSelection.cpp](../src/Game/WeaponMotionSelection.cpp) |
+| `0x10B54CE0` | 282 | [MapWindowConfig.cpp](../src/Game/MapWindowConfig.cpp) |
+| `0x10B91370` | 249 | [TransformCoordinates.cpp](../src/Game/TransformCoordinates.cpp) |
+| `0x10B97E10` | 131 | [State935F0Factory.cpp](../src/Game/State935F0Factory.cpp) |
+| `0x10B97EA0` | 131 | [State933B8Factory.cpp](../src/Game/State933B8Factory.cpp) |
+| `0x10B988F0` | 136 | [AIPlayingPossumFactory.cpp](../src/Game/AIPlayingPossumFactory.cpp) |
+| `0x10B99530` | 175 | [PatrolStateFactory.cpp](../src/Game/PatrolStateFactory.cpp) |
+| `0x10BAB250` | 739 | [ObjectStateSerialization.cpp](../src/Game/ObjectStateSerialization.cpp) |
+| `0x10BABF80` | 201 | [UniqueObjectWrapperAppend.cpp](../src/Game/UniqueObjectWrapperAppend.cpp) |
+| `0x10BAC100` | 591 | [FactionRelationQuery.cpp](../src/Game/FactionRelationQuery.cpp) |
+| `0x10BAC350` | 537 | [FactionRelationZeroQuery.cpp](../src/Game/FactionRelationZeroQuery.cpp) |
+| `0x10BB0CD0` | 353 | [ControlModelFlagCommand.cpp](../src/Game/ControlModelFlagCommand.cpp) |
+| `0x10BB14F0` | 192 | [DeferredActionCallback.cpp](../src/Game/DeferredActionCallback.cpp) |
+| `0x10BB2010` | 154 | [StateFleeUnwind.cpp](../src/Game/StateFleeUnwind.cpp) |
+| `0x10BB25F0` | 390 | [ScriptControllerCleanup.cpp](../src/Game/ScriptControllerCleanup.cpp) |
+| `0x10BB3300` | 294 | [ScriptControllerCommand.cpp](../src/Game/ScriptControllerCommand.cpp) |
+| `0x10BB80D0` | 11 | [FactionContextActor.cpp](../src/Game/FactionContextActor.cpp) |
+| `0x10BB88A0` | 181 | [AIPeriodicEffect.cpp](../src/Game/AIPeriodicEffect.cpp) |
+| `0x10BB8AE0` | 102 | [AIContextScalarUpdate.cpp](../src/Game/AIContextScalarUpdate.cpp) |
+| `0x10BBB8D0` | 530 | [AIPlannerCooldown.cpp](../src/Game/AIPlannerCooldown.cpp) |
+| `0x10BBD370` | 232 | [PawnModelReplacement.cpp](../src/Game/PawnModelReplacement.cpp) |
+| `0x10BBD460` | 232 | [PawnModelReplacement.cpp](../src/Game/PawnModelReplacement.cpp) |
+| `0x10BBD550` | 232 | [PawnModelReplacement.cpp](../src/Game/PawnModelReplacement.cpp) |
+| `0x10BBD640` | 232 | [PawnModelReplacement.cpp](../src/Game/PawnModelReplacement.cpp) |
+| `0x10BC2FF0` | 289 | [AIActorOrientation.cpp](../src/Game/AIActorOrientation.cpp) |
+| `0x10BC3670` | 858 | [FactionPropertyTransfer.cpp](../src/Game/FactionPropertyTransfer.cpp) |
+| `0x10BC45D0` | 264 | [AIStateEventDispatch.cpp](../src/Game/AIStateEventDispatch.cpp) |
+| `0x10BC9F40` | 196 | [AISpeechTimedDanger.cpp](../src/Game/AISpeechTimedDanger.cpp) |
+| `0x10BD20F0` | 353 | [StateSearchContextUpdate.cpp](../src/Game/StateSearchContextUpdate.cpp) |
+| `0x10BDC6D0` | 337 | [AIObjectCallback.cpp](../src/Game/AIObjectCallback.cpp) |
+| `0x10BE4EF0` | 173 | [AIAlertStateSerialization.cpp](../src/Game/AIAlertStateSerialization.cpp) |
+| `0x10BE9F50` | 582 | [AIStateSerialization.cpp](../src/Game/AIStateSerialization.cpp) |
+| `0x10BFD220` | 664 | [AITargetWeightSelection.cpp](../src/Game/AITargetWeightSelection.cpp) |
+| `0x10BFD860` | 384 | [ObjectResultPositions.cpp](../src/Game/ObjectResultPositions.cpp) |
+| `0x10C02720` | 213 | [AudioControllerState.cpp](../src/Game/AudioControllerState.cpp) |
+| `0x10C04630` | 441 | [AudioCallbackQueue.cpp](../src/Game/AudioCallbackQueue.cpp) |
+| `0x10C05B50` | 107 | [GridDirectionAngle.cpp](../src/Game/GridDirectionAngle.cpp) |
+| `0x10C061C0` | 761 | [GridEdgeSpan.cpp](../src/Game/GridEdgeSpan.cpp) |
+| `0x10C06560` | 133 | [GridCandidateCoordinates.cpp](../src/Game/GridCandidateCoordinates.cpp) |
+| `0x10C06940` | 544 | [GridCandidateLookup.cpp](../src/Game/GridCandidateLookup.cpp) |
+| `0x10C06B60` | 462 | [GridCandidateCache.cpp](../src/Game/GridCandidateCache.cpp) |
+| `0x10C06D30` | 511 | [GridCandidateSelection.cpp](../src/Game/GridCandidateSelection.cpp) |
+| `0x10C17450` | 550 | [VisualStateSerialization.cpp](../src/Game/VisualStateSerialization.cpp) |
+| `0x10C20A50` | 364 | [GridBoxCorners.cpp](../src/Game/GridBoxCorners.cpp) |
+| `0x10C20C70` | 234 | [GridPairArray.cpp](../src/Game/GridPairArray.cpp) |
+| `0x10C21340` | 457 | [GridRegionQuery.cpp](../src/Game/GridRegionQuery.cpp) |
+| `0x10C219E0` | 353 | [GridSegmentExtension.cpp](../src/Game/GridSegmentExtension.cpp) |
+| `0x10C21DD0` | 272 | [GridAngularWeight.cpp](../src/Game/GridAngularWeight.cpp) |
+| `0x10C22BE0` | 250 | [GridAngularWindow.cpp](../src/Game/GridAngularWindow.cpp) |
+| `0x10C22EE0` | 495 | [GridEdgeFilter.cpp](../src/Game/GridEdgeFilter.cpp) |
+| `0x10C25640` | 297 | [GridSegmentTraversal.cpp](../src/Game/GridSegmentTraversal.cpp) |
+| `0x10C26980` | 182 | [GridControllerConstructor.cpp](../src/Game/GridControllerConstructor.cpp) |
+| `0x10C26AC0` | 159 | [GridActionFactory.cpp](../src/Game/GridActionFactory.cpp) |
+| `0x10C26EE0` | 290 | [GridControllerDestructor.cpp](../src/Game/GridControllerDestructor.cpp) |
+| `0x10C27A20` | 344 | [GridCellBounds.cpp](../src/Game/GridCellBounds.cpp) |
+| `0x10C28680` | 184 | [SpineFlexOneResolve.cpp](../src/Game/SpineFlexOneResolve.cpp) |
+| `0x10C2A330` | 308 | [GridCommandAdd.cpp](../src/Game/GridCommandAdd.cpp) |
+| `0x10C2A470` | 295 | [GridCommandRemove.cpp](../src/Game/GridCommandRemove.cpp) |
+| `0x10C2EEC0` | 254 | [MotionAnimationPlayback.cpp](../src/Game/MotionAnimationPlayback.cpp) |
+| `0x10C2F0A0` | 207 | [AnimationPointHeight.cpp](../src/Game/AnimationPointHeight.cpp) |
+| `0x10C2F340` | 228 | [LocomotionCommandFactory.cpp](../src/Game/LocomotionCommandFactory.cpp) |
+| `0x10C2F8D0` | 137 | [AnimationCacheSelection.cpp](../src/Game/AnimationCacheSelection.cpp) |
+| `0x10C32430` | 168 | [IntegerHashTableSet.cpp](../src/Game/IntegerHashTableSet.cpp) |
+| `0x10C38460` | 134 | [MotionControllerFactory.cpp](../src/Game/MotionControllerFactory.cpp) |
+| `0x10C49AB0` | 253 | [GameTableKeyRemoval.cpp](../src/Game/GameTableKeyRemoval.cpp) |
+| `0x10C5DC60` | 173 | [CadenceManagedUpdate.cpp](../src/Game/CadenceManagedUpdate.cpp) |
+| `0x10D3EBE0` | 158 | [GameTimeSingleton.cpp](../src/Game/GameTimeSingleton.cpp) |

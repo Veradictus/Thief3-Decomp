@@ -5,10 +5,16 @@
 
 #include "Game/Struct_10C06540.h"
 
+class FVector;
+
 class Class_10C06540
 {
 public:
+    // Shared native getters, bound by independent same-candidate grid callers.
+    int FUN_10afcf40();
+    int FUN_10dbd520();
     Struct_10C06540 FUN_10c06540();
+    void FUN_10c06560(const FVector& Position, int* Row, int* Column);
 
     char Unknown00[0x48];
     Struct_10C06540 Unknown48;

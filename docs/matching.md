@@ -19,6 +19,25 @@ functions into translation units.
 
 ## The tools
 
+Reference-only views also use object-scoped original-address evidence from
+the declared `build/<version>/delink.json`, `idapro.json` and `.note.split`.
+The i386 VIRT descriptor is indexed by raw COFF symbol slot, including
+auxiliary gaps. A defined slot is usable only when its object group, model
+identity/bounds and independent names agree; zero and undefined entries do
+not supply addresses. Documented append-only SEH/interior-label processing
+must preserve the existing slot lineage. A renamed undefined FuncInfo needs
+the exact original handler-field relocation and a separately named, readable
+target. Friendly spelling alone is insufficient.
+
+The same witness service feeds `object_view` and cached address lookup. It
+keeps provenance and conflicts without adding global aliases or assuming a
+single base for packed sections. Malformed, stale or contradictory metadata
+fails closed. Missing/unsupported metadata leaves new references unresolved;
+ordinary objects without notes and image-backed pointer decoding retain their
+existing behavior. Metadata is cached per project, not reparsed for every
+relocation. This validates input evidence, not the historical producer binary's
+build provenance, and leaves recursive matching, arity and acceptance gates intact.
+
 All of them run from a checkout's root as `python tools/agent/<tool>.py`, in
 the main checkout or in a worker's git worktree. Shared state lives in the
 main checkout's `build/agent/` (found through git), next to the toolchain and

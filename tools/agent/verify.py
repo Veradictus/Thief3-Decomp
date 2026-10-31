@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import coff
+from address_provenance import for_project as original_addresses, load_object
 from common import Project, demangle, fmt_addr, guessed_name, is_placeholder, qualified_name, stack_bytes
 
 # Absolute symbols MSVC relocates against where the linked exe holds a plain value.
@@ -158,7 +159,7 @@ class TargetImage:
 
     def _object(self, path: str) -> coff.Coff:
         if path not in self._objs:
-            self._objs[path] = coff.Coff.load(Path(path))
+            self._objs[path] = load_object(Path(path))
         return self._objs[path]
 
     def _locate(self, address: int, size: int) -> Optional[Tuple[coff.Coff, coff.Section, int]]:
@@ -169,7 +170,7 @@ class TargetImage:
                 for path in sorted(self.p.obj_dir.rglob("*.obj")):
                     obj = self._object(str(path))
                     for s in obj.symbols:
-                        a = self.p.address_of(s.name) if s.defined and not s.is_section else None
+                        a = original_addresses(self.p).symbol_address(obj, s) if s.defined and not s.is_section else None
                         if a is not None:
                             entries.append((a, str(path), s.section, s.value))
             entries.sort()
@@ -241,11 +242,15 @@ def object_view(project: Project, obj: coff.Coff, sec: coff.Section, offset: int
     """A target object's bytes and relocations; references resolve by name (symbols.txt or the address in a
     placeholder name), else as a position in the same section."""
     section_base = address - offset
+    origins = original_addresses(project)
+    has_note = origins.has_note(obj)
     relocs = {}
     for _, r in obj.relocations(sec.index, offset, offset + size):
         sym = obj.slots[r.symbol]
-        base = project.address_of(sym.name)
-        if base is None and sym.defined and sym.section == sec.index:
+        base = origins.symbol_address(obj, sym)
+        if base is None:
+            base = origins.relocation_address(obj, sec, r, offset, address)
+        if base is None and sym.defined and sym.section == sec.index and not has_note:
             base = section_base + sym.value
         relocs[r.offset - offset] = (None if base is None else (base + obj.addend(sec.index, r)) & 0xFFFFFFFF,
                                      sym.name, r.type)
@@ -402,7 +407,7 @@ class Verifier:
             return res
         res.symbol, res.demangled = fn.name, dem.get(fn.name, "")
 
-        tobj = coff.Coff.load(tpath)
+        tobj = load_object(tpath)
         tfn = target_symbol(tobj, f.name, address)
         if tfn is None:
             res.problems.append(f"{tpath.name} does not define {f.name}: the split is older than symbols.txt; "

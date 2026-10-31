@@ -20,6 +20,7 @@ public:
 
     char FUN_10c26500(Struct_10C26A60* Obj, int Arg);
     void Replace(Struct_10C26A60* Obj, int Arg);
+    void FUN_10c26ac0(int A, int B, int C);
 
     char Unknown04[0x34];
     Struct_10C266F0 Unknown38;
