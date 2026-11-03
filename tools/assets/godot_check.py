@@ -28,6 +28,15 @@ Usage:
       exactly the saved edits from the second level, then opens the first in
       the headless editor and drives the dock (select, edit, save, undo).
       Afterwards --project DIR --viewer and --project DIR also work on it.
+  godot_check.py --shadow-selftest [DIR]
+      tests the viewer's .t3shadow reader without game files: writes synthetic
+      shadow volumes into a project at DIR (default
+      build/assets/shadow_selftest), reads them with
+      t3_tools/shadows/shadow_selftest.gd, and compares with Python's reader.
+  godot_check.py --shadows
+      the same check on every <Level>/shadows/*.t3shadow of --project.
+      Both read the files headlessly; with --gpu they run in a window and
+      also upload the volumes to the GPU.
 """
 
 from __future__ import annotations
@@ -37,6 +46,7 @@ import hashlib
 import json
 import os
 import shutil
+import struct
 import subprocess
 import sys
 from pathlib import Path
@@ -44,10 +54,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf import GLTFBuilder  # noqa: E402
+from selftest import shadow_render_data  # noqa: E402
 from t3common import BUILD_DIR, run_cli  # noqa: E402
 from t3map import ActorRecord, SavedEdits, ensure_project, resolve_edits, update_index, write_tscn  # noqa: E402
-from t3mesh import DEFAULT_SCALE  # noqa: E402
+from t3mesh import DEFAULT_SCALE, parse_render_data  # noqa: E402
 from t3pack import EDITS_VERSION, load_edits  # noqa: E402
+from t3shadow import decode as decode_shadows, shadow_volume, write as write_shadows  # noqa: E402
 
 EDIT_TEST_LEVEL = "T3EditTest"
 # The same level exported with saved edits (baked_edits()).
@@ -301,6 +313,64 @@ def editor_selftest(exe: str, project: Path, timeout: int) -> int:
     return failed
 
 
+# --- shadow volumes ------------------------------------------------------------------------
+
+def shadow_summary(path: Path, res_path: str) -> str:
+    """The OK line shadow_selftest.gd prints for a .t3shadow file, from Python's reader."""
+    data = path.read_bytes()
+    vols = decode_shadows(data)
+    with_data = [i for i, v in enumerate(vols) if v.positions]
+    first = ""
+    if with_data:
+        i = with_data[0]
+        v = vols[i]
+        cx, cy, cz, r = struct.unpack_from("<4f", data, 16 + 32 * i + 16)
+        first = " ".join(f"{c:.6f}" for c in v.positions[0]) + " " + " ".join(str(c) for c in v.normals[0])
+        first += " sphere " + " ".join(f"{c:.6f}" for c in (cx, cy, cz, r))
+    return (f"OK {res_path} meshes {len(vols)} with_data {len(with_data)} "
+            f"vertices {sum(len(vols[i].positions) for i in with_data)} "
+            f"triangles {sum(len(vols[i].indices) // 3 for i in with_data)} first {first}")
+
+
+def write_shadow_fixture(project: Path) -> List[Path]:
+    """Synthetic shadow volumes (selftest.py's tetrahedron, in T3's layout) as
+    a mesh file and a BSP-style file with empty entries; returns the files."""
+    ensure_project(project)
+    blob = shadow_render_data()
+    vol = shadow_volume(parse_render_data(blob, 0, len(blob)), DEFAULT_SCALE)
+    out = project / "T3ShadowTest" / "shadows"
+    return [write_shadows(out / "Tetra.t3shadow", [vol]),
+            write_shadows(out / "T3ShadowTest_bsp.t3shadow", [None, vol, None, vol])]
+
+
+def shadow_selftest(exe: str, project: Path, files: List[Path], gpu: bool, timeout: int) -> int:
+    """Reads `files` (in `project`) with the viewer's reader and compares with Python's."""
+    if not files:
+        print("no .t3shadow files found; run t3map.py first")
+        return 1
+    failed = import_project(exe, project, timeout)
+    res = {f: "res://" + f.relative_to(project).as_posix() for f in files}
+    r = run([exe] + ([] if gpu else ["--headless"]) + ["--path", str(project), "--script",
+            "res://t3_tools/shadows/shadow_selftest.gd", "--", *res.values()], timeout)
+    out = r.stdout + r.stderr
+    got = {ln.split(" ", 2)[1]: ln for ln in out.splitlines() if ln.startswith("OK ")}
+    for ln in out.splitlines():
+        if ln.startswith(("FAIL", "uploaded")):
+            print("  " + ln)
+    for f, rp in res.items():
+        want = shadow_summary(f, rp)
+        ok = got.get(rp) == want
+        print(("  ok    " if ok else "  FAIL  ") + (rp if ok else f"{rp}\n        Godot:  {got.get(rp)}\n"
+                                                         f"        Python: {want}"))
+        failed |= 0 if ok else 1
+    problems = problem_lines(out)
+    for ln in problems[:20]:
+        print("  " + ln)
+    failed |= 1 if (r.returncode or problems) else 0
+    print("shadow self-test " + ("FAILED" if failed else "passed"))
+    return failed
+
+
 def main() -> None:
     argv = sys.argv[1:]
     extra: List[str] = []
@@ -317,6 +387,10 @@ def main() -> None:
     ap.add_argument("--size", default="1600x900", help="window size for --viewer-shot")
     ap.add_argument("--editor-selftest", nargs="?", const="", metavar="DIR",
                     help="test the map editor plugin on a synthetic level (no game files needed)")
+    ap.add_argument("--shadow-selftest", nargs="?", const="", metavar="DIR",
+                    help="test the viewer's .t3shadow reader on synthetic files (no game files needed)")
+    ap.add_argument("--shadows", action="store_true", help="check every .t3shadow file of the project")
+    ap.add_argument("--gpu", action="store_true", help="with the shadow checks: run in a window, upload too")
     ap.add_argument("--no-import", action="store_true", help="skip the headless import step")
     ap.add_argument("--timeout", type=int, default=1800)
     ap.add_argument("scenes", nargs="*")
@@ -325,8 +399,14 @@ def main() -> None:
     if args.editor_selftest is not None:
         sys.exit(editor_selftest(exe, Path(args.editor_selftest or BUILD_DIR / "editor_selftest").resolve(),
                                  args.timeout))
+    if args.shadow_selftest is not None:
+        project = Path(args.shadow_selftest or BUILD_DIR / "shadow_selftest").resolve()
+        sys.exit(shadow_selftest(exe, project, write_shadow_fixture(project), args.gpu, args.timeout))
     project = Path(args.project).resolve()
     ensure_project(project)
+    if args.shadows:
+        sys.exit(shadow_selftest(exe, project, sorted(project.glob("*/shadows/*.t3shadow")), args.gpu,
+                                 args.timeout))
 
     if args.render:
         r = run([exe, "--path", str(project), "--resolution", "1280x720", "--script",

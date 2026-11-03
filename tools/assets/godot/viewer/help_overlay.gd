@@ -24,6 +24,7 @@ const ROWS := [
 	['View: lit / unlit / wireframe / cycle', 't3_view_lit|t3_view_unlit|t3_view_wireframe|t3_view_cycle'],
 	["Lamps (the map's own lights) on / off", 't3_toggle_lights'],
 	['Lighting: editor (with preview sun) / game / flat', 't3_cycle_lighting'],
+	['Volume shadows on / off', 't3_toggle_shadows'],
 	['Markers (starts, AI points, lights, sounds...)', 't3_toggle_markers'],
 	['This help', 't3_help'],
 	['Release the mouse, then back to the map list', 't3_back'],

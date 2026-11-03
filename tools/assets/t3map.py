@@ -22,6 +22,8 @@ Output (default build/assets/godot/, itself a Godot 4.7 project):
   <Level>/meshes/*.glb           one per (mesh, skin) pair used by the level
   <Level>/textures/*.png
   <Level>/meshes/<Level>_bsp.glb  BSP render blocks from the Level object (t3bsp.py)
+  <Level>/shadows/*.t3shadow     stencil shadow volumes: one per mesh, one for the BSP
+                                 blocks (t3shadow.py); nodes name theirs in t3_shadow
 
 An export is stamped with the export format version (formats.json,
 map_export).  Exporting a map again keeps its saved edits
@@ -54,7 +56,7 @@ import time
 import uuid
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ibt import IBT  # noqa: E402
@@ -65,11 +67,14 @@ from t3mesh import DEFAULT_SCALE, UNITS_PER_FOOT, ResourceSet, export_mesh, kern
 from t3pack import BACKUP_DIR, EditsError, load_edits, sha1_of, source_matches  # noqa: E402
 from t3props import PropertyNames, load_table  # noqa: E402
 from t3texture import load_categories  # noqa: E402
-from t3bsp import export_bsp  # noqa: E402
+from t3bsp import bsp_shadow_name, export_bsp  # noqa: E402
+from t3shadow import file_name as shadow_file_name, shadow_volume, write as write_shadows  # noqa: E402
 from upkg import RF_HasStack, GamesysBlock, Package, _jsonable, prop_value, struct_fields  # noqa: E402
 
 TOOLS_DIR = Path(__file__).resolve().parent
 EDITOR_PLUGIN = "t3_map_editor"  # tools/assets/godot/addons/<name>, installed into every exported project
+# Global shader uniforms of the stencil shadows (godot/shadows/), declared in project.godot.
+SHADOW_GLOBALS = ("t3_shadow_mask", "t3_shadow_depth")
 
 # The export format (formats.json, map_export).  Raise it when what an export
 # writes changes in a way the viewer or the map editor plugin relies on: an
@@ -88,6 +93,17 @@ def light_kind(enum_name: Optional[str]) -> str:
     return "omni"
 
 
+# EFleshLightType (Engine.Actor) names the light types without shadows
+# (FL_OmniNoShadow, FL_SpotNoShadow, FL_DirectionalNoShadow) apart from these.
+SHADOW_LIGHT_TYPES = {"FL_Omni", "FL_Spot", "FL_Directional"}
+
+
+def light_casts_shadows(enum_name: Optional[str]) -> bool:
+    """Whether a Flesh light type casts stencil shadows.  FL_Project is left
+    out: whether projected lights cast shadows is not established."""
+    return enum_name in SHADOW_LIGHT_TYPES
+
+
 class PropIds:
     """Gamesys property ids resolved by name from the script-derived table."""
 
@@ -103,6 +119,9 @@ class PropIds:
         self.light_on = get("bLightOn")
         self.inv_name = get("InvName")
         self.book_file = get("BookFileName")
+        self.cast_shadows = get("CastShadows")
+        self.shadow_extrusion = get("ShadowExtrusionDistance")
+        self.light_hardpoint_offset = get("LightHardpointOffset")
 
 
 @dataclass
@@ -129,6 +148,7 @@ class ActorRecord:
     inv_name: Optional[str] = None        # InvName string tag of an item (t_daggerloot)
     display_name: Optional[str] = None    # the name the game shows for it, from the string tables
     book: Optional[str] = None            # BookFileName of a readable
+    casts_shadows: bool = True            # CastShadows is not ShadowCasting_False
     error: Optional[str] = None
 
 
@@ -208,6 +228,30 @@ def _block_value(blocks: Dict[int, GamesysBlock], pid: Optional[int], default: A
     return default if b is None else b.value
 
 
+def _vector(value: Any) -> Optional[List[float]]:
+    """A Vector struct value as [x, y, z], or None."""
+    f = struct_fields(value)
+    return [float(f.get(k, 0.0)) for k in ("X", "Y", "Z")] if f else None
+
+
+# The light of an actor with a static mesh sits at the mesh's hp_lighttarget
+# hardpoint plus LightHardpointOffset, both turned by the actor's rotation but
+# not scaled by its DrawScale (the engine's light-position function,
+# 0x10992300, reads the hardpoint through 0x10971830).
+LIGHT_HARDPOINT = "hp_lighttarget"
+
+
+def light_local_offset(rec: ActorRecord, target: Optional[Sequence[float]], scale: float) -> Tuple[float, ...]:
+    """Where the light of mesh actor `rec` sits in the actor's node (Godot
+    axes, before the node's rotation and DrawScale): the mesh's
+    hp_lighttarget position `target` (Unreal units) plus the light's
+    LightHardpointOffset, divided by the DrawScale the node applies."""
+    hp = list(target or (0.0, 0.0, 0.0))
+    off = (rec.light or {}).get("hardpoint_offset") or [0.0, 0.0, 0.0]
+    ds = rec.draw_scale if abs(rec.draw_scale) > 1e-6 else 1.0
+    return tuple(c / ds for c in u2g([hp[i] + off[i] for i in range(3)], scale))
+
+
 def string_tag(value: Any) -> Optional[str]:
     """A string-table tag from a gamesys value: InvName holds either a name
     (t_CourierBag) or a string written as <string=t_WaterArrow>."""
@@ -272,6 +316,9 @@ def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[Acto
         rec.inv_name = string_tag(_block_value(merged, ids.inv_name))
         book = _block_value(merged, ids.book_file)
         rec.book = book if isinstance(book, str) and book.strip() else None
+        cast = _block_value(merged, ids.cast_shadows)
+        if isinstance(cast, int) and ids.cast_shadows:
+            rec.casts_shadows = names.enum_value(ids.cast_shadows, cast) != "ShadowCasting_False"
         # lights: anything with a Flesh light type or a LightColor
         ltype = _block_value(merged, ids.light_type)
         color = struct_fields(_block_value(merged, ids.light_color))
@@ -284,6 +331,10 @@ def extract_actors(pkg: Package, names: PropertyNames, gs: Gamesys) -> List[Acto
             rec.light = {
                 "flesh_type": ltname,
                 "kind": light_kind(ltname),
+                "shadows": light_casts_shadows(ltname),
+                # Unreal units; 0 or None: the light radius ("0.0 = Default = light radius")
+                "shadow_extrusion": _block_value(merged, ids.shadow_extrusion),
+                "hardpoint_offset": _vector(_block_value(merged, ids.light_hardpoint_offset)),
                 "hue": color.get("LightHue", 0), "saturation": color.get("LightSaturation", 255),
                 "brightness": color.get("LightBrightness", 64),
                 "radius": shape.get("LightRadius"), "inner_radius": shape.get("LightInnerRadius"),
@@ -574,12 +625,20 @@ def level_environment(actors: List[ActorRecord]) -> Optional[Dict[str, Any]]:
 def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Dict[Tuple[str, str], str],
                scale: float, bsp_file: Optional[str] = None, default_start: Optional[str] = None,
                title: str = "", enums: Optional[Dict[str, List[str]]] = None,
-               source: Optional[Dict[str, Any]] = None, edits: Optional[SavedEdits] = None) -> None:
+               source: Optional[Dict[str, Any]] = None, edits: Optional[SavedEdits] = None,
+               shadow_files: Optional[Dict[str, str]] = None, bsp_shadow: Optional[str] = None,
+               light_targets: Optional[Dict[str, Tuple[float, float, float]]] = None) -> None:
     """`enums` (enum type -> value names) supplies the value names of the enum
     properties in the scene; `source` ({file, size, sha1} of the .gmp) is
     stored on the root for the edits file of the map editor plugin.  `edits`
-    (resolve_edits()) are applied: see "saved edits" above."""
+    (resolve_edits()) are applied: see "saved edits" above.  `shadow_files`
+    (mesh -> file) and `bsp_shadow` name the .t3shadow files in
+    <Level>/shadows/, stored as t3_shadow on the nodes that use them.
+    `light_targets` (mesh -> hp_lighttarget position) places the lights of
+    mesh actors (light_local_offset())."""
     edits = edits or SavedEdits()
+    shadow_files = shadow_files or {}
+    light_targets = light_targets or {}
     ext: Dict[str, str] = {}
     lines_nodes: List[str] = []
     pawns = {a.name for a in actors if "Pawn" in (a.base or "")}
@@ -655,6 +714,9 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
             # Unit of LightRadius not established; assume feet (16 Unreal units), see docs/assets.md.
             rng = max(0.1, float(radius) * UNITS_PER_FOOT * scale)
             out.append(f"{'omni_range' if gtype == 'OmniLight3D' else 'spot_range'} = {fmt_float(rng)}")
+        if lt.get("shadows"):
+            # T3Shadows gives the nearest such lights volume shadows; the rest use shadow maps.
+            out.append("shadow_enabled = true")
         if lt.get("on") is False:
             out.append("visible = false")
         out.append(f"metadata/t3_light = {_tscn_str(json.dumps(lt))}")
@@ -673,8 +735,13 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
             out = [f'\n[node name="{name}" parent="{parent}" instance=ExtResource("{ext[f]}")]',
                    f"transform = {xform}"]
             out.extend(meta(rec, parent, gamesys_edits, copy))
-            if rec.light is not None:  # lamps, candles: mesh plus light
-                out.extend(light_lines(rec, "T3Light", f"{parent}/{name}", None))
+            if rec.mesh in shadow_files and rec.casts_shadows:
+                out.append(f"metadata/t3_shadow = {_tscn_str(f'res://{level}/shadows/{shadow_files[rec.mesh]}')}")
+            if rec.light is not None:  # lamps, candles: mesh plus light, at the light hardpoint
+                at = light_local_offset(rec, light_targets.get(rec.mesh), scale)
+                local = None if not any(at) else (
+                    "Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, " + ", ".join(_fmt_exact(c) for c in at) + ")")
+                out.extend(light_lines(rec, "T3Light", f"{parent}/{name}", local))
             return out
         if rec.light is not None:
             out = light_lines(rec, name, parent, xform)
@@ -763,6 +830,8 @@ def write_tscn(path: Path, level: str, actors: List[ActorRecord], mesh_files: Di
                  f"metadata/t3_environment = {_tscn_str(json.dumps(env))}"]
     if bsp_file:
         body.append('\n[node name="BSP" parent="." instance=ExtResource("0_bsp")]')
+        if bsp_shadow:
+            body.append(f"metadata/t3_shadow = {_tscn_str(f'res://{level}/shadows/{bsp_shadow}')}")
     path.write_text("\n".join(header) + "\n" + "\n".join(body) + "\n" + "\n".join(lines_nodes) + "\n",
                     encoding="utf-8")
 
@@ -781,7 +850,7 @@ def _uid(seed: str) -> str:
 
 # Godot key codes (engine constants) used by the viewer's input map.
 _KEY = {"W": 87, "A": 65, "S": 83, "D": 68, "Q": 81, "E": 69, "C": 67, "I": 73, "F": 70, "P": 80, "V": 86,
-        "L": 76, "K": 75, "M": 77, "H": 72, "1": 49, "2": 50, "3": 51, "SPACE": 32,
+        "L": 76, "K": 75, "G": 71, "M": 77, "H": 72, "1": 49, "2": 50, "3": 51, "SPACE": 32,
         "ESCAPE": 4194305, "LEFT": 4194319, "UP": 4194320, "RIGHT": 4194321, "DOWN": 4194322,
         "PAGEUP": 4194323, "PAGEDOWN": 4194324, "SHIFT": 4194325, "CTRL": 4194326, "ALT": 4194328,
         "F1": 4194332}
@@ -808,6 +877,7 @@ VIEWER_ACTIONS = [
     ("t3_view_cycle", [("key", "V")]),
     ("t3_toggle_lights", [("key", "L")]),
     ("t3_cycle_lighting", [("key", "K")]),
+    ("t3_toggle_shadows", [("key", "G")]),
     ("t3_toggle_markers", [("key", "M")]),
     ("t3_help", [("key", "F1"), ("key", "H")]),
     ("t3_back", [("key", "ESCAPE")]),
@@ -845,6 +915,7 @@ def project_godot_text() -> str:
         "[autoload]",
         "",
         'T3Viewer="*res://t3_tools/viewer/viewer_state.gd"',
+        'T3Shadows="*res://t3_tools/shadows/t3_shadows.gd"',
         "",
         "[display]",
         "",
@@ -865,7 +936,14 @@ def project_godot_text() -> str:
         lines.append("}")
     lines += ["", "[editor_plugins]", "",
               f'enabled=PackedStringArray("res://addons/{EDITOR_PLUGIN}/plugin.cfg")']
-    lines += ["", "[rendering]", "", 'renderer/rendering_method="forward_plus"', ""]
+    lines += ["", "[rendering]", "", 'renderer/rendering_method="forward_plus"']
+    # T3Shadows (t3_tools/shadows/t3_shadows.gd): the user's switches.
+    lines += ["", "[t3]", "", "shadows/enabled=true", "shadows/max_shadowed_lights=4"]
+    # The stencil shadow mask and its depth, set by t3_tools/shadows/stencil_shadow_effect.gd.
+    lines += ["", "[shader_globals]", ""]
+    for name in SHADOW_GLOBALS:
+        lines += [f"{name}={{", '"type": "sampler2D",', '"value": ""', "}"]
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -1076,6 +1154,8 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
         res = ResourceSet(bundles, out / "textures", overwrite=fresh)
         wanted = sorted({(a.mesh, a.skin or "Default") for a in actors if a.mesh})
         mesh_files: Dict[Tuple[str, str], str] = {}
+        shadow_files: Dict[str, str] = {}
+        light_targets: Dict[str, Tuple[float, float, float]] = {}
         missing = []
         for i, (mesh, skin) in enumerate(wanted):
             if limit and i >= limit:
@@ -1089,12 +1169,23 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
             if fresh or not target.exists():
                 export_mesh(m, skin, res, target, scale)
             mesh_files[(mesh, skin)] = fname
-        print(f"  {len(mesh_files)} mesh/skin pairs exported, {len(missing)} meshes not found in the bundles"
-              f" ({time.time() - t0:.1f} s)")
+            for hp in m.hardpoints:
+                if hp.name.lower() == LIGHT_HARDPOINT:
+                    light_targets[mesh] = hp.position
+            if mesh not in shadow_files and m.render.shadow_indices:
+                sname = shadow_file_name(m.name)
+                starget = out / "shadows" / sname
+                if fresh or not starget.exists():
+                    write_shadows(starget, [shadow_volume(m.render, scale)])
+                shadow_files[mesh] = sname
+        print(f"  {len(mesh_files)} mesh/skin pairs exported ({len(shadow_files)} meshes with shadow volumes), "
+              f"{len(missing)} meshes not found in the bundles ({time.time() - t0:.1f} s)")
         if missing:
             print("  missing: " + ", ".join(sorted(set(missing))[:20]) + (" ..." if len(set(missing)) > 20 else ""))
-        bsp = export_bsp(src, out, scale, res)
-        print(f"  BSP: {bsp.name if bsp else 'no render blocks found'} ({time.time() - t0:.1f} s)")
+        bsp = export_bsp(src, out, scale, res, shadows=True)
+        bsp_shadow = bsp_shadow_name(level) if (out / "shadows" / bsp_shadow_name(level)).is_file() else None
+        print(f"  BSP: {bsp.name if bsp else 'no render blocks found'}"
+              f"{', shadow volumes ' + bsp_shadow if bsp_shadow else ''} ({time.time() - t0:.1f} s)")
         title = level_title(actors, strings or {}, level)
         start = default_player_start(actors)
         edits = resolve_edits(actors, edits_doc) if edits_doc else SavedEdits()
@@ -1103,7 +1194,7 @@ def export_level(gmp: Path, game: Path, root: Path, scale: float, names: Propert
         scene = out / f"{level}.tscn"
         kept = keep_previous_scene(scene, previous, edits_path)
         write_tscn(scene, level, actors, mesh_files, scale, bsp.name if bsp else None, start, title, names.enums,
-                   source, edits)
+                   source, edits, shadow_files, bsp_shadow if bsp else None, light_targets)
         update_index(root, {"id": level, "title": title, "scene": f"res://{level}/{level}.tscn",
                             "actors": len(actors), "meshes": len(mesh_files),
                             "lights": sum(1 for a in actors if a.light is not None),

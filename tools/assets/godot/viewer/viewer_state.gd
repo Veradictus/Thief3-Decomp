@@ -13,7 +13,7 @@ extends Node
 ##                             with exit code 0 (pass) or 1 (fail); works headless
 ##     --t3-screenshot <png>   save a frame of the viewer and quit (needs a GPU)
 ##     --t3-camera x y z tx ty tz   camera position and target, in metres
-##     --t3-view lit|unlit|wireframe, --t3-lighting editor|game|flat,
+##     --t3-view lit|unlit|wireframe, --t3-lighting editor|game|flat, --t3-shadows on|off,
 ##     --t3-select (inspect the crosshair target),
 ##     --t3-help (show the help overlay), --t3-frames <n> (frames before the shot)
 
@@ -81,6 +81,7 @@ const DEFAULT_ACTIONS := {
 	't3_view_cycle': [['key', KEY_V]],
 	't3_toggle_lights': [['key', KEY_L]],
 	't3_cycle_lighting': [['key', KEY_K]],
+	't3_toggle_shadows': [['key', KEY_G]],
 	't3_toggle_markers': [['key', KEY_M]],
 	't3_help': [['key', KEY_F1], ['key', KEY_H]],
 	't3_back': [['key', KEY_ESCAPE]],
@@ -225,7 +226,7 @@ static func parse_args(args: PackedStringArray) -> Dictionary:
 		var a := args[i]
 		match a:
 			# Options that take one value.
-			'--t3-map', '--t3-screenshot', '--t3-view', '--t3-lighting', '--t3-frames':
+			'--t3-map', '--t3-screenshot', '--t3-view', '--t3-lighting', '--t3-shadows', '--t3-frames':
 				if i + 1 < args.size():
 					out[a.trim_prefix('--t3-')] = args[i + 1]
 					i += 1
@@ -333,7 +334,7 @@ func run_selftest() -> void:
 	# Exercise every toggle twice, to land back where it started.
 	for action in ['t3_view_unlit', 't3_view_wireframe', 't3_view_lit', 't3_toggle_lights', 't3_toggle_lights',
 			't3_cycle_lighting', 't3_cycle_lighting', 't3_cycle_lighting', 't3_toggle_markers', 't3_toggle_markers',
-			't3_help', 't3_help', 't3_next_start']:
+			't3_toggle_shadows', 't3_toggle_shadows', 't3_help', 't3_help', 't3_next_start']:
 		await send_action(action)
 	check(viewer.view_mode_name() == 'lit', 'view modes and toggles respond')
 

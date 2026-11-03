@@ -27,11 +27,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ibt import IBT, PartReader  # noqa: E402
 from t3common import BUILD_DIR, Reader, godot_basis, u2g, write_index  # noqa: E402
 from t3map import (EXPORT_VERSION, TOOLS_DIR, ActorRecord, ensure_project, export_source,  # noqa: E402
-                   keep_previous_scene, resolve_edits, write_tscn)
-from t3mesh import ResourceSet, mesh_to_gltf, parse_static_mesh  # noqa: E402
+                   keep_previous_scene, light_casts_shadows, light_local_offset, resolve_edits, write_tscn)
+from t3mesh import ResourceSet, mesh_to_gltf, parse_render_data, parse_static_mesh  # noqa: E402
 from t3pack import (EditsError, apply_edits, check_source, install, load_edits, original_source,  # noqa: E402
                     restore, roundtrip, verify_patch, write_verified)
 from t3props import PropertyNames, parse_declarations, parse_enums  # noqa: E402
+from t3shadow import (VERSION as SHADOW_VERSION, ShadowVolume, decode as decode_shadows,  # noqa: E402
+                      encode as encode_shadows, shadow_volume)
 from t3save import (LITERAL_BLOCK, SaveFile, added_names, lzo1x_decompress, lzo1x_literal,  # noqa: E402
                     migrate_package)
 from t3texture import decode_rgba, parse_material, parse_texture, to_dds  # noqa: E402
@@ -504,6 +506,28 @@ def test_export() -> None:
     # where they stand: Unreal (x, y, z) is Godot (x, z, y), scaled
     assert crate.split("transform = ")[1].split("\n")[0].endswith("0.20955, 0.5715, 0.381)"), crate
     assert copy.split("transform = ")[1].split("\n")[0].endswith("0.9525, 0.5715, 0.381)"), copy
+    # shadow volumes: on every node of the mesh, and on the BSP node
+    assert "t3_shadow" not in text
+    shadowed = out / "Shadowed.tscn"
+    write_tscn(shadowed, "Synth", actors, {("Box", "Default"): "Box.glb"}, 0.01905, "Synth_bsp.glb",
+               shadow_files={"Box": "Box.t3shadow"}, bsp_shadow="Synth_bsp.t3shadow")
+    nodes = scene_nodes(shadowed.read_text(encoding="utf-8"))
+    assert 'metadata/t3_shadow = "res://Synth/shadows/Box.t3shadow"' in nodes["Box #7"]
+    assert 'metadata/t3_shadow = "res://Synth/shadows/Synth_bsp.t3shadow"' in nodes["BSP"]
+    # a lamp's light sits at its mesh's hp_lighttarget plus LightHardpointOffset, not scaled by DrawScale
+    lamp = ActorRecord("Lamp__2", "D_9", archetype="Lamp", base="Actor", mesh="Box", skin="Default", draw_scale=2.0,
+                       light={"kind": "omni", "radius": 16, "shadows": True, "hardpoint_offset": [0.0, 0.0, 8.0]})
+    write_tscn(shadowed, "Synth", [lamp], {("Box", "Default"): "Box.glb"}, 0.01905,
+               light_targets={"Box": (0.0, 0.0, 32.0)})
+    light = scene_nodes(shadowed.read_text(encoding="utf-8"))["T3Light"]
+    assert "transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.381, 0)" in light, light
+    assert "shadow_enabled = true" in light, light
+    assert all(abs(a - b) < 1e-12 for a, b in zip(light_local_offset(lamp, None, 0.01905), (0.0, 0.0762, 0.0)))
+    actors[1].casts_shadows = False  # CastShadows = ShadowCasting_False
+    write_tscn(shadowed, "Synth", actors, {("Box", "Default"): "Box.glb"}, 0.01905,
+               shadow_files={"Box": "Box.t3shadow"})
+    assert "t3_shadow" not in scene_nodes(shadowed.read_text(encoding="utf-8"))["Box #7"]
+    actors[1].casts_shadows = True
 
     # while a patched map is installed, the original is exported, unless the
     # saved edits were made from the patched map
@@ -541,6 +565,12 @@ def test_export() -> None:
     assert (addon / "plugin.gd").read_bytes() == (TOOLS_DIR / "godot" / "addons" / "t3_map_editor" /
                                                   "plugin.gd").read_bytes()
     assert (addon / "plugin.gd.uid").read_text(encoding="utf-8") == "uid://keep"
+    godot = (project / "project.godot").read_text(encoding="utf-8")
+    assert "[shader_globals]" in godot and "t3_shadow_mask={" in godot and "t3_shadow_depth={" in godot
+    assert 'T3Shadows="*res://t3_tools/shadows/t3_shadows.gd"' in godot and "shadows/enabled=true" in godot
+    assert (project / "t3_tools" / "shadows" / "stencil_shadow_effect.gd").is_file()
+    plugin = (addon / "t3_edits.gd").read_text(encoding="utf-8")
+    assert f"const EXPORT_VERSION := {EXPORT_VERSION}\n" in plugin, "the plugin's EXPORT_VERSION is not map_export"
     tool = str(Path(__file__).resolve().parent / "t3map.py")
     env = {k: v for k, v in os.environ.items() if k != "T3_GAME_DIR"}
     r = subprocess.run([sys.executable, tool, "--project-only", "-o", str(project)], capture_output=True, text=True,
@@ -648,6 +678,113 @@ def test_ibt() -> None:
     print("block file, texture, material, mesh, glTF: ok")
 
 
+# --- stencil shadow volumes ----------------------------------------------------------------
+
+# A tetrahedron in Unreal units, faces wound so (b-a)x(c-a) points out.
+TETRA_POINTS = [(0.0, 0.0, 0.0), (64.0, 0.0, 0.0), (0.0, 64.0, 0.0), (0.0, 0.0, 64.0)]
+TETRA_FACES = [(0, 2, 1), (0, 1, 3), (0, 3, 2), (1, 2, 3)]
+
+
+def shadow_render_data(points=TETRA_POINTS, faces=TETRA_FACES) -> bytes:
+    """Render data (one triangle) with a stencil shadow volume laid out like
+    T3's: three vertices per face carrying the face normal (127-centred
+    D3DCOLOR order), the faces, then two degenerate triangles per edge."""
+    def sub(a, b):
+        return [a[i] - b[i] for i in range(3)]
+
+    def cross(a, b):
+        return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+
+    verts, tris, edges = b"", [], {}
+    for f, (a, b, c) in enumerate(faces):
+        n = cross(sub(points[b], points[a]), sub(points[c], points[a]))
+        n = [x / math.sqrt(sum(y * y for y in n)) for x in n]
+        packed = bytes([round(n[2] * 127) + 127, round(n[1] * 127) + 127, round(n[0] * 127) + 127, 0])
+        for k, p in enumerate((a, b, c)):
+            verts += struct.pack("<3f", *points[p]) + packed
+            edges[(p, (a, b, c)[(k + 1) % 3])] = (3 * f + k, 3 * f + (k + 1) % 3)
+        tris.append((3 * f, 3 * f + 1, 3 * f + 2))
+    for (pa, pb), (a1, b1) in edges.items():
+        if pa < pb:
+            b2, a2 = edges[(pb, pa)]  # the neighbour's copy of the edge, b -> a
+            tris += [(b1, a1, a2), (b1, a2, b2)]
+    idx = [i for t in tris for i in t]
+    nsv = len(verts) // 16
+    blob = struct.pack("<3f3ff3f", 0, 0, 0, 64, 64, 64, 55.5, 32, 32, 32)
+    blob += struct.pack("<10I", 3, 3, 1, 1, len(idx), len(tris), nsv, 1, 64, 0)
+    for p in ((0, 0, 0), (64, 0, 0), (0, 64, 0)):
+        blob += struct.pack("<3f3f2f3f2f2fI", *p, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0xFFFFFFFF)
+    blob += verts + struct.pack(f"<{len(idx)}H", *idx)
+    blob += struct.pack("<3H", 0, 1, 2) + fstring("Default") + struct.pack("<6I", 1, 0, 3, 0, 3, 0)
+    return blob
+
+
+def closed(positions, indices) -> bool:
+    """Every edge (on welded positions) has as many faces each way."""
+    weld: dict = {}
+    ids = [weld.setdefault(tuple(round(c, 4) for c in p), len(weld)) for p in positions]
+    count: dict = {}
+    for t in range(0, len(indices), 3):
+        tri = [ids[i] for i in indices[t:t + 3]]
+        for k in range(3):
+            e = (tri[k], tri[(k + 1) % 3])
+            count[e] = count.get(e, 0) + 1
+    return all(count.get((b, a), 0) == n for (a, b), n in count.items() if a != b)
+
+
+def test_shadows() -> None:
+    blob = shadow_render_data()
+    rm = parse_render_data(blob, 0, len(blob))
+    faces = len(TETRA_FACES)
+    assert len(rm.shadow_positions) == 3 * faces and len(rm.shadow_indices) == 3 * 4 * faces
+    assert rm.indices == [0, 1, 2] and rm.positions[1] == (64.0, 0.0, 0.0)  # render data unchanged
+    assert rm.shadow_normals[0] == (0.0, 0.0, -1.0), rm.shadow_normals[0]  # face (0, 2, 1) faces -Z
+    assert closed(rm.shadow_positions, rm.shadow_indices)
+    plain = parse_render_data(b"".join(mesh_parts()[-1:]))  # a mesh without shadow data
+    assert not plain.shadow_positions and not plain.shadow_indices
+
+    scale = 0.01905
+    vol = shadow_volume(rm, scale)
+    assert vol is not None and shadow_volume(plain, scale) is None
+    assert vol.positions[0] == u2g(rm.shadow_positions[0], scale)
+    assert vol.normals[0] == (0, -127, 0)  # Unreal -Z is Godot -Y
+    assert vol.indices[:3] == [rm.shadow_indices[0], rm.shadow_indices[2], rm.shadow_indices[1]]
+    assert closed(vol.positions, vol.indices)
+    # face normals still point along (b-a)x(c-a) after the axis swap and the reversed winding
+    for t in range(0, 3 * faces, 3):
+        a, b, c = (vol.positions[i] for i in vol.indices[t:t + 3])
+        u, v = [b[i] - a[i] for i in range(3)], [c[i] - a[i] for i in range(3)]
+        n = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
+        assert sum(n[i] * vol.normals[vol.indices[t]][i] for i in range(3)) > 0
+
+    data = encode_shadows([None, vol])
+    assert data[:4] == b"T3SV" and struct.unpack_from("<3I", data, 4) == (SHADOW_VERSION, 2, 0)
+    assert struct.unpack_from("<4I", data, 16) == (0, 0, 2, 0)  # an entry without data
+    nv, ni, isize, off = struct.unpack_from("<4I", data, 48)
+    assert (nv, ni, isize, off) == (12, 48, 2, 16 + 2 * 32), (nv, ni, isize, off)
+    assert len(data) == off + nv * 16 + ni * 2
+    empty, back = decode_shadows(data)
+    assert not empty.positions and not empty.indices
+    assert back.indices == vol.indices and back.normals == vol.normals
+    assert all(abs(x - y) < 1e-6 for p, q in zip(back.positions, vol.positions) for x, y in zip(p, q))
+    centre, radius = struct.unpack_from("<3f", data, 48 + 16), struct.unpack_from("<f", data, 48 + 28)[0]
+    assert all(math.dist(centre, p) <= radius + 1e-5 for p in vol.positions)
+
+    # more than 65536 vertices: 32-bit indices
+    wide = ShadowVolume([(float(i), 0.0, 0.0) for i in range(0x10001)], [(0, 127, 0)] * 0x10001, [0, 0x10000, 1])
+    data = encode_shadows([wide])
+    assert struct.unpack_from("<I", data, 16 + 8)[0] == 4 and decode_shadows(data)[0].indices == [0, 0x10000, 1]
+    try:
+        decode_shadows(b"NOPE" + data[4:])
+        raise AssertionError("a bad magic was accepted")
+    except ValueError:
+        pass
+    assert light_casts_shadows("FL_Omni") and light_casts_shadows("FL_Spot")
+    assert not light_casts_shadows("FL_OmniNoShadow") and not light_casts_shadows("FL_Project")
+    assert not light_casts_shadows(None)
+    print("shadow volumes: render data, axes and winding, closed, .t3shadow round trip: ok")
+
+
 def test_math_and_props() -> None:
     assert u2g((1, 2, 3)) == (1, 3, 2)
     cols = godot_basis(0, 16384, 0)  # yaw 90 degrees: Unreal X turns into Unreal Y = Godot Z
@@ -727,6 +864,7 @@ def main() -> None:
     test_saves()
     test_export()
     test_ibt()
+    test_shadows()
     test_math_and_props()
     selftest_texpack.main()
     print("all self-tests passed")

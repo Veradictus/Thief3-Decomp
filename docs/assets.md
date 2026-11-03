@@ -19,7 +19,9 @@ Status at a glance:
   - the BSP world geometry;
   - lights;
   - every other actor as a marker, carrying its gamesys properties as node
-    metadata.
+    metadata;
+  - the stencil shadow volumes of meshes and BSP blocks, drawn
+    automatically in the project and its editor (checked on Castle1).
 
   The scenes import and load in Godot 4.7.2 (headless import and a load
   check), and rendered views look like the game. The exported project opens
@@ -166,6 +168,23 @@ Lights use `LightColor`, a struct of brightness, hue and saturation in UE
 HSV bytes. They also use `LightShape` (radius, cone...), `FleshLightType`
 (omni, spot, directional, ambient, projector, with or without shadows) and
 `bLightOn`.
+
+Shadows use these properties:
+
+- **`FleshLightType`**: `FL_Omni`, `FL_Spot` and `FL_Directional` cast
+  shadows. Their `...NoShadow` twins do not. Whether `FL_Project` lights
+  cast shadows is not known.
+- **`CastShadows`** (`ShadowCasting_True` or `ShadowCasting_False`): whether
+  an actor casts shadows.
+- **`ShadowExtrusionDistance`** on a light ("0.0 = Default = light radius")
+  and **`ShadowExtrusionOffset`** on a caster: how far volumes reach. The
+  export does not use them yet.
+
+The light of an actor with a static mesh sits at the mesh's
+`hp_lighttarget` hardpoint plus `LightHardpointOffset`. Both are turned by
+the actor's rotation but not scaled by its `DrawScale`. The engine function
+at `0x10992300` computes this, through `0x10971830`, which reads the
+hardpoint. A candlestick's light is at its flame, not at its base.
 
 ### Archetypes (T3Gamesys.t3u)
 
@@ -338,14 +357,24 @@ by texture name.
 - Vertices. Stride 64: position, normal, uv0, tangent, uv1, uv2, BGRA colour.
   Stride −32: packed; the normal and tangent are 4-byte D3DCOLOR-order
   vectors with 128 = 0.
-- Stencil-shadow vertices (16 bytes each).
-- Shadow indices.
+- Stencil-shadow vertices, 16 bytes each: position, then the face normal as
+  4 bytes in D3DCOLOR order with 127 = 0 (`0x7f7f00` is −Z).
+- Shadow indices (u16).
 - Render indices (u16, absolute).
 - Sections: name, triangle count, first vertex, vertex count, first index,
   index count, 0.
 
 Positions are in Unreal units and axes. Triangles are front-facing when
 `(b−a)×(c−a)` points along the normal.
+
+The shadow data is a ready-made **stencil shadow volume**. Each face has its
+own three vertices, all carrying the face normal. The triangles are the
+faces, then two degenerate triangles per edge, so 4 per face. A vertex
+shader pushes the vertices of faces that face the light to infinity, and the
+degenerate triangles on the silhouette become the volume's sides. Every
+volume in the 32 retail maps has this layout (4,355 meshes, 4,550 BSP
+blocks), and those checked on Castle1 are closed. Meshes without shadow data
+have zero counts.
 
 Faces using the material `BF` (category "ignored", placeholder texture) are
 not drawn by the game; the exporter drops them.
@@ -575,6 +604,8 @@ addons/t3_map_editor/          the map editor plugin (enabled in project.godot)
 <Level>/<Level>.edits.json     changes saved by the map editor plugin (read, never written, by the export)
 <Level>/meshes/<mesh>[__<skin>].glb   one per (mesh, skin) pair used
 <Level>/meshes/<Level>_bsp.glb        BSP render blocks, one node per block
+<Level>/shadows/<mesh>.t3shadow       a mesh's shadow volume (see "Shadow volumes" below)
+<Level>/shadows/<Level>_bsp.t3shadow  the BSP blocks' shadow volumes, one entry per block
 <Level>/textures/*.png                 decoded textures (lower-case names)
 ```
 
@@ -629,7 +660,8 @@ Scene structure:
   | `Character parts` (hidden) | the meshes attached to NPC skeletons (eyes, teeth, hair, armour); the skeletons are not exported yet, so these parts would otherwise float in the air | |
 
   An actor with a mesh is an instance of its `.glb`, and gets a `T3Light`
-  child if it also has a light. A light without a mesh is an
+  child if it also has a light, placed at the mesh's `hp_lighttarget`
+  hardpoint (section 2). A light without a mesh is an
   `OmniLight3D`, `SpotLight3D` or `DirectionalLight3D`, and anything else a
   `Marker3D`.
 - A `WorldEnvironment` built from the LevelInfo actor: ambient colour and
@@ -657,6 +689,11 @@ Every node carries metadata:
 - `t3_book`: a readable's text file (`BookFileName`).
 - `t3_category`: the folder the node is in (`Objects/InventoryObject`).
 - `t3_attached_to` and `t3_attached_bone`, for attachment children.
+- `t3_shadow`: the `.t3shadow` file of the actor's mesh, as a `res://` path.
+  Only on actors that cast shadows (`CastShadows`). The BSP node carries the
+  level's BSP file.
+- `t3_light` (lights): the light as JSON. `shadows` says whether its type
+  casts shadows.
 - `t3_gamesys`: the instance's own gamesys properties as JSON, with property
   names and enum and bitfield names resolved.
 - `t3_gamesys_types`: the value type of each of them, as JSON: the block kind
@@ -687,6 +724,26 @@ glTF materials:
 
 Godot creates `StandardMaterial3D`s from these on import.
 
+### Shadow volumes
+
+The export writes the stencil shadow volumes of the meshes and BSP blocks
+(section 3) as `.t3shadow` files (`t3shadow.py`). They are in Godot's axes
+and scale, so the viewer hands their bytes to the GPU as they are:
+
+| Offset | Field |
+|---|---|
+| 0x00 | `"T3SV"`, u32 version (1), u32 mesh count, u32 0 |
+| 0x10 | per mesh, 32 bytes: u32 vertex count, u32 index count, u32 index size (2 or 4), u32 data offset, f32 bounding sphere centre x, y, z and radius |
+| data | per mesh: f32 positions (xyz), snorm8 face normals (xyz0, value / 127), u16 or u32 indices; each part padded to 4 bytes |
+
+Positions are converted like the render mesh: axes swapped, scaled, and the
+winding reversed. Normals get the same axis swap. A mesh without shadow data
+has zero counts. A BSP file has one entry per block, in the order of the
+glTF extras' `t3_block_index`.
+
+The project draws them on its own; see [Shadows](#shadows) for what a user
+sees and [How the shadows work](#how-the-shadows-work) for the details.
+
 To verify, run
 `godot_check.py --godot <Godot 4.7 exe>` (or set `$GODOT`). It imports the
 project headlessly and loads every level scene with `check_scene.gd`.
@@ -694,12 +751,14 @@ project headlessly and loads every level scene with `check_scene.gd`.
 `--viewer-shot OUT.png [--map MAP]` saves a frame of the picker or the
 viewer, and `--render` renders one frame of a scene. `--editor-selftest`
 tests the map editor plugin (below) on a synthetic level.
+`--shadow-selftest` reads synthetic `.t3shadow` files with the viewer's
+reader and compares them with Python's; `--shadows` does the same for the
+project's files. Add `--gpu` to also upload them.
 
 What is missing for a faithful look:
 
-- T3's lighting model: per-pixel lights with stencil shadows, projected
-  light textures and the `LightingBehavior` animations. A `ShaderMaterial`
-  or light scripts could mimic it.
+- The rest of T3's lighting model: projected light textures and the
+  `LightingBehavior` animations.
 - Specular and environment stages.
 - Particle emitters.
 - The sky cube, which is in a UTX.
@@ -744,6 +803,7 @@ the live input map, so edits in Project Settings show up there):
 | View: lit / unlit / wireframe / cycle | 1 / 2 / 3 / V |
 | Lamps (the map's own lights) on/off | L |
 | Lighting: editor / game / flat (see below) | K |
+| Volume shadows on/off (see [Shadows](#shadows)) | G |
 | Markers for actors without geometry | M |
 | Help overlay | F1 or H |
 | Release the mouse, close help, then back to the picker | Esc |
@@ -759,6 +819,8 @@ so a map opened in the editor is lit differently from the game. K cycles:
   the editor's default preview sun, so the running viewer matches the editor;
 - **game**: the level's environment and lamps only, as in T3;
 - **flat**: an even, bright light, for looking into dark corners.
+
+G turns the volume shadows on and off (see [Shadows](#shadows)).
 
 **Inspector.** Picking needs no physics: it tests the ray against mesh
 bounds, then against the triangles of the nearest candidates, plus small
@@ -777,13 +839,86 @@ editor can reuse them.
 - `--t3-screenshot PNG` (with `--t3-map ID`, or alone for the picker) saves
   a frame and quits.
 - `--t3-camera x y z tx ty tz`, `--t3-view lit|unlit|wireframe`,
-  `--t3-lighting editor|game|flat`, `--t3-select` and `--t3-help` set up
-  that frame.
+  `--t3-lighting editor|game|flat`, `--t3-shadows on|off`, `--t3-select` and
+  `--t3-help` set up that frame.
 
 Not done yet:
 - Characters (their attached parts are hidden) and particles.
-- T3's own lighting model; the game lights are plain unshadowed Godot lights.
+- The rest of T3's lighting model (projected textures, light animations).
 - Streaming for very large maps: a map is instanced in one go after loading.
+
+### Shadows
+
+Exported maps have T3's hard-edged shadows. You do not set anything up:
+they work in the viewer, in your own scenes that use a map, and in the
+editor's 3D view.
+
+- **One switch.** Project Settings > T3 > Shadows: **Enabled**, and **Max
+  Shadowed Lights** (0 to 4). In a running game, set
+  `T3Shadows.enabled` or `T3Shadows.max_shadowed_lights`. In the viewer,
+  press G.
+- **Per light.** A light casts shadows when its own **Shadow > Enabled** box
+  is on. The export ticks it for the lights that cast shadows in T3. The
+  nearest such lights (up to the maximum) get T3's volume shadows. The
+  others get Godot's normal shadow maps.
+- **Your own content.** Your lights work the same way, through the same
+  box. Your own meshes and materials are not changed: the T3 lights light
+  them as usual, with shadow maps instead of volume shadows.
+- **Fallback.** Volume shadows need the Forward+ renderer on a GPU. Without
+  it (Compatibility renderer, headless), the project prints one warning and
+  all lights use Godot's shadow maps. Many shadow-mapped lights are slow in
+  the Compatibility renderer.
+
+Limits:
+
+- Four lights at a time get volume shadows. When the camera moves, which
+  ones get them can change, and a shadow can switch between the two kinds.
+- Only omni and spot lights get volume shadows.
+- In the editor, only the first 3D view has them. Split views can show
+  stray shadows.
+- A light whose cull mask leaves out render layer 20 does not light the
+  map's geometry (see below).
+- Volumes reach to infinity, not to the light's radius as in T3. A light's
+  shadows can show beyond its range only where the light itself reaches,
+  so this costs speed, not looks.
+
+### How the shadows work
+
+The code is in `tools/assets/godot/shadows/`, installed as
+`res://t3_tools/shadows/`. The autoload `T3Shadows` (`t3_shadows.gd`) does
+everything, in the game and in the editor:
+
+- It finds exported maps as they enter the tree (the root's `t3_level`) and
+  loads their `.t3shadow` files (`shadow_volumes.gd`).
+- It swaps the maps' imported `StandardMaterial3D`s for `t3_lit` shader
+  materials with the same settings, and moves those meshes to render layer
+  20. `t3_lit`'s `light()` is Godot's own lighting (Burley diffuse,
+  Schlick-GGX specular) times a shadow mask, so the map looks the same. A
+  material with features `t3_lit` lacks (rim, clearcoat, triplanar...)
+  stays as it is. Only nodes inside the map's `.glb` instances change, so
+  nothing of this is saved with a scene.
+- A `CompositorEffect` (`stencil_shadow_effect.gd`) on the current camera
+  runs before the opaque pass. It copies Godot's depth into its own
+  depth-stencil target. For each shadowed light it draws the casters'
+  volumes, z-fail and two-sided, and writes the result into one channel of
+  an RGBA8 mask. `t3_lit` reads the mask through the global shader uniforms
+  `t3_shadow_mask` and `t3_shadow_depth`.
+- Each frame, the nearest shadowed lights whose range is in view get a mask
+  channel. Such a light is hidden on the RenderingServer and drawn by two
+  stand-in lights made there, copies of it. One lights layer 20 only,
+  without a shadow map, and carries the channel in its specular amount
+  (the light's own specular plus 32 × (channel + 1); `t3_lit` takes the two
+  apart). The other lights every other layer as the light itself would,
+  shadow map included. The `Light3D` node and its properties never change.
+- A light draws the casters whose bounding sphere meets its range. It skips
+  its own actor, the actor it is attached to, and any caster that encloses
+  it with outward faces. Such a shell would otherwise shadow everything
+  inside it (an outside wall mesh around a room; T3 probably keeps these
+  apart by zone).
+
+Not done yet: volumes end at infinity, not at the light radius
+(`ShadowExtrusionDistance`); no scissoring to the light's range; more than
+four lights with volumes; the per-frame work is GDScript, not C++.
 
 ### Map editor plugin
 
@@ -1222,6 +1357,7 @@ registry value. They write only under `build/assets/`, except
 | `upkgwrite.py` | Package writer and actor editing, used by `t3pack.py` |
 | `t3texpack.py list\|check\|apply\|restore`, `--selfcheck` | Texture packs: replace textures inside `.ibt` bundles with DDS files, with a backup and a record; restore. `--selfcheck` checks the writer and the encoder on the retail bundles (section 3) |
 | `ibtwrite.py` | Block-file writer (byte-exact round trip, resource replacement), used by `t3texpack.py` |
-| `godot_check.py [--godot EXE] [--viewer [MAP]] [--viewer-shot PNG] [--render ...] [--editor-selftest [DIR]]` | Import and check the Godot project, run the viewer self-test, save preview frames, test the editor plugin on a synthetic level |
+| `t3shadow.py info <file.t3shadow>` | Shadow-volume files of the Godot export: list their meshes |
+| `godot_check.py [--godot EXE] [--viewer [MAP]] [--viewer-shot PNG] [--render ...] [--editor-selftest [DIR]] [--shadow-selftest [DIR] \| --shadows] [--gpu]` | Import and check the Godot project, run the viewer self-test, save preview frames, test the editor plugin on a synthetic level, check `.t3shadow` files with the viewer's reader |
 | `godot/viewer/*.gd` | The map viewer (picker, fly camera, HUD, help, inspector), installed into the project by `t3map.py` |
 | `selftest.py` | Checks the parsers and writers against synthetic data only (no game files needed); runs `selftest_texpack.py` |

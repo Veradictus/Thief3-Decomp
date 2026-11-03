@@ -22,10 +22,16 @@ including the NUL, then the characters):
                   vec2 uv1, vec2 uv2, u32 colour (BGRA);
                   stride -32 (packed, used by the level BSP blocks): vec3 position,
                   4-byte normal (D3DCOLOR order, 128 = 0), vec2 uv, 4-byte tangent, u32 colour
-        shadow vertices: vec3 position + u32 (16 bytes each)
+        shadow vertices: vec3 position + 4-byte face normal (16 bytes each;
+                         D3DCOLOR order like the packed normals, but 127 = 0)
         shadow indices (u16), then render indices (u16, absolute)
         sections: FString name ("Default"), u32 triangles, first vertex,
                   vertex count, first index, index count, unknown (0)
+
+The shadow data is a closed stencil shadow-volume mesh: every face has its own
+three vertices, each carrying the face normal, and the shadow triangles are
+the faces plus two degenerate triangles per edge (4 per face).  t3shadow.py
+writes it out for the Godot export.
 
 Section i of the render data uses material skin.materials[i].  A material
 name resolves to a MatLib material (type 0x0A) in the level bundle or in
@@ -109,6 +115,10 @@ class RenderMesh:
     sections: List[Section] = field(default_factory=list)
     shadow_vertex_count: int = 0
     shadow_index_count: int = 0
+    # stencil shadow volume: per-face vertices, their face normals, triangles
+    shadow_positions: List[Tuple[float, float, float]] = field(default_factory=list)
+    shadow_normals: List[Tuple[float, float, float]] = field(default_factory=list)
+    shadow_indices: List[int] = field(default_factory=list)
     size: int = 0  # bytes consumed by parse_render_data
 
 
@@ -132,6 +142,12 @@ class StaticMesh:
 def _unpack_normal(b: bytes) -> Tuple[float, float, float]:
     """Packed D3DCOLOR-order normal: bytes z, y, x, w with 128 = 0."""
     return ((b[2] - 128) / 127.0, (b[1] - 128) / 127.0, (b[0] - 128) / 127.0)
+
+
+def _unpack_shadow_normal(b: bytes) -> Tuple[float, float, float]:
+    """Shadow-vertex face normal: bytes z, y, x, w like _unpack_normal(), but
+    centred on 127 (0x7f7f00 is -Z)."""
+    return ((b[2] - 127) / 127.0, (b[1] - 127) / 127.0, (b[0] - 127) / 127.0)
 
 
 def parse_render_data(blob: bytes, start: int = 0, end: Optional[int] = None) -> RenderMesh:
@@ -176,7 +192,14 @@ def parse_render_data(blob: bytes, start: int = 0, end: Optional[int] = None) ->
             rm.uv2.append((u, v))
             rm.colors.append(c)
         pos += nv * 32
-    pos += nsv * 16 + nsi * 2  # shadow volume data (not exported)
+    if pos + nsv * 16 + nsi * 2 > len(blob):
+        raise ValueError("render data: shadow data past the end")
+    for x, y, z, n in struct.iter_unpack("<3f4s", blob[pos:pos + nsv * 16]):
+        rm.shadow_positions.append((x, y, z))
+        rm.shadow_normals.append(_unpack_shadow_normal(n))
+    pos += nsv * 16
+    rm.shadow_indices = list(struct.unpack_from(f"<{nsi}H", blob, pos))
+    pos += nsi * 2
     rm.indices = list(struct.unpack_from(f"<{ni}H", blob, pos))
     pos += ni * 2
     for _ in range(ns):

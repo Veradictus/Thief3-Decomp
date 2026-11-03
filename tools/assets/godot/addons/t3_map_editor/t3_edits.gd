@@ -33,7 +33,7 @@ const VERSION := 2
 
 ## The export format this plugin is made for (tools/assets/formats.json,
 ## map_export); a scene exported by older tools should be exported again.
-const EXPORT_VERSION := 1
+const EXPORT_VERSION := 2
 
 ## Radians per Unreal rotator unit (65536 units per turn).
 const ROT_UNIT := TAU / 65536.0

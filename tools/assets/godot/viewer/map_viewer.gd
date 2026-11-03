@@ -406,6 +406,21 @@ func set_lighting(mode: int) -> void:
 	else:
 		_hud.toast(LIGHTING_TOASTS[lighting])
 
+## Turns T3's volume shadows (the T3Shadows autoload) on or off.
+func set_shadows(on: bool) -> void:
+	var shadows = get_node_or_null('/root/T3Shadows')
+	if shadows == null:
+		_hud.toast('Volume shadows: not in this project')
+		return
+	shadows.enabled = on
+	_hud.toast('Volume shadows ' + ('on' if on else 'off') +
+		('' if shadows.supported else ' (they need Forward+ on a GPU)'))
+
+## Whether T3's volume shadows are on.
+func shadows_on() -> bool:
+	var shadows = get_node_or_null('/root/T3Shadows')
+	return shadows != null and shadows.enabled
+
 ## Shows or hides the geometry-less actors' gizmos.
 func set_markers(on: bool) -> void:
 	markers_on = on
@@ -493,6 +508,9 @@ func update_hud() -> void:
 		fc.base_speed * fc.slow_factor, fc.velocity.length()])
 	lines.append('View %s   lighting %s   lamps %s   markers %s' % [VIEW_NAMES[view_mode],
 		LIGHTING_NAMES[lighting], 'on' if lights_on else 'off', 'on' if markers_on else 'off'])
+	var shadows = get_node_or_null('/root/T3Shadows')
+	if shadows != null:
+		lines.append(shadows.status_text())
 	if not selected.is_empty():
 		lines.append('Selected %s  (%s)' % [selected.get('title', ''), selected.get('subtitle', '')])
 
@@ -505,7 +523,7 @@ func stats() -> Dictionary:
 	return {'meshes': picker.meshes.size(), 'markers': gizmos.targets.size(), 'lights': lights.size(),
 		'starts': starts.size()}
 
-## Applies --t3-camera/--t3-view/--t3-lighting/--t3-select/--t3-help, and saves
+## Applies --t3-camera/--t3-view/--t3-lighting/--t3-shadows/--t3-select/--t3-help, and saves
 ## a screenshot and quits if --t3-screenshot was given.
 func apply_command_line() -> void:
 	var o: Dictionary = T3Viewer.options
@@ -526,6 +544,9 @@ func apply_command_line() -> void:
 		# Ignore an unrecognised name rather than erroring out.
 		if mode >= 0:
 			set_lighting(mode)
+
+	if o.has('shadows'):
+		set_shadows(String(o['shadows']) != 'off')
 
 	if o.has('select'):
 		inspect_at_screen_center()
@@ -579,6 +600,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_lights(not lights_on)
 	elif event.is_action_pressed('t3_cycle_lighting'):
 		set_lighting(lighting + 1)
+	elif event.is_action_pressed('t3_toggle_shadows'):
+		set_shadows(not shadows_on())
 	elif event.is_action_pressed('t3_toggle_markers'):
 		set_markers(not markers_on)
 	elif event.is_action_pressed('t3_next_start'):

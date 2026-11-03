@@ -36,6 +36,7 @@ from gltf import GLTFBuilder  # noqa: E402
 from ibt import IBT  # noqa: E402
 from t3common import BUILD_DIR, game_dir, resolve_map, run_cli  # noqa: E402
 from t3mesh import DEFAULT_SCALE, RenderMesh, ResourceSet, kernel_bundle, parse_render_data, render_primitives  # noqa: E402
+from t3shadow import SUFFIX as SHADOW_SUFFIX, shadow_volume, write as write_shadows  # noqa: E402
 from t3texture import load_categories  # noqa: E402
 from upkg import Package  # noqa: E402
 
@@ -109,9 +110,24 @@ def bsp_to_gltf(level: str, blocks: List[RenderBlock], res: ResourceSet, scale: 
     return g
 
 
-def export_bsp(gmp: Path, out_dir: Path, scale: float, res: ResourceSet, keep_hidden: bool = False) -> Optional[Path]:
+def bsp_shadow_name(level: str) -> str:
+    """The .t3shadow file of a level's BSP blocks (t3shadow.py)."""
+    return f"{level}_bsp{SHADOW_SUFFIX}"
+
+
+def export_bsp(gmp: Path, out_dir: Path, scale: float, res: ResourceSet, keep_hidden: bool = False,
+               shadows: bool = False) -> Optional[Path]:
+    """Writes <out_dir>/meshes/<Level>_bsp.glb; with `shadows`, also the
+    blocks' shadow volumes, <out_dir>/shadows/<Level>_bsp.t3shadow, one entry
+    per block (a stale file is removed when the blocks have none)."""
     pkg = Package(gmp)
     blocks = find_render_blocks(pkg)
+    shadow_path = out_dir / "shadows" / bsp_shadow_name(gmp.stem)
+    volumes = [shadow_volume(b.mesh, scale) for b in blocks] if shadows else []
+    if any(volumes):
+        write_shadows(shadow_path, volumes)
+    elif shadows:
+        shadow_path.unlink(missing_ok=True)
     if not blocks:
         return None
     g = bsp_to_gltf(gmp.stem, blocks, res, scale, keep_hidden)
