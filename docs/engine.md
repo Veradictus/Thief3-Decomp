@@ -599,7 +599,8 @@ reaches the game through a file override.
 | What | Address | Status |
 |---|---|---|
 | `InitDirect3D`: `Direct3DCreate8(220)`, `CreateDevice` (HAL, hardware then software vertex processing) | `0x10919730` | verified (hooked through the import) |
-| `D3DPRESENT_PARAMETERS` the device is created with | `0x10F2C86C` | verified |
+| `D3DPRESENT_PARAMETERS` the focus-loss reset passes: only `InitDirect3D` touches it, zero in play | `0x10F2C86C` | verified |
+| `D3DPRESENT_PARAMETERS` of the live device (`SetRes` creates and resets with them, the reset at `0x10C84693`) | render device `+0x4630` | verified |
 | `IDirect3D8*` / `IDirect3DDevice8*` | `0x10F2C8B4` / `0x10F2C8B8` | static |
 | `UWindowsViewport::ViewportWndProc` | `0x10C8B820` | verified (hooked: the SDK keeps a borderless game running) |
 | `UWindowsViewport::Exec` (console commands: EndFullscreen, ToggleFullscreen, SetRes, ...; list in [game/console.md](game/console.md)) | `0x10C8ADE0` | static |
@@ -618,13 +619,28 @@ its hot spot at 0,0. Every frame the game calls the device's
 `SetCursorProperties` and `ShowCursor` (vtable slots 10 and 12) and user32's
 `ShowCursor` and `SetCursor` (counted with the SDK's `FrameStats`).
 
-On `WM_ACTIVATEAPP(FALSE)` the window procedure resets the device to the
-creation parameters at `0x10F2C86C` (the call at `0x10C8BF6B`) unless
-`TestCooperativeLevel` already reports the device lost. An exclusive
-fullscreen device always is lost by then, so vanilla never makes that call. A
-windowed (borderless) device is not; the reset fails, and `Lock` then sleeps in
+On `WM_ACTIVATEAPP(FALSE)` the window procedure resets the device with the
+parameters at `0x10F2C86C` (the call at `0x10C8BF6B`) unless
+`TestCooperativeLevel` already reports the device lost. Those are not the
+device's own parameters: only `InitDirect3D` touches that global and it stays
+zero, so the reset asks for a 0x0 back buffer. An exclusive fullscreen device
+is normally lost by then, so vanilla never makes that call. A windowed
+(borderless) device is not, and neither is a fullscreen one that Windows'
+fullscreen optimisations keep; the reset fails, and `Lock` then sleeps in
 10 ms steps waiting for the device, so the game freezes. The SDK skips that one
-reset (verified: focus loss and exit both pass through it).
+reset (verified: focus loss and exit both pass through it). Nothing is lost:
+`Lock` recovers a lost device through `SetRes`, which resets with the real
+parameters (render device `+0x4630`).
+
+The game asks for an `A8R8G8B8` back buffer (`SetRes`, `0x10C844E4`, checked
+with `CheckDeviceFormat` at `0x10C8451D` and `0x10C845A5`) and uses its
+alpha: render-state preset 5 (`0x109388C0`) blends with
+`SRCBLEND = DESTALPHA`, and `0x109569F0` writes alpha only, so some lighting
+passes first write a mask into the back buffer's alpha and then add light
+weighted by it. On an alpha-less back buffer those passes light at full
+strength (DXVK even rewrites `DESTALPHA` to `ONE` there). A windowed device
+keeps that format whenever the adapter supports it (`CheckDeviceType` with
+the desktop format, windowed).
 
 The same handler releases the mouse and DirectInput, saves
 `TimeManager::IsPaused` to `GPausedBeforeDeactivation` (`0x10FF71BC`), pauses

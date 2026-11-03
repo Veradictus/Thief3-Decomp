@@ -109,10 +109,11 @@ touching the user's mouse: the main menu reacts to posted clicks.
 - **Resolutions**: the five-entry table at `0x10E6EDC4`/`0x10E6EDD8` gets the
   monitor's own modes, native last (option index 4).
 - **Borderless**: `Direct3DCreate8` is hooked through the import;
-  `CreateDevice` and `Reset` get windowed presentation parameters and the
-  window becomes a popup covering its monitor. The focus-loss `Reset`
-  (`WM_ACTIVATEAPP`, call at `0x10C8BF6B`, parameters `0x10F2C86C`) is
-  skipped. It used to fail and freeze the game (in `UD3DRenderDevice::Lock`)
+  `CreateDevice` and `Reset` get windowed presentation parameters, keeping
+  the game's `A8R8G8B8` back buffer when the adapter can show it in a window
+  (its lighting uses the alpha), and the window becomes a popup covering its
+  monitor. The focus-loss `Reset` (`WM_ACTIVATEAPP`, call at `0x10C8BF6B`,
+  parameters `0x10F2C86C`, a global that stays zero in play) is skipped. It used to fail and freeze the game (in `UD3DRenderDevice::Lock`)
   on alt-tab, on a click on another monitor, and on exit.
 - **Widescreen UI**: `[WindowManager] AssumedUIScreenWidth` is answered as
   `480 x aspect` (852 on 16:9), which keeps proportions. `Window::PlacedPosition`
@@ -474,11 +475,18 @@ written.
   again, so a readable name needs a mapping kept with the saves. Not
   written: a mistake loses the player's saves.
 - **Property storage** for large maps: `Class_10B10A70` keeps 8 16-bit slot
-  indices into a static pool at `0x10F7B5C8` (`0x1E000` dwords, 12-byte
-  entries, about 40,960); large maps run out when saving. A bigger pool
-  needs every function that indexes it (`0x10B10A70` to `0x10B10F00`,
-  `Class_10B06220::FUN_10ad3df0`, `FUN_10ada010`) moved to the new base,
-  and 32-bit indices widen the object that holds them. Only fan missions
+  indices into a static pool at `0x10F7B5C8` (`0x78000` bytes of 8-byte
+  entries: `u16 next`, `u16 id` with `0x8000` for an inline value, `u32`
+  value or pointer; 61,440 slots, slot 0 unused). The allocator
+  (`0x10B10DD0`) takes the free list (`0x10FF35CC`) or bumps the next-slot
+  counter (`0x10F01F78`) with no bounds check: past the end it overwrites the
+  free-list heads that follow the pool (`0x10FF35C8`), with no error. The
+  only diagnostic is the stats dump (`0x10B10EC0`, "Total Number of
+  Properties Stored"). A guard on the allocator is cheap. A bigger pool needs
+  every function that indexes it (`0x10B10A70` to `0x10B10F00`,
+  `Class_10B06220::FUN_10ad3df0`, `FUN_10ada010`) moved to the new base, and
+  the 16-bit indices cap it at 65,535 slots unless widened, which widens the
+  object that holds them. Only fan missions
   need it, and the SDK does not load those yet.
 - **More config-value tweaks** (found as `Config` values, not written):
   `[T3Settings] WalkMultiplier`/`CreepMultiplier` (a "walk by default" mode

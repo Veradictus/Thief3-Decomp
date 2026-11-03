@@ -9,7 +9,12 @@
 //   On the ground that spot slowly follows the bone's average place, which
 //   changes with his stance (standing, moving, crouching); while he moves up
 //   or down (jumping, falling, climbing) it holds still. A little of the
-//   animation's motion stays on top, as head bob.
+//   animation's motion stays on top, as head bob. On a ladder or a rope the
+//   game's eye takes over, with only the climb's steps eased: Garrett faces
+//   the rungs there, and his animation keeps the eye clear of them.
+//   Everything that asks for the eye (the camera, the bow's aim and arrow,
+//   the melee sweep) gets the same one; only the camera's call, once a
+//   frame, moves the smoothing on.
 // - Snaps: on touching the ground Garrett's physics body drops about 19 units
 //   in one frame (its airborne shape becomes its standing one), then settles.
 //   The eye keeps to the path his vertical speed predicted and eases into the
@@ -25,6 +30,8 @@
 #include <t3sdk/t3sdk.h>
 
 #include <windows.h>
+
+#include <intrin.h>
 
 #include <cmath>
 #include <cstdint>
@@ -57,6 +64,16 @@ constexpr uint32_t kEyeHeight = 0x11C;
 constexpr uint32_t kViewYaw = 0x404;           // HeadRot.Yaw: where Garrett looks
 constexpr uint32_t kGarrettFlags = 0x450;      // bit 1: crouching
 constexpr uint32_t kThirdPersonFlags = 0x490;  // bit 0: bIn3rdPersonMode
+constexpr uint32_t kNoiseFlags = 0x4D0;        // bit 2: bNoiseEnabled
+
+// bUpdatePhysHeight (kGarrettFlags 0x10) is set on the ground and cleared by every climb (ladders, ropes, mantles).
+// bNoiseEnabled (kNoiseFlags 0x4) is turned on by the ladder and rope climbs only (SetNoiseEnabled, 0x10B21B90).
+constexpr uint32_t kUpdatePhysHeight = 0x10;
+constexpr uint32_t kNoiseEnabled = 0x4;
+
+// The return address of the camera's own call (GarrettOnCamera, 0x10AC2630): once a frame. The bow, its reticle,
+// the melee sweep and a camera fade call too, and get the same eye without moving the state.
+constexpr uintptr_t kCameraCall = 0x10AC271A;
 
 // Rotation units per degree, and per radian.
 constexpr float kUnitsPerDegree = 65536.0f / 360.0f;
@@ -157,6 +174,11 @@ struct EyeState {
     // Garrett's place over the ground at the last update.
     float lastX = 0.0f;
     float lastY = 0.0f;
+
+    // How far the eye has gone over to the climbing eye (0 off a ladder, 1 on one), and the climbing eye's height,
+    // eased.
+    float climb = 0.0f;
+    float climbZ = 0.0f;
 };
 
 EyeState g_eye;
@@ -181,15 +203,36 @@ constexpr float kStandingSpeed = 10.0f;
 // A wall pull-back smaller than this (units) is noise, not a wall.
 constexpr float kPullFree = 0.5f;
 
-// Seconds since the last call, at most 0.1 (a paused game, a loading screen).
-float SinceLastCall() {
+// The eye goes over to the climbing eye, and back, over this long (seconds); the climbing eye's height eases over the
+// second, which smooths the steps of the climb without lagging behind it.
+constexpr float kClimbBlend = 0.2f;
+constexpr float kClimbHeight = 0.06f;
+
+// Without a camera update for this long (seconds) the other callers move the state, so it can never freeze.
+constexpr float kCameraQuiet = 0.05f;
+
+// Garrett is on a ladder or a rope (a mantle, also a climb, keeps the steady eye).
+bool OnLadder(void* pawn) {
+    bool climbing = !(t3mod::Field<uint32_t>(pawn, kGarrettFlags) & kUpdatePhysHeight);
+    return climbing && (t3mod::Field<uint32_t>(pawn, kNoiseFlags) & kNoiseEnabled);
+}
+
+// The seconds this call moves the state by, at most 0.1 (a paused game, a loading screen): the time since the last
+// state update for the camera's call (or any call once the camera has been quiet a while), 0 for the others.
+float StateStep(bool camera) {
     LARGE_INTEGER now;
     LARGE_INTEGER frequency;
     QueryPerformanceCounter(&now);
     QueryPerformanceFrequency(&frequency);
-    float dt = float(double(now.QuadPart - g_eye.last.QuadPart) / double(frequency.QuadPart));
+    float since = float(double(now.QuadPart - g_eye.last.QuadPart) / double(frequency.QuadPart));
+
+    // Another caller between two camera updates leaves the state as it is.
+    if (!camera && since <= kCameraQuiet) {
+        return 0.0f;
+    }
+
     g_eye.last = now;
-    return dt < 0.1f ? dt : 0.1f;
+    return since < 0.1f ? since : 0.1f;
 }
 
 // The share of the way to a target that `dt` covers with time constant `tau` (all of it when tau is 0).
@@ -329,15 +372,18 @@ void Trace(void* pawn, float dt, const FVector& raw, const FVector& out) {
 
 FVector* __fastcall GetCameraTargetLocationDetour(void* pawn, void* edx, FVector* out) {
     FVector* eye = g_getCameraTargetLocation(pawn, edx, out);
-    float dt = SinceLastCall();
+    const bool camera = reinterpret_cast<uintptr_t>(_ReturnAddress()) == kCameraCall;
     FVector raw = *eye;
 
     // Third person keeps the game's camera; start afresh when first person comes back.
     if (t3mod::Field<uint32_t>(pawn, kThirdPersonFlags) & 1) {
         g_eye.tracking = false;
-        Trace(pawn, dt, raw, *eye);
+        Trace(pawn, 0.0f, raw, *eye);
         return eye;
     }
+
+    // Only the camera's own call, once a frame, moves the state; the others see the same eye.
+    float dt = StateStep(camera);
 
     const FVector& body = t3mod::Field<FVector>(pawn, kLocation);
     const float viewYaw = float(t3mod::Field<int>(pawn, kViewYaw)) * kRadiansPerUnit;
@@ -361,30 +407,45 @@ FVector* __fastcall GetCameraTargetLocationDetour(void* pawn, void* edx, FVector
         g_eye.lastY = body.y;
     }
 
-    // A one-update swing of the bone (see kGlitch): use its last place instead. A change that lasts is taken.
-    if (std::hypot(forward - g_eye.rawForward, side - g_eye.rawSide) > kGlitch && g_eye.glitches < kGlitchUpdates) {
-        forward = g_eye.rawForward;
-        side = g_eye.rawSide;
-        ++g_eye.glitches;
-    } else {
-        g_eye.rawForward = forward;
-        g_eye.rawSide = side;
-        g_eye.glitches = 0;
-    }
-
-    bool grounded = g_eye.still >= kGroundedAfter;
-
-    // A second call in the same frame (the game asks more than once) changes nothing: only a frame moves the state.
+    // A call that moves the state: once a frame (a second camera call in the same frame changes nothing).
     if (dt > 0.0005f) {
+        // A one-update swing of the bone (see kGlitch): use its last place instead. A change that lasts is taken.
+        if (std::hypot(forward - g_eye.rawForward, side - g_eye.rawSide) > kGlitch && g_eye.glitches < kGlitchUpdates) {
+            forward = g_eye.rawForward;
+            side = g_eye.rawSide;
+            ++g_eye.glitches;
+        } else {
+            g_eye.rawForward = forward;
+            g_eye.rawSide = side;
+            g_eye.glitches = 0;
+        }
+
         float fall = 0.0f;
         const bool known = FallSpeed(pawn, &fall);
         const bool airborne = known && g_eye.fallKnown && fall != g_eye.lastFall;
         g_eye.fallKnown = known;
         g_eye.lastFall = fall;
 
-        // In the air the physics body's own vertical speed carries the eye: Garrett's position only chases the
-        // body, at 64 units a second, which bumps up at the top of a jump and drops 19 units on landing.
-        if (airborne) {
+        // On a ladder or a rope the eye goes over to the climbing eye (below), and its own height simply keeps up
+        // with Garrett's: the climb's steps are not snaps, and its speed is not a fall.
+        const bool ladder = OnLadder(pawn);
+        g_eye.climb += ((ladder ? 1.0f : 0.0f) - g_eye.climb) * Approach(dt, kClimbBlend);
+
+        // Off the ladder (and back from it) the climbing eye's height starts at the bone; on it, it eases after it.
+        if (g_eye.climb < 0.001f) {
+            g_eye.climbZ = raw.z;
+        } else {
+            g_eye.climbZ += (raw.z - g_eye.climbZ) * Approach(dt, kClimbHeight);
+        }
+
+        // On the ladder: keep up with Garrett's height, and let any snap settle.
+        if (ladder) {
+            g_eye.lastZ = body.z;
+            g_eye.speedZ = 0.0f;
+            g_eye.snap *= 1.0f - Approach(dt, g_settings.landing);
+        } else if (airborne) {
+            // In the air the physics body's own vertical speed carries the eye: Garrett's position only chases the
+            // body, at 64 units a second, which bumps up at the top of a jump and drops 19 units on landing.
             float height = g_eye.lastZ + g_eye.snap + fall * dt;
             height += (body.z - height) * Approach(dt, kAirCorrection);
             g_eye.snap = height - body.z;
@@ -413,8 +474,10 @@ FVector* __fastcall GetCameraTargetLocationDetour(void* pawn, void* edx, FVector
             g_eye.snap = 0.0f;
         }
 
-        g_eye.still = std::fabs(g_eye.speedZ) < kSteadySpeed ? g_eye.still + dt : 0.0f;
-        grounded = g_eye.still >= kGroundedAfter;
+        // A ladder is no ground: the resting spot holds there as it does in the air.
+        g_eye.still = std::fabs(g_eye.speedZ) < kSteadySpeed && !ladder ? g_eye.still + dt : 0.0f;
+        const bool grounded = g_eye.still >= kGroundedAfter;
+
         // Head bob leaves quickly on take-off and comes back slowly after landing, so the land animation (which sags
         // the eye for a few hundred milliseconds) does not come back as a dip.
         const bool rising = grounded && g_eye.bob < 1.0f;
@@ -453,9 +516,14 @@ FVector* __fastcall GetCameraTargetLocationDetour(void* pawn, void* edx, FVector
     const float r = g_eye.side;
     const float u = g_eye.up + bob * (up - g_eye.up);
 
-    eye->x = body.x + f * c - r * s;
-    eye->y = body.y + f * s + r * c;
-    eye->z = body.z + u + g_eye.snap;
+    FVector steady = {body.x + f * c - r * s, body.y + f * s + r * c, body.z + u + g_eye.snap};
+
+    // On a ladder or a rope the game's eye leads: Garrett faces the rungs, and the climb animation keeps his head
+    // clear of them, which a spot in front of the view would not. Only the climb's steps are eased (climbZ).
+    const float w = g_eye.climb;
+    eye->x = steady.x + (raw.x - steady.x) * w;
+    eye->y = steady.y + (raw.y - steady.y) * w;
+    eye->z = steady.z + (g_eye.climbZ - steady.z) * w;
 
     Trace(pawn, dt, raw, *eye);
     return eye;

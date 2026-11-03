@@ -160,11 +160,17 @@ constexpr UINT kSwapEffectCopyVSync = 4;
 constexpr UINT kPresentIntervalOne = 1;
 
 // Slots in the IDirect3D8 and IDirect3DDevice8 vtables.
-constexpr int kD3D8CreateDevice = 15;          // IDirect3D8
-constexpr int kD3D8GetAdapterDisplayMode = 8;  // IDirect3D8
-constexpr int kDevice8Reset = 14;              // IDirect3DDevice8
+constexpr int kD3D8CreateDevice = 15;            // IDirect3D8
+constexpr int kD3D8GetAdapterDisplayMode = 8;    // IDirect3D8
+constexpr int kD3D8CheckDeviceType = 9;          // IDirect3D8
+constexpr int kD3D8CheckDepthStencilMatch = 12;  // IDirect3D8
+constexpr int kDevice8Reset = 14;                // IDirect3DDevice8
 
 using Direct3DCreate8Fn = void*(WINAPI*)(UINT);
+using CheckDeviceTypeFn = HRESULT(WINAPI*)(void* d3d, UINT adapter, UINT type, UINT displayFormat,
+                                           UINT backBufferFormat, BOOL windowed);
+using CheckDepthStencilMatchFn = HRESULT(WINAPI*)(void* d3d, UINT adapter, UINT type, UINT adapterFormat,
+                                                  UINT renderTargetFormat, UINT depthStencilFormat);
 using CreateDeviceFn = HRESULT(WINAPI*)(void* d3d, UINT adapter, UINT type, HWND focus, DWORD flags,
                                         PresentParameters* params, void** device);
 using ResetFn = HRESULT(WINAPI*)(void* device, PresentParameters* params);
@@ -180,6 +186,11 @@ HWND g_window = nullptr;    // the game's device window, set when the device is 
 UINT g_desktopFormat = 0;   // the desktop's back buffer format, read before a windowed device is created
 UINT g_desktopRefresh = 0;  // the desktop's refresh rate on the game's adapter, read with the format
 
+// The IDirect3D8 object, adapter and device type the game created its device with, for format checks on a reset.
+void* g_d3d = nullptr;
+UINT g_adapter = 0;
+UINT g_deviceType = 0;
+
 // Fills in the desktop's refresh rate for an exclusive fullscreen device that leaves it to Direct3D.
 void UseDesktopRefresh(PresentParameters* params);
 
@@ -191,6 +202,36 @@ void* VtableEntry(void* object, int slot) {
 // Hooks `target` and enables the hook. Returns true when both steps worked.
 bool HookFunction(void* target, void* detour, void** original) {
     return MH_CreateHook(target, detour, original) == MH_OK && MH_EnableHook(target) == MH_OK;
+}
+
+// Whether the back buffer format in `params` works for a window on the
+// desktop. The game asks for A8R8G8B8 (UD3DRenderDevice::SetRes, 0x10C844E4)
+// and uses its alpha: some lighting passes write a mask into it and blend
+// with DESTALPHA. The desktop's X8R8G8B8 has no alpha, so those passes
+// light at full strength and surfaces turn white. Direct3D 8 allows an
+// A8R8G8B8 back buffer in a window on an X8R8G8B8 desktop where the driver
+// says so.
+bool WindowedFormatWorks(const PresentParameters* params) {
+    // Without the creating object there is nothing to ask.
+    if (!g_d3d) {
+        return false;
+    }
+
+    auto checkType = reinterpret_cast<CheckDeviceTypeFn>(VtableEntry(g_d3d, kD3D8CheckDeviceType));
+
+    // The adapter has to show this back buffer format in a window.
+    if (FAILED(checkType(g_d3d, g_adapter, g_deviceType, g_desktopFormat, params->BackBufferFormat, TRUE))) {
+        return false;
+    }
+
+    // And the depth buffer the game asks for has to go with it.
+    if (params->EnableAutoDepthStencil) {
+        auto checkDepth = reinterpret_cast<CheckDepthStencilMatchFn>(VtableEntry(g_d3d, kD3D8CheckDepthStencilMatch));
+        return SUCCEEDED(checkDepth(g_d3d, g_adapter, g_deviceType, g_desktopFormat, params->BackBufferFormat,
+                                    params->AutoDepthStencilFormat));
+    }
+
+    return true;
 }
 
 // Presentation parameters for a windowed device of the size the game asked
@@ -215,8 +256,8 @@ void MakeWindowed(PresentParameters* params) {
     params->FullScreen_RefreshRateInHz = 0;
     params->FullScreen_PresentationInterval = 0;  // D3DPRESENT_INTERVAL_DEFAULT: required when windowed
 
-    // Match the back buffer to the desktop format when it is known.
-    if (g_desktopFormat) {
+    // The game's own format stays when the adapter can show it in a window; otherwise the desktop's.
+    if (g_desktopFormat && !WindowedFormatWorks(params)) {
         params->BackBufferFormat = g_desktopFormat;
     }
 }
@@ -360,21 +401,25 @@ void BringToFront(HWND window) {
 
 // ---- device reset -----------------------------------------------------------------
 
-// The present parameters the game created its device with. The viewport's
-// WM_ACTIVATEAPP handler (call at 0x10C8BF6B) resets the device to them when
-// the game loses focus, unless the device is already lost, which an exclusive
-// fullscreen device always is by then. The borderless device is not lost, the
-// reset fails, and the engine then waits for the device forever: the game
-// freezes after alt-tab, a click on another monitor, or closing the window.
-constexpr uintptr_t kCreationPresentParams = 0x10F2C86C;
+// The present parameters the viewport's WM_ACTIVATEAPP handler (call at
+// 0x10C8BF6B) resets the device with when the game loses focus, unless the
+// device is already lost, which an exclusive fullscreen device always is by
+// then. They are not the device's own: this global is only touched by
+// InitDirect3D and stays zero in play (the real ones are at
+// UD3DRenderDevice+0x4630, which SetRes resets with at 0x10C84693). So the
+// reset asks for a 0x0 back buffer and fails, and the engine then waits for
+// the device forever: the game freezes after alt-tab, a click on another
+// monitor, or closing the window. Skipping it loses nothing; a lost device
+// still recovers through SetRes.
+constexpr uintptr_t kFocusLossPresentParams = 0x10F2C86C;
 
 // Detour of IDirect3DDevice8::Reset: skips the focus-loss reset and any reset
 // while the game exits, and keeps every other reset windowed and borderless.
 HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     // Exclusive fullscreen loses its device on a focus change, so the game never makes its focus-loss reset there.
-    // But Windows' fullscreen optimisations keep the device, and the game then resets to its creation parameters,
-    // which fails (0x0) and loses the device for real: skip that reset, as borderless does.
-    if (!g_borderless && reinterpret_cast<uintptr_t>(params) == kCreationPresentParams) {
+    // But Windows' fullscreen optimisations keep the device, and the game then makes that reset, which fails (0x0)
+    // and loses the device for real: skip it, as borderless does.
+    if (!g_borderless && reinterpret_cast<uintptr_t>(params) == kFocusLossPresentParams) {
         T3_LOG("display: focus-loss Reset skipped (fullscreen kept its device)");
         return S_OK;
     }
@@ -390,8 +435,8 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
         return result;
     }
 
-    // The focus-loss handler resets with the creation parameters: skip that reset.
-    if (reinterpret_cast<uintptr_t>(params) == kCreationPresentParams) {
+    // The focus-loss reset: skip it.
+    if (reinterpret_cast<uintptr_t>(params) == kFocusLossPresentParams) {
         T3_LOG("display: focus-loss Reset skipped (the borderless device stays as it is)");
         return S_OK;
     }
@@ -405,8 +450,8 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     MakeWindowed(params);
     HRESULT result = g_reset(device, params);
     MakeBorderless(g_window);
-    T3_LOG("display: Reset %ux%u windowed%s -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight,
-           VSyncNote(params), result);
+    T3_LOG("display: Reset %ux%u windowed%s, format %u -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight,
+           VSyncNote(params), params->BackBufferFormat, result);
     return result;
 }
 
@@ -967,6 +1012,9 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
                                   PresentParameters* params, void** device) {
     const bool wasFullscreen = !params->Windowed;
 
+    g_d3d = d3d;
+    g_adapter = adapter;
+    g_deviceType = type;
     ReadDesktopFormat(d3d, adapter);
 
     // A borderless game needs a windowed device; exclusive fullscreen runs at the desktop's refresh rate.
@@ -978,12 +1026,13 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
 
     g_window = params->hDeviceWindow ? params->hDeviceWindow : focus;
     HRESULT result = g_createDevice(d3d, adapter, type, focus, flags, params, device);
-    T3_LOG("display: CreateDevice %ux%u %s%s, %u Hz, present interval %u -> 0x%08lX", params->BackBufferWidth,
-           params->BackBufferHeight,
+    T3_LOG("display: CreateDevice %ux%u %s%s, format %u, %u Hz, present interval %u -> 0x%08lX",
+           params->BackBufferWidth, params->BackBufferHeight,
            !wasFullscreen ? "windowed"
            : g_borderless ? "fullscreen made borderless"
                           : "fullscreen",
-           VSyncNote(params), params->Windowed ? g_desktopRefresh : params->FullScreen_RefreshRateInHz,
+           VSyncNote(params), params->BackBufferFormat,
+           params->Windowed ? g_desktopRefresh : params->FullScreen_RefreshRateInHz,
            params->FullScreen_PresentationInterval, result);
 
     // Stop here when the device could not be created.

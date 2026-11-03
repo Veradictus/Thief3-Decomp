@@ -47,8 +47,9 @@ When the game's window receives `WM_ACTIVATEAPP(FALSE)` (another program
 takes the foreground), the window procedure releases the mouse and
 DirectInput, saves whether the clock was already paused, pauses it, and
 clears a global "app active" flag — which makes the main loop wait in
-`GetMessageA` above until the flag is set again. It also normally resets
-the Direct3D device to its original creation parameters.
+`GetMessageA` above until the flag is set again. It also tries to reset
+the Direct3D device, with a set of parameters that is never filled in
+during play (all zero), so that reset can only fail.
 
 That last part matters for how a windowed game differs from an exclusive
 fullscreen one: an exclusive fullscreen device is *already* lost by the
