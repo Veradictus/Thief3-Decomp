@@ -9,6 +9,8 @@ mod game;
 mod ini;
 mod mods;
 mod modsettings;
+mod net;
+mod portable;
 mod proc;
 mod saves;
 mod tasks;

@@ -69,7 +69,7 @@ pub struct SdkRootCheck {
 
 // ---- helpers ------------------------------------------------------------------
 
-fn exe_name(stem: &str) -> String {
+pub(crate) fn exe_name(stem: &str) -> String {
     if cfg!(windows) {
         format!("{stem}.exe")
     } else {
@@ -310,7 +310,7 @@ fn python_candidates(sdk_roots: &[Candidate], resources: Option<&Path>) -> Vec<C
     dedupe(list)
 }
 
-fn is_sdk_root(dir: &Path) -> bool {
+pub(crate) fn is_sdk_root(dir: &Path) -> bool {
     dir.join("tools").join("assets").join("t3map.py").is_file() && dir.join("tools").join("sdk.py").is_file()
 }
 

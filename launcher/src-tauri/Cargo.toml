@@ -29,6 +29,10 @@ semver = { version = "1", features = ["serde"] }
 sha2 = "0.11"
 ureq = { version = "3", default-features = false, features = ["native-tls"] }
 zip = { version = "8", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# The portable launcher's own updates (portable.rs): the zip's signature, checked
+# with the updater's key like the plugin checks the installer's.
+base64 = "0.22"
+minisign-verify = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"

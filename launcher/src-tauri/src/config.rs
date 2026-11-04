@@ -31,6 +31,8 @@ pub struct Config {
     pub auto_update_check: Option<bool>,
     /// When the launcher last looked for an update (Unix seconds); kept by update.rs.
     pub last_update_check: Option<u64>,
+    /// The launcher version that last ran with this config; kept by update.rs, to notice an update.
+    pub last_version: Option<String>,
     /// The mod index the Mods page browses; default `mods::DEFAULT_INDEX_URL`.
     pub mod_index_url: Option<String>,
     /// Shows the developer tools: every T3SDK setting, builds, diagnostics.
@@ -87,6 +89,51 @@ pub fn resolve(app: &AppHandle, config: &mut Config) {
     config.data_dir = if bundled { app.path().app_local_data_dir().ok().map(|d| d.join("build")) } else { None };
 }
 
+/// The launcher's executable, which sits beside the t3sdk/ and python/ folders it ships with.
+const LAUNCHER_EXE: &str = "t3sdk-launcher.exe";
+
+/// Whether `dir` is the folder `name` (t3sdk or python) of another launcher copy than the one in
+/// `resources`: an older portable folder, or the installed copy seen from a portable one.
+fn other_launchers(dir: &Path, name: &str, resources: &Path) -> bool {
+    let canonical = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    let named = dir.file_name().is_some_and(|n| n.eq_ignore_ascii_case(name));
+    named
+        && dir
+            .parent()
+            .is_some_and(|parent| parent.join(LAUNCHER_EXE).is_file() && canonical(parent) != canonical(resources))
+}
+
+/// Points the T3SDK folder and Python at the copies this launcher ships with (in `resources`) when
+/// the saved ones belong to another launcher copy or are gone. The paths are saved once, at the
+/// first-run setup; a launcher unzipped to a new folder, or installed after a portable one, would
+/// otherwise keep running the old copy's tools and installing its SDK. A T3SDK checkout or a
+/// Python of the player's own is kept. Returns whether anything changed.
+pub fn follow_launcher(config: &mut Config, resources: &Path) -> bool {
+    let mut changed = false;
+
+    let root = resources.join("t3sdk");
+    let stale_root = config
+        .sdk_root
+        .as_deref()
+        .is_some_and(|r| !crate::detect::is_sdk_root(r) || other_launchers(r, "t3sdk", resources));
+    if stale_root && crate::detect::is_sdk_root(&root) {
+        config.sdk_root = Some(root);
+        changed = true;
+    }
+
+    let python = resources.join("python").join(crate::detect::exe_name("python"));
+    let stale_python = config
+        .python
+        .as_deref()
+        .is_some_and(|p| !p.is_file() || p.parent().is_some_and(|dir| other_launchers(dir, "python", resources)));
+    if stale_python && python.is_file() {
+        config.python = Some(python);
+        changed = true;
+    }
+
+    changed
+}
+
 fn file(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|dir| dir.join("launcher.json"))
 }
@@ -96,6 +143,14 @@ pub fn load(app: &AppHandle) -> Config {
         .and_then(|path| std::fs::read_to_string(path).ok())
         .and_then(|text| serde_json::from_str(&text).ok())
         .unwrap_or_default();
+    if let Ok(resources) = app.path().resource_dir() {
+        if follow_launcher(&mut config, &resources) {
+            match store(app, &config) {
+                Ok(()) => eprintln!("the T3SDK folder and Python now point at this launcher's own copies"),
+                Err(e) => eprintln!("{e}"),
+            }
+        }
+    }
     resolve(app, &mut config);
     config
 }
@@ -109,7 +164,11 @@ pub async fn get_config(state: State<'_, AppState>) -> Result<Config, String> {
 pub async fn save_config(app: AppHandle, state: State<'_, AppState>, mut config: Config) -> Result<Config, String> {
     resolve(&app, &mut config);
     // The UI may send an older copy of what the launcher records by itself.
-    config.last_update_check = config.last_update_check.max(state.config.lock().unwrap().last_update_check);
+    {
+        let current = state.config.lock().unwrap();
+        config.last_update_check = config.last_update_check.max(current.last_update_check);
+        config.last_version = current.last_version.clone();
+    }
     let path = file(&app).ok_or("no per-user config folder")?;
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("cannot create {}: {e}", dir.display()))?;
@@ -129,4 +188,79 @@ pub fn store(app: &AppHandle, config: &Config) -> Result<(), String> {
     }
     let text = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
     std::fs::write(&path, text).map_err(|e| format!("cannot write {}: {e}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A launcher copy in `dir`: the executable, the bundled tools and Python.
+    fn launcher(dir: &Path) {
+        std::fs::create_dir_all(dir.join("t3sdk").join("tools").join("assets")).unwrap();
+        std::fs::write(dir.join("t3sdk").join("tools").join("sdk.py"), "").unwrap();
+        std::fs::write(dir.join("t3sdk").join("tools").join("assets").join("t3map.py"), "").unwrap();
+        std::fs::create_dir_all(dir.join("python")).unwrap();
+        std::fs::write(dir.join("python").join(crate::detect::exe_name("python")), "").unwrap();
+        std::fs::write(dir.join(LAUNCHER_EXE), "").unwrap();
+    }
+
+    fn bundled(dir: &Path) -> Config {
+        Config {
+            sdk_root: Some(dir.join("t3sdk")),
+            python: Some(dir.join("python").join(crate::detect::exe_name("python"))),
+            ..Config::default()
+        }
+    }
+
+    #[test]
+    fn follows_a_launcher_unzipped_elsewhere() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (old, new) = (tmp.path().join("0.3.1"), tmp.path().join("0.3.2"));
+        launcher(&old);
+        launcher(&new);
+        let mut config = bundled(&old);
+        assert!(follow_launcher(&mut config, &new));
+        assert_eq!(config.sdk_root, bundled(&new).sdk_root);
+        assert_eq!(config.python, bundled(&new).python);
+        assert!(!follow_launcher(&mut config, &new), "a second start changes nothing");
+    }
+
+    #[test]
+    fn replaces_paths_that_are_gone() {
+        let tmp = tempfile::tempdir().unwrap();
+        let new = tmp.path().join("launcher");
+        launcher(&new);
+        let mut config = bundled(&tmp.path().join("deleted"));
+        assert!(follow_launcher(&mut config, &new));
+        assert_eq!(config.sdk_root, bundled(&new).sdk_root);
+        assert_eq!(config.python, bundled(&new).python);
+    }
+
+    #[test]
+    fn keeps_a_checkout_and_the_players_python() {
+        let tmp = tempfile::tempdir().unwrap();
+        let new = tmp.path().join("launcher");
+        launcher(&new);
+        // A T3SDK checkout: the tools, but no launcher beside them.
+        let checkout = tmp.path().join("Thief3-Decomp");
+        std::fs::create_dir_all(checkout.join("tools").join("assets")).unwrap();
+        std::fs::write(checkout.join("tools").join("sdk.py"), "").unwrap();
+        std::fs::write(checkout.join("tools").join("assets").join("t3map.py"), "").unwrap();
+        let python = tmp.path().join("Python312").join("python.exe");
+        std::fs::create_dir_all(python.parent().unwrap()).unwrap();
+        std::fs::write(&python, "").unwrap();
+        let mut config = Config { sdk_root: Some(checkout.clone()), python: Some(python.clone()), ..Config::default() };
+        assert!(!follow_launcher(&mut config, &new));
+        assert_eq!(config.sdk_root, Some(checkout));
+        assert_eq!(config.python, Some(python));
+    }
+
+    #[test]
+    fn leaves_an_unset_config_to_the_setup() {
+        let tmp = tempfile::tempdir().unwrap();
+        launcher(tmp.path());
+        let mut config = Config::default();
+        assert!(!follow_launcher(&mut config, tmp.path()));
+        assert_eq!(config.sdk_root, None);
+    }
 }

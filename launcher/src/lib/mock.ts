@@ -581,7 +581,14 @@ const commands: Record<string, (args: Args) => unknown> = {
   },
   open_saves_folder: () => null,
   collect_logs: (args) => ({ path: text(args, "path"), files: 11, bytes: 182_000 }),
-  updater_status: () => ({ enabled: true, portable: false, version: "0.1.0", lastCheck: config.lastUpdateCheck }),
+  // `?portable` is a portable copy; `?updated` the first start after an update.
+  updater_status: () => ({
+    enabled: true,
+    portable: params.has("portable"),
+    version: "0.1.0",
+    lastCheck: config.lastUpdateCheck,
+    updatedFrom: params.has("updated") ? "0.0.9" : null,
+  }),
   // `?update` makes the check find a new version.
   check_update: () => {
     config.lastUpdateCheck = Math.floor(Date.now() / 1000);
@@ -591,6 +598,7 @@ const commands: Record<string, (args: Args) => unknown> = {
           currentVersion: "0.1.0",
           notes: "T3SDK Launcher 0.2.0: https://github.com/Veradictus/Thief3-Decomp/releases/tag/v0.2.0",
           date: now - 7200,
+          inApp: true,
         }
       : null;
     return { checked: true, update };

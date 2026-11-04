@@ -23,6 +23,7 @@ generated notes:
 | `T3SDK-Launcher_<version>_x64-setup.exe` | NSIS installer (per user, no admin rights) |
 | `T3SDK-Launcher_<version>_x64-setup.exe.sig` | the updater's signature of the installer (with the updater key) |
 | `T3SDK-Launcher_<version>_portable.zip` | the same files, to unzip and run |
+| `T3SDK-Launcher_<version>_portable.zip.sig` | the updater's signature of the portable zip, bound to its version (with the updater key) |
 | `T3SDK_<version>_x86.zip` | the SDK alone, for `System/` by hand |
 | `latest.json` | what the launcher's updater reads (with the updater key) |
 
@@ -100,8 +101,11 @@ What the workflows do with them:
    the NSIS installer: next to `…_x64-setup.exe` it writes
    `…_x64-setup.exe.sig`. (Tauri 2 signs the installer itself; the `.nsis.zip`
    of Tauri 1 is not made.) The Package step copies the `.sig` next to the
-   renamed installer; the signature covers the bytes, not the name.
-3. `release.yml` writes `latest.json` from the `.sig` and attaches both:
+   renamed installer; the signature covers the bytes, not the name. It
+   also signs the portable zip with the same key (`yarn tauri signer sign
+   --app-version <version>`), which writes `…_portable.zip.sig`.
+3. `release.yml` writes `latest.json` from the two `.sig` files and attaches
+   them (it fails when the portable zip's is missing):
 
    ```json
    {
@@ -112,6 +116,10 @@ What the workflows do with them:
        "windows-x86_64": {
          "signature": "<the contents of the .sig>",
          "url": "https://github.com/Veradictus/Thief3-Decomp/releases/download/v0.2.1/T3SDK-Launcher_0.2.1_x64-setup.exe"
+       },
+       "windows-x86_64-portable": {
+         "signature": "<the contents of the portable zip's .sig>",
+         "url": "https://github.com/Veradictus/Thief3-Decomp/releases/download/v0.2.1/T3SDK-Launcher_0.2.1_portable.zip"
        }
      }
    }
@@ -122,9 +130,25 @@ when the app's config has `plugins.updater` with a key. It checks at start-up
 (at most once a day; Settings can turn this off), shows an "Update" pill
 in the top bar, and on "Update and restart" downloads the installer, checks
 its signature and runs it in passive mode: a progress bar, no questions, and
-the new launcher starts when it is done. A copy unzipped from the portable
-zip does not update itself (the installer would install a second copy); it
-points to the releases page instead.
+the new launcher starts when it is done.
+
+A copy unzipped from the portable zip (no `uninstall.exe` beside it) cannot
+use the installer, which would install a second copy elsewhere. It reads the
+`windows-x86_64-portable` entry of `latest.json` itself (the plugin only
+looks at `windows-x86_64`), and `src-tauri/src/portable.rs` downloads the
+zip, checks its signature with the same public key, and refuses it unless
+its trusted comment says `version:<the announced version>`. It unpacks the
+zip into `<folder>/.update/new`, then moves each entry (`t3sdk/`, `python/`,
+the launcher, which keeps its current file name) into place, the old one
+into `<folder>/.update/old`: Windows lets a running executable be moved
+within its volume. A failed move puts everything back. The new launcher is
+started, the old one closes, and the next start removes `.update/`. A
+release without the portable entry (before 0.3.3) sends a portable copy to
+the releases page.
+
+On its first start after an update (the version differs from `lastVersion`
+in `launcher.json`), the launcher says so and, when the T3SDK it installed
+into the game is older than the one it ships, updates it.
 
 The UI calls the launcher's own commands (`updater_status`, `check_update`,
 `install_update`), not the plugin's JavaScript API, so the window's

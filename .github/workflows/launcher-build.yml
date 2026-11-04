@@ -158,6 +158,10 @@ jobs:
           yarn install --immutable
           yarn tauri build --config src-tauri/bundle/tauri.bundle.conf.json
       - name: Package
+        env:
+          # Signs the portable zip too, for the portable launcher's own updates.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           mkdir -p dist
           cp launcher/src-tauri/target/release/bundle/nsis/*-setup.exe "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_x64-setup.exe"
@@ -166,8 +170,13 @@ jobs:
           for sig in launcher/src-tauri/target/release/bundle/nsis/*-setup.exe.sig; do
             if [ -f "$sig" ]; then cp "$sig" "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_x64-setup.exe.sig"; fi
           done
-          python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe \
-            "dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_portable.zip"
+          portable="dist/T3SDK-Launcher_${{ steps.version.outputs.label }}_portable.zip"
+          python tools/stage_launcher.py portable launcher/src-tauri/target/release/t3sdk-launcher.exe "$portable"
+          # A signed installer means an updater build: sign the portable zip with the same key,
+          # bound to this version (the launcher refuses a zip signed for another one).
+          if [ -n "${{ steps.version.outputs.version }}" ] && ls dist/*-setup.exe.sig >/dev/null 2>&1; then
+            (cd launcher && yarn tauri signer sign --app-version "${{ steps.version.outputs.version }}" "../$portable")
+          fi
       - uses: actions/upload-artifact@v7
         with:
           name: launcher-windows

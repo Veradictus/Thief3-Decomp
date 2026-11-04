@@ -55,14 +55,25 @@ jobs:
             echo "::notice::no $installer.sig (the updater key is not set up): no latest.json, see docs/releasing.md"
             exit 0
           fi
+          # The portable zip's entry is read by the portable launcher itself (the
+          # updater plugin only looks at "windows-x86_64").
+          portable="T3SDK-Launcher_${version}_portable.zip"
+          if [ ! -f "dist/$portable.sig" ]; then
+            echo "::error::no $portable.sig: the portable launcher could not update itself"
+            exit 1
+          fi
           jq -n \
             --arg version "$version" \
             --arg notes "T3SDK Launcher $version: $REPO_URL/releases/tag/$GITHUB_REF_NAME" \
             --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg signature "$(cat "dist/$installer.sig")" \
             --arg url "$REPO_URL/releases/download/$GITHUB_REF_NAME/$installer" \
+            --arg portable_signature "$(cat "dist/$portable.sig")" \
+            --arg portable_url "$REPO_URL/releases/download/$GITHUB_REF_NAME/$portable" \
             '{version: $version, notes: $notes, pub_date: $pub_date,
-              platforms: {"windows-x86_64": {signature: $signature, url: $url}}}' > dist/latest.json
+              platforms: {"windows-x86_64": {signature: $signature, url: $url},
+                          "windows-x86_64-portable": {signature: $portable_signature, url: $portable_url}}}' \
+            > dist/latest.json
           cat dist/latest.json
       - uses: softprops/action-gh-release@v3
         with:

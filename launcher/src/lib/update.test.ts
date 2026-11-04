@@ -11,7 +11,10 @@ const found = {
   currentVersion: "0.1.0",
   notes: "See https://example.org/v0.2.0",
   date: 1_790_000_000,
+  inApp: true,
 };
+
+const status = { enabled: true, portable: false, version: "0.2.0", lastCheck: null, updatedFrom: null };
 
 describe("updates", () => {
   beforeEach(() => {
@@ -80,5 +83,47 @@ describe("updates", () => {
     expect(updater.installing).toBe(false);
     expect(updater.progress).toBeNull();
     expect(updater.update).toBeNull();
+  });
+
+  it("sends a portable copy to the releases page when the release has no portable zip", async () => {
+    updater.status = { ...status, portable: true };
+    updater.update = { ...found, inApp: false };
+    const open = vi.spyOn(api, "openLink").mockResolvedValue(null);
+    const install = vi.spyOn(api, "installUpdate");
+    await installUpdate();
+    expect(open).toHaveBeenCalled();
+    expect(install).not.toHaveBeenCalled();
+
+    updater.update = found;
+    open.mockClear();
+    const done = installUpdate();
+    await vi.runAllTimersAsync();
+    await done;
+    expect(install).toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("updates the T3SDK in the game once after a launcher update", async () => {
+    vi.spyOn(api, "updaterStatus").mockResolvedValue({ ...status, updatedFrom: "0.1.0" });
+    vi.spyOn(api, "checkUpdate").mockResolvedValue({ checked: true, update: null });
+    const start = vi.spyOn(api, "startTask");
+    const sdk = { installed: true, settings: true, built: true, buildable: false, managed: true, outdated: true };
+    const overview = api.overview();
+    await vi.runAllTimersAsync();
+    const base = await overview;
+    expect(base.game?.supported).toBe(true);
+    app.overview = { ...base, sdk, running: false };
+    const toasts = app.toasts.length;
+    const first = startupUpdateCheck();
+    await vi.advanceTimersByTimeAsync(100);
+    await first;
+    expect(app.toasts[toasts]?.text).toBe("Launcher updated to 0.2.0. Updating T3SDK in the game…");
+    expect(start).toHaveBeenCalledWith({ kind: "sdkDeploy" });
+
+    start.mockClear();
+    const again = startupUpdateCheck();
+    await vi.runAllTimersAsync();
+    await again;
+    expect(start).not.toHaveBeenCalled();
   });
 });

@@ -371,10 +371,12 @@ export interface LogsReport {
 export interface UpdaterStatus {
   /** This build can update itself (it was built with the update key). */
   enabled: boolean;
-  /** Unzipped from the portable zip: new versions are downloaded by hand. */
+  /** Unzipped from the portable zip: it replaces its own files when it updates. */
   portable: boolean;
   version: string;
   lastCheck: number | null;
+  /** Set on the first start after an update: the version before it ("" when unknown). */
+  updatedFrom: string | null;
 }
 
 export interface UpdateInfo {
@@ -383,6 +385,8 @@ export interface UpdateInfo {
   notes: string | null;
   /** Release date, Unix seconds. */
   date: number | null;
+  /** This copy installs it itself; false for a portable copy when the release has no signed portable zip. */
+  inApp: boolean;
 }
 
 export interface UpdateCheck {

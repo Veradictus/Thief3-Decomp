@@ -144,8 +144,19 @@ at start-up, at most once a day (**Settings → Updates** has a switch and
 **Check now**). A newer version shows an "Update" pill in the top bar;
 **Update and restart** downloads the installer, checks its signature, and
 runs it without questions (a progress bar), after which the new launcher
-starts. The portable zip does not update itself: it links to the releases
-page. Builds without the key (development builds, forks) do not check at all.
+starts. A portable copy downloads the release's signed portable zip instead,
+replaces its own files in its folder and starts again. Builds without the key
+(development builds, forks) do not check at all.
+
+On the first start after an update the launcher says so, and when it
+installed T3SDK into the game and the game's copy is older than the one it
+now ships, it updates that copy at once (the **Update T3SDK** step of the
+Play page; settings and mods are kept), unless the game is running.
+
+The T3SDK folder and Python are saved at the first-run setup. When they
+belong to another launcher copy (an older portable folder, or the installed
+launcher seen from a portable one) or are gone, the launcher points them at
+its own copies at start-up. A T3SDK checkout or a Python of your own is kept.
 How the key and the release files fit together: [releasing.md](releasing.md).
 
 ## Collect logs

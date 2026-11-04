@@ -8,7 +8,14 @@
   import { api, emptyConfig } from "$lib/api";
   import { app, guard, running, saveConfig } from "$lib/app.svelte";
   import { ago, dateTime, firstLink } from "$lib/format";
-  import { checkForUpdate, installUpdate, loadUpdaterStatus, RELEASES_URL, updater } from "$lib/update.svelte";
+  import {
+    checkForUpdate,
+    installUpdate,
+    loadUpdaterStatus,
+    manualUpdate,
+    RELEASES_URL,
+    updater,
+  } from "$lib/update.svelte";
 
   // Bound to the Settings draft, so saving the other settings keeps this one.
   let { autoCheck = $bindable(null) }: { autoCheck?: boolean | null } = $props();
@@ -20,6 +27,9 @@
   const status = $derived(updater.status);
   const update = $derived(updater.update);
   const notes = $derived(update ? firstLink(update.notes) : null);
+  const manual = $derived(manualUpdate());
+  /** A running task keeps the launcher's files in use: the update waits for it. */
+  const busy = $derived(running());
 
   async function setAuto(on: boolean) {
     autoCheck = on;
@@ -64,8 +74,8 @@
         <UpdateProgress />
       {:else}
         <div class="row">
-          <button class="btn small primary" onclick={installUpdate} disabled={running() !== null}>
-            <Icon name="download" size={14} />{status?.portable ? "Download" : "Update and restart"}
+          <button class="btn small primary" onclick={installUpdate} disabled={!manual && busy !== null}>
+            <Icon name="download" size={14} />{manual ? "Download" : "Update and restart"}
           </button>
           {#if notes}
             <button class="btn small ghost" onclick={() => guard(api.openLink(notes))}>
@@ -73,8 +83,12 @@
             </button>
           {/if}
         </div>
-        {#if status?.portable}
+        {#if busy && !manual}
+          <p class="faint small">Waits for “{busy.title}” to finish.</p>
+        {:else if manual}
           <p class="faint small">This is the portable launcher: unzip the new version over this folder.</p>
+        {:else if status?.portable}
+          <p class="faint small">The launcher replaces its own files in this folder and starts again.</p>
         {:else}
           <p class="faint small">The installer runs without questions and starts the new launcher when it is done.</p>
         {/if}

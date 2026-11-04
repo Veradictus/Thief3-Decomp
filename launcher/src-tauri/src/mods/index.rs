@@ -6,7 +6,6 @@
 use std::collections::{BTreeMap, HashSet};
 use std::io::{Read, Write};
 use std::path::Path;
-use std::time::Duration;
 
 use semver::Version;
 use serde::Serialize;
@@ -17,6 +16,7 @@ use super::checks::Severity;
 use super::layout::{Package, SdkInfo};
 use super::manifest::{valid_https, valid_id};
 use super::version::{self, Range};
+use crate::net::agent;
 
 pub const DEFAULT_URL: &str = "https://veradictus.github.io/Thief3-Decomp/modindex/index.json";
 
@@ -317,19 +317,6 @@ pub fn view(url: &str, index: &Index, packages: &[Package], enabled: &HashSet<St
 }
 
 // ---- network -------------------------------------------------------------------
-
-fn agent() -> ureq::Agent {
-    use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
-    let tls = TlsConfig::builder().provider(TlsProvider::NativeTls).root_certs(RootCerts::PlatformVerifier).build();
-    ureq::Agent::config_builder()
-        .tls_config(tls)
-        .https_only(true)
-        .user_agent(format!("T3SDK-Launcher/{}", env!("CARGO_PKG_VERSION")))
-        .timeout_connect(Some(Duration::from_secs(20)))
-        .timeout_recv_response(Some(Duration::from_secs(30)))
-        .build()
-        .into()
-}
 
 pub fn fetch(url: &str) -> Result<Index, String> {
     if !valid_https(url) {
