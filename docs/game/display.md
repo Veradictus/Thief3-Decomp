@@ -52,6 +52,17 @@ high-resolution waitable timer, then a short spin to the exact frame
 boundary) and a `FrameStats` log of frames per second and time spent in
 `Present`.
 
+## Brightness
+
+The Brightness option (with the hidden `Contrast` and `Gamma`) is a gamma
+ramp the game hands to Direct3D, which applies it to the whole screen, but
+only in exclusive fullscreen: in a window (the borderless one, or the game's
+own windowed mode) the option does nothing, under Windows' Direct3D and
+under DXVK alike. T3SDK's `WindowedBrightness` keeps the ramp the game sets
+and, just before each frame is shown, redraws the finished frame through it,
+so the option works the same in a window, without touching the desktop.
+At the default brightness the ramp changes nothing and nothing is drawn.
+
 ## The hardware cursor
 
 In the menus, the game does not use a normal Windows cursor: every frame it

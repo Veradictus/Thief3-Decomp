@@ -189,6 +189,7 @@ void LoadDisplaySettings(display::Options& options, const wchar_t* file) {
     options.cursorScale = wcstod(scale, nullptr);
 
     options.frameStats = ReadBool(L"Display", L"FrameStats", options.frameStats, file);
+    options.windowedBrightness = ReadBool(L"Display", L"WindowedBrightness", options.windowedBrightness, file);
 }
 
 // Reads every setting from the ini file at `ini`; a missing file or key keeps the default.

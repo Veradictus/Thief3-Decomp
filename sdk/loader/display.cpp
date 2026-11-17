@@ -2,12 +2,14 @@
 // display.hpp): rewriting the resolution table, running the Direct3D 8 device
 // windowed and borderless (with what that needs: the game's cursor and VSync,
 // bringing the window to the front, covering level changes, running in the
-// background), frame pacing, and rescaling the UI layout for widescreen.
+// background, the brightness options, which gamma.cpp draws), frame pacing,
+// and rescaling the UI layout for widescreen.
 // Facts and evidence for the addresses below are in docs/engine.md.
 #include "display.hpp"
 
 #include "curtain.hpp"
 #include "engine.hpp"
+#include "gamma.hpp"
 #include "iat.hpp"
 #include "log.hpp"
 
@@ -428,7 +430,9 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     // desktop's refresh rate.
     if (!g_borderless) {
         UseDesktopRefresh(params);
+        gamma::BeforeReset();
         HRESULT result = g_reset(device, params);
+        gamma::Attach(device, params->Windowed != 0);
         T3_LOG("display: Reset %ux%u %s at %u Hz, present interval %u -> 0x%08lX", params->BackBufferWidth,
                params->BackBufferHeight, params->Windowed ? "windowed" : "fullscreen",
                params->FullScreen_RefreshRateInHz, params->FullScreen_PresentationInterval, result);
@@ -448,7 +452,9 @@ HRESULT WINAPI ResetDetour(void* device, PresentParameters* params) {
     }
 
     MakeWindowed(params);
+    gamma::BeforeReset();
     HRESULT result = g_reset(device, params);
+    gamma::Attach(device, params->Windowed != 0);
     MakeBorderless(g_window);
     T3_LOG("display: Reset %ux%u windowed%s, format %u -> 0x%08lX", params->BackBufferWidth, params->BackBufferHeight,
            VSyncNote(params), params->BackBufferFormat, result);
@@ -573,9 +579,12 @@ void CountFrame(const LARGE_INTEGER& before) {
     g_frames = 0;
 }
 
-// Detour of IDirect3DDevice8::Present: waits for the frame's turn when MaxFPS
-// is set and times the call when FrameStats is on.
+// Detour of IDirect3DDevice8::Present: draws the brightness of a windowed
+// game (gamma.cpp), waits for the frame's turn when MaxFPS is set and times
+// the call when FrameStats is on.
 HRESULT WINAPI PresentDetour(void* device, const RECT* source, const RECT* dest, HWND window, const void* dirty) {
+    gamma::BeforePresent(device);
+
     // Hold the frame back when MaxFPS is set.
     if (g_frameTicks) {
         WaitForFrameTurn();
@@ -600,8 +609,8 @@ void HookPresent(void* device) {
     // Start the statistics period once the hook is in.
     if (HookFunction(present, reinterpret_cast<void*>(&PresentDetour), reinterpret_cast<void**>(&g_present))) {
         QueryPerformanceCounter(&g_statsStart);
-        T3_LOG("display: Present hooked (frame limit %s, frame statistics %s)", g_frameTicks ? "on" : "off",
-               g_frameStats ? "on" : "off");
+        T3_LOG("display: Present hooked (frame limit %s, frame statistics %s, windowed brightness %s)",
+               g_frameTicks ? "on" : "off", g_frameStats ? "on" : "off", gamma::Enabled() ? "on" : "off");
     }
 }
 
@@ -1056,8 +1065,11 @@ HRESULT WINAPI CreateDeviceDetour(void* d3d, UINT adapter, UINT type, HWND focus
         }
     }
 
-    // Hook Present once when the frame limit or the statistics are on.
-    if ((g_frameTicks || g_frameStats) && !g_present) {
+    // The brightness options in a window: the pass keeps the game's ramp and needs to know the device's mode.
+    gamma::Attach(*device, params->Windowed != 0);
+
+    // Hook Present once when the frame limit, the statistics or the brightness pass are on.
+    if ((g_frameTicks || g_frameStats || gamma::Enabled()) && !g_present) {
         HookPresent(*device);
     }
 
@@ -1511,6 +1523,7 @@ void Install(const Options& options) {
 
     ConfigureFramePacing(options);
     g_cursorScale = options.cursorScale;
+    gamma::Configure(options.windowedBrightness);
 
     // The device hooks: borderless, and the frame limit and statistics.
     HMODULE exe = GetModuleHandleW(nullptr);

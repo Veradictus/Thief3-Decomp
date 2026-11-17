@@ -613,6 +613,8 @@ reaches the game through a file override.
 | `LoadingScreen::Begin(device, map, flag)`, `__cdecl`: `<[Paths] DynamicTextures>\<map>.dds` (else `Loading1.dds`) as the background, the `[LoadingScreen]` logo and caption textures; draws and presents | `0x109E1FC0` | static (hooked by the SDK's level-change curtain) |
 | `LoadingScreen::LoadLayout` (`[LoadingScreen]` positions and sizes) | `0x109DFBA0` | static |
 | `UpdateWindowTitle` (localised "Thief - Deadly Shadows") | `0x10C872C0` | static |
+| Gamma ramp from the client's `Brightness`, `Contrast` and `Gamma` (`+0x68`, `+0x6C`, `+0x70` of the object at the argument's `+0x18`), set with the device's `SetGammaRamp(D3DSGR_CALIBRATE)` at `0x10C83435` (vtable slot 18), only when the caps copy at render device `+0x4104` has `D3DCAPS2_FULLSCREENGAMMA` | `0x10C83300` | static (the ramp is kept by the SDK's `SetGammaRamp` hook) |
+| Resets the desktop's gamma to a straight ramp with GDI `SetDeviceGammaRamp(GetDC(0))` | `0x10C82490` | static |
 
 The menu cursor is a Direct3D hardware cursor: a 32x32 `A8R8G8B8` image with
 its hot spot at 0,0. Every frame the game calls the device's
@@ -641,6 +643,18 @@ weighted by it. On an alpha-less back buffer those passes light at full
 strength (DXVK even rewrites `DESTALPHA` to `ONE` there). A windowed device
 keeps that format whenever the adapter supports it (`CheckDeviceType` with
 the desktop format, windowed).
+
+The brightness options are a gamma ramp (`0x10C83300`):
+`(pow(i / 255, 1 / Gamma) * 65535 - 32767) * Contrast + 32767 +
+(Brightness - 1) * 32767`, clamped to 0..65535, the same for red, green and
+blue. Every call also adds 0.005 to `Gamma` on every other call (the float at
+`0x10F06B34` flips between 0.005 and 0), so consecutive ramps always
+differ slightly. The ramp is handed to
+`IDirect3DDevice8::SetGammaRamp`. Direct3D 8 applies a device ramp only in
+exclusive fullscreen, and DXVK does the same (`D3D9SwapChainEx::SetGammaRamp`
+applies it only when the swap chain is not windowed), so in a window the
+options do nothing. The SDK keeps the ramp and draws the frame through it
+before each `Present` of a windowed device (`sdk/loader/gamma.cpp`).
 
 The same handler releases the mouse and DirectInput, saves
 `TimeManager::IsPaused` to `GPausedBeforeDeactivation` (`0x10FF71BC`), pauses

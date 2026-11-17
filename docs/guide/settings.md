@@ -66,6 +66,7 @@ what most of the others build on.
 | `MaxFPS` | `0` (no limit) | Caps the frame rate. Uncapped, the main menu has been measured between 200 and about 1,255 fps on one test machine, which is more work for your GPU than the screen can show. With VSynch on (below), the frame rate already follows your monitor; a cap is for when VSynch is off. **Not yet tried in the actual game.** |
 | `CursorScale` | `0` (grows with screen height) | Sets the size of the menu cursor in the borderless window. `0` scales it with the screen (1x at 768 lines); a fixed number such as `1.5` overrides that. |
 | `FrameStats` | off | Logs frames per second and the time spent presenting a frame, every 10 seconds. For reporting a performance problem, or curiosity. |
+| `WindowedBrightness` | on | Makes the Brightness option (Options > Audio/Video) work in the borderless window. Windows only applies the game's brightness in exclusive fullscreen, so the SDK draws it into each frame. Turn it off if the picture looks wrong in a window. |
 
 ## The game's own Options
 

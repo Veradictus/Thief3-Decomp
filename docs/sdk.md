@@ -73,6 +73,7 @@ moved them.
 | | `MaxFPS` | 0 | highest frame rate; 0 = no limit |
 | | `CursorScale` | 0 | size of the menu cursor in a borderless window: 0 = grow with the screen height (1x at 768 lines), else a fixed factor |
 | | `FrameStats` | 0 | log frames per second and the time spent in `Present` every 10 seconds |
+| | `WindowedBrightness` | 1 | the Brightness option works in a window: Direct3D applies the game's gamma ramp only in exclusive fullscreen, so the SDK draws each frame through it (a pixel shader 1.1 pass; nothing is drawn at the default brightness) |
 
 A borderless window also takes over what exclusive fullscreen did on its own:
 

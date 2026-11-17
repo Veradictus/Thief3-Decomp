@@ -32,6 +32,10 @@ struct Options {
     double cursorScale = 0;
     // Log frames per second and the time spent presenting, every 10 seconds.
     bool frameStats = false;
+    // Show the game's Brightness, Contrast and Gamma options in a window (Borderless, or the game's own windowed
+    // mode), where Direct3D ignores them: the SDK draws the frame through the game's gamma ramp (gamma.cpp). On
+    // unless turned off: a fix, and an older T3SDK.ini has no line for it.
+    bool windowedBrightness = true;
 };
 
 // Call once at start-up, before the game reads its options, after MinHook is

@@ -12,6 +12,7 @@ add_library(t3sdk_loader SHARED
   executable_hash.cpp
   files.cpp
   fixes.cpp
+  gamma.cpp
   iat.cpp
   log.cpp
   menu.cpp
