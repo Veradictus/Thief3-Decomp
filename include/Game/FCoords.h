@@ -11,6 +11,8 @@ class FCoords
 {
 public:
     FCoords(const FVector& InOrigin) : Origin(InOrigin), XAxis(1, 0, 0), YAxis(0, 1, 0), ZAxis(0, 0, 1) {}
+    FCoords(const FVector& InOrigin, const FVector& InXAxis, const FVector& InYAxis, const FVector& InZAxis)
+        : Origin(InOrigin), XAxis(InXAxis), YAxis(InYAxis), ZAxis(InZAxis) {}
     FCoords() {}
 
     FRotator OrthoRotation() const;

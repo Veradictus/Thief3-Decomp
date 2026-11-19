@@ -7,6 +7,7 @@ class Class_10971570
 {
 public:
     int FUN_10971570(int Id, bool* Out);
+    int FUN_10971570(int Id, unsigned char* Out);
     int FUN_109766a0(int A, int B);
 
     char Pad00[0x1];

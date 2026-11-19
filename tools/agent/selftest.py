@@ -1254,6 +1254,17 @@ def test_xbox_pairs(base: Path) -> None:
 TESTS.append(test_xbox_pairs)
 
 
+def test_address_provenance(base: Path) -> None:
+    """Original-address views reject hostile metadata without requiring game files."""
+    import unittest
+    from test_address_provenance import AddressProvenanceTests
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(AddressProvenanceTests)
+    check(unittest.TextTestRunner().run(suite).wasSuccessful(), "object address provenance")
+
+
+TESTS.append(test_address_provenance)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-k", help="run only tests whose name contains this")

@@ -12,6 +12,11 @@ public:
     virtual void Virtual1();
     virtual void Virtual2();
     virtual Struct_10C647F0_Vec* Virtual3();
+
+    // Direct calls observed on the object held by cRefPtr; no new virtual slots.
+    bool FUN_10c63d50();
+    bool FUN_10c63dc0();
+    void FUN_10c63f40();
 };
 
 #endif // GAME_OBJECT_10AB5B20_H

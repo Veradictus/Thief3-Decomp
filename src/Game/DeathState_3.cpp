@@ -1,5 +1,6 @@
 // Game/DeathState_3.cpp: functions matched byte for byte, assembled by tools/agent/integrate.py.
 // Declarations above the functions belong in include/ once they settle.
+#include "Core/Core.h"
 #include "Game/Class_10E90D70.h"
 #include "Game/DeathState.h"
 
@@ -12,8 +13,8 @@ struct Struct_10BCEAB0Triple
 
 struct Struct_10BCEAB0Part
 {
-    int Unknown00;
-    Struct_10BCEAB0Triple Unknown04;
+    FLOAT Unknown00;
+    FVector Unknown04;
     Struct_10BCEAB0Triple Unknown10;
     bool Unknown1C;
     bool Unknown1D;

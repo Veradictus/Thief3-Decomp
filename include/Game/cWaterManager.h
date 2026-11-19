@@ -6,6 +6,8 @@
 #include "Game/Class_10AB90F0.h"
 #include "Game/cActorManager.h"
 
+class Class_1098E330;
+
 class cWaterManager : public cActorManager
 {
 public:
@@ -15,6 +17,9 @@ public:
     cWaterManager();
 
     void Init();
+    void FUN_10ab8c70(int A, int B, int C);
+    void FUN_10ab9240(int Actor, int Force, Class_1098E330* Volume);
+    void FUN_10ab9850(int Actor, int Swimming, float SurfaceZ, Class_1098E330* Volume);
 
     Class_10AB90F0 Unknown04;
     int m_Splash;

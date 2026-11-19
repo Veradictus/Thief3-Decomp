@@ -6,6 +6,7 @@
 class Class_10E9AF80
 {
 public:
+    Class_10E9AF80(int A, int B, int C);
     virtual void Virtual0();
     virtual int FUN_10c3cf40();
     virtual void Virtual2();

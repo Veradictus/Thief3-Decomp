@@ -3,7 +3,11 @@
 #include "Game/cIntArray.h"
 #include "Game/Class_109A62E0.h"
 #include "Game/Class_10C356D0_Element.h"
-#include "Game/Class_10E9AAD0.h"
+class Class_10E9AAD0
+{
+public:
+    virtual ~Class_10E9AAD0();
+};
 
 void ReleaseHashTable();
 
@@ -42,6 +46,7 @@ class cMotionControllerAnim : public Class_10E9AAD0, public Class_10E7C584
 {
 public:
     virtual ~cMotionControllerAnim();
+    virtual void FUN_10c357d0(float Delta);
 
     Class_109A62E0* Unknown0C;
     char Pad10[0x94];
